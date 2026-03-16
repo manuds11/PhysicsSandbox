@@ -1,0 +1,9 @@
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Plugins/
+.vs/
+.vscode/
+.idea/
+.VC.db
