@@ -10,13 +10,25 @@ UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	ADebugProbeActor();
 
 protected:
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	virtual void Tick(float DeltaTime) override;
+
+private:
+
+	FVector StartLocation;
+
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DebugProbe")
+	float Speed = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DebugProbe")
+	float Amplitude = 50.0f;
 };

@@ -13,9 +13,19 @@ ADebugProbeActor::ADebugProbeActor()
 void ADebugProbeActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	StartLocation = GetActorLocation();
 }
 
 void ADebugProbeActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	float Time = GetWorld()->GetTimeSeconds();
+	float OffsetZ = FMath::Sin(Time * Speed) * Amplitude;
+
+	FVector NewLocation = StartLocation;
+	NewLocation.Z += OffsetZ;
+
+	SetActorLocation(NewLocation);
 }
