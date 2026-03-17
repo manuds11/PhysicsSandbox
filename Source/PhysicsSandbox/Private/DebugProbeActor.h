@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "DebugProbeActor.generated.h"
 
+class UStaticMeshComponent;
+
 UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 {
@@ -23,6 +25,9 @@ public:
 private:
 
 	FVector StartLocation;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DebugProbe", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UStaticMeshComponent> MeshComp;
 
 public:
 

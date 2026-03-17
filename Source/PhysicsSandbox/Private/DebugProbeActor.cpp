@@ -8,6 +8,11 @@
 ADebugProbeActor::ADebugProbeActor()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
+	SetRootComponent(MeshComp);
+
+	MeshComp->SetSimulatePhysics(false);
 }
 
 void ADebugProbeActor::BeginPlay()
