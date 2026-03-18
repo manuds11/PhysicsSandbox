@@ -6,9 +6,6 @@
 #include "GameFramework/Actor.h"
 #include "DebugProbeActor.generated.h"
 
-class UStaticMeshComponent;
-
-
 UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 {
@@ -22,4 +19,6 @@ protected:
 
 public:
     virtual void Tick(float DeltaTime) override;
+private:
+    int FrameCount;
 };
