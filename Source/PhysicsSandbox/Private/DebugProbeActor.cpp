@@ -7,30 +7,17 @@
 
 ADebugProbeActor::ADebugProbeActor()
 {
-	PrimaryActorTick.bCanEverTick = true;
-
-	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
-	SetRootComponent(MeshComp);
-
-	MeshComp->SetSimulatePhysics(false);
+    PrimaryActorTick.bCanEverTick = true;
+    UE_LOG(LogTemp, Warning, TEXT("Constructor de DebugProbeActor"));
 }
 
 void ADebugProbeActor::BeginPlay()
 {
-	Super::BeginPlay();
-
-	StartLocation = GetActorLocation();
+    Super::BeginPlay();
+    UE_LOG(LogTemp, Warning, TEXT("BeginPlay de DebugProbeActor"));
 }
 
 void ADebugProbeActor::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
-	float Time = GetWorld()->GetTimeSeconds();
-	float OffsetZ = FMath::Sin(Time * Speed) * Amplitude;
-
-	FVector NewLocation = StartLocation;
-	NewLocation.Z += OffsetZ;
-
-	SetActorLocation(NewLocation);
+    Super::Tick(DeltaTime);
 }

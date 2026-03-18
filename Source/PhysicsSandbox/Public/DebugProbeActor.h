@@ -8,32 +8,18 @@
 
 class UStaticMeshComponent;
 
+
 UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	ADebugProbeActor();
+    ADebugProbeActor();
 
 protected:
-	virtual void BeginPlay() override;
+    virtual void BeginPlay() override;
 
 public:
-	virtual void Tick(float DeltaTime) override;
-
-private:
-
-	FVector StartLocation;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "DebugProbe", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UStaticMeshComponent> MeshComp;
-
-public:
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DebugProbe")
-	float Speed = 2.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DebugProbe")
-	float Amplitude = 50.0f;
+    virtual void Tick(float DeltaTime) override;
 };
