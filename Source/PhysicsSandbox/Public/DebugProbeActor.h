@@ -21,4 +21,5 @@ public:
     virtual void Tick(float DeltaTime) override;
 private:
     int FrameCount;
+    float RunningTime = 0.0f;
 };

@@ -30,6 +30,13 @@ void ADebugProbeActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
     
+    UE_LOG(LogTemp, Warning, TEXT("Delta: %f"), DeltaTime);
+
     FrameCount++;
-    UE_LOG(LogTemp, Warning, TEXT("Frame: %d"), FrameCount);
+    RunningTime += DeltaTime;
+
+    if (FrameCount % 15 == 0) // Cada 5 frames se imprime
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Frame: %d | Time FC: %.2f"), FrameCount, RunningTime);
+    }
 }
