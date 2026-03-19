@@ -20,7 +20,11 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
 private:
+    // Actor::Tick variables
     int FrameCount;
     float RunningTime = 0.0f;
     float LogTimer = 0.0f;
+
+    // Physical variables
+    float VerticalSpeed = 100.0f; 
 };

@@ -8,7 +8,6 @@ ADebugProbeActor::ADebugProbeActor()
 {
     PrimaryActorTick.bCanEverTick = true;
     FrameCount = 0;
-    UE_LOG(LogTemp, Warning, TEXT("Constructor de DebugProbeActor"));
 }
 
 void ADebugProbeActor::BeginPlay()
@@ -30,21 +29,9 @@ void ADebugProbeActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
     
-    // UE_LOG(LogTemp, Warning, TEXT("Delta: %f"), DeltaTime);
-
-    FrameCount++;
     RunningTime += DeltaTime;
 
-    if (FrameCount % 15 == 0) // Cada 5 frames se imprime
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Frame: %d | Time FC: %.2f"), FrameCount, RunningTime);
-    }
-
-    LogTimer += DeltaTime;
-
-    if (LogTimer >= 1.0f)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Sim Time: %.2f"), RunningTime);
-        LogTimer = 0.0f;
-    }
+    FVector CurrentLocation = GetActorLocation();
+    CurrentLocation.Z += VerticalSpeed * DeltaTime;
+    SetActorLocation(CurrentLocation);
 }
