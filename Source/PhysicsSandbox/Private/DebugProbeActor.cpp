@@ -32,16 +32,19 @@ void ADebugProbeActor::Tick(float DeltaTime)
     RunningTime += DeltaTime;
 
     FVector CurrentLocation = GetActorLocation();
-    CurrentLocation.Z += VerticalSpeed * DeltaTime;
+    v_Z += a_Z * DeltaTime;
+    CurrentLocation.Z += v_Z * DeltaTime;
     SetActorLocation(CurrentLocation);
 
     if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(
-            1,
+            -1,
             0.0f,
             FColor::Green,
-            FString::Printf(TEXT("Z Position: %.3f"), CurrentLocation.Z)
+            FString::Printf(
+                TEXT("Z: %.2f | Vz: %.2f | Az: %.2f"),
+                CurrentLocation.Z, v_Z, a_Z)
         );
     }
 }
