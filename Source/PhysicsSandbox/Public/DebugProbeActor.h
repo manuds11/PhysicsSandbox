@@ -22,4 +22,5 @@ public:
 private:
     int FrameCount;
     float RunningTime = 0.0f;
+    float LogTimer = 0.0f;
 };
