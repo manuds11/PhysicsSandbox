@@ -41,7 +41,7 @@ void ADebugProbeActor::Tick(float DeltaTime)
             1,
             0.0f,
             FColor::Green,
-            FString::Printf(TEXT("Z Position: %f"), CurrentLocation.Z)
+            FString::Printf(TEXT("Z Position: %.3f"), CurrentLocation.Z)
         );
     }
 }

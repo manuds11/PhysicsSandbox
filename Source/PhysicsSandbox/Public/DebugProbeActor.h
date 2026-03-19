@@ -26,5 +26,5 @@ private:
     float LogTimer = 0.0f;
 
     // Physical variables
-    float VerticalSpeed = 100.0f; 
+    float VerticalSpeed = 80.0f; 
 };
