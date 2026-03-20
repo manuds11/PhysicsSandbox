@@ -35,29 +35,54 @@ void ADebugProbeActor::Tick(float DeltaTime)
         bReleased = true;
     }
 
-    FString StateText = bReleased ? TEXT("RELEASED") : TEXT("WAITING");
-
-    if (bReleased)
-    {
-        
+    if (bReleased && !bAtGround)
+    { 
         v_Z += a_Z * DeltaTime;
         CurrentLocation.Z += v_Z * DeltaTime;
         SetActorLocation(CurrentLocation);
 
         if (CurrentLocation.Z <= GroundZ)
         {
-            CurrentLocation.Z = 0.0f;
+            CurrentLocation.Z = GroundZ;
             if (v_Z < 0.0f) {
-                v_Z = -v_Z * 0.8f; // rebote con pérdida
+                v_Z = -v_Z * Restitution; // rebote con pérdida
+                if (v_Z < StopSpeedThreshold)
+                {
+                    v_Z = 0.0f;
+                    bAtGround = true;
+                }
+            
             }
-        }   
+        }
+        SetActorLocation(CurrentLocation);
     }
+
+    FString StateText = !bReleased ? TEXT("WAITING") : (bAtGround ? TEXT("RESTING") : TEXT("RELEASED"));
+    FColor StateColor = (!bReleased || bAtGround) ? FColor::Red : FColor::Green;
 
     if (GEngine)
     {
-        GEngine->AddOnScreenDebugMessage(1, 0.0f, FColor::Green, FString::Printf(
-            TEXT("%s\nZ: %.2f | vZ: %.2f | aZ: %.2f\nRunningTime: %.2f\nAv. DeltaTime: %.4f"),
-            *StateText, CurrentLocation.Z, v_Z, a_Z, RunningTime, AverageDeltaTime)
+        // Línea 1: estado, con color dinámico
+        GEngine->AddOnScreenDebugMessage(
+            1,
+            0.0f,
+            StateColor,
+            StateText
+        );
+
+        // Línea 2: datos, siempre en verde o en el color que quieras
+        GEngine->AddOnScreenDebugMessage(
+            2,
+            0.0f,
+            FColor::Green,
+            FString::Printf(
+                TEXT("Z: %.2f | vZ: %.2f | aZ: %.2f\nRunningTime: %.2f\nAv. DeltaTime: %.4f"),
+                CurrentLocation.Z,
+                v_Z,
+                a_Z,
+                RunningTime,
+                AverageDeltaTime
+            )
         );
     }
 }
