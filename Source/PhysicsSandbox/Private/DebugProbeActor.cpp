@@ -19,47 +19,45 @@ void ADebugProbeActor::BeginPlay()
    // FVector StartLocation = GetActorLocation();
    // StartLocation.Z = Z_o;
    // SetActorLocation(StartLocation);
-
-    if (GEngine)
-    {
-        GEngine->AddOnScreenDebugMessage(
-            -1,
-            5.f,
-            FColor::Green,
-            TEXT("BeginPlay ejecutado")
-        );
-    }
 }
 
 void ADebugProbeActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    
+    FrameCount++;
     RunningTime += DeltaTime;
+    AverageDeltaTime = RunningTime / FrameCount;
 
     FVector CurrentLocation = GetActorLocation();
-    v_Z += a_Z * DeltaTime;
-    CurrentLocation.Z += v_Z * DeltaTime;
-    SetActorLocation(CurrentLocation);
 
-    if (CurrentLocation.Z <= GroundZ)
+    if (!bReleased && RunningTime >= ReleaseTime)
     {
-        CurrentLocation.Z = 0.0f;
-        if (v_Z < 0.0f) {
-            v_Z = -v_Z * 0.8f; // rebote con pérdida
-        }
+        bReleased = true;
+    }
+
+    FString StateText = bReleased ? TEXT("RELEASED") : TEXT("WAITING");
+
+    if (bReleased)
+    {
+        
+        v_Z += a_Z * DeltaTime;
+        CurrentLocation.Z += v_Z * DeltaTime;
+        SetActorLocation(CurrentLocation);
+
+        if (CurrentLocation.Z <= GroundZ)
+        {
+            CurrentLocation.Z = 0.0f;
+            if (v_Z < 0.0f) {
+                v_Z = -v_Z * 0.8f; // rebote con pérdida
+            }
+        }   
     }
 
     if (GEngine)
     {
-        GEngine->AddOnScreenDebugMessage(
-            1,
-            0.0f,
-            FColor::Green,
-            FString::Printf(
-                TEXT("Z: %.2f | vZ: %.2f | aZ: %.2f\nRunningTime: %.2f"),
-                CurrentLocation.Z, v_Z, a_Z, RunningTime
-            )
+        GEngine->AddOnScreenDebugMessage(1, 0.0f, FColor::Green, FString::Printf(
+            TEXT("%s\nZ: %.2f | vZ: %.2f | aZ: %.2f\nRunningTime: %.2f\nAv. DeltaTime: %.4f"),
+            *StateText, CurrentLocation.Z, v_Z, a_Z, RunningTime, AverageDeltaTime)
         );
     }
 }

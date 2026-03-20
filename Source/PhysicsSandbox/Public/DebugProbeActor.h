@@ -24,11 +24,16 @@ private:
     // Actor::Tick variables
     int FrameCount;
     float RunningTime = 0.0f;
+    float AverageDeltaTime = 0.0f;
+
+    // ReleaseActions
+    bool bReleased = false;
+    float ReleaseTime = 10.0f;
 
     // Physical variables
     float Z_o = 500.0f;
     float v_Z = 00.0f; 
     float a_Z = -980.0f; // g = 980 cm/s^2 Para gravedad terrestre en unreal
     float Restitution = 0.8f;
-    float GroundZ = 0.01f;
+    float GroundZ = 0.0f;
 };
