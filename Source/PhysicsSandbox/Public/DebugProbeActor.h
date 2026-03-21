@@ -40,4 +40,6 @@ private:
 	float a_Z = -980.0f; // g = 980 cm/s^2 Para gravedad terrestre en unreal
 	float Restitution = 0.8f;
 	float GroundZ = 0.0f;
+
+	void ReleaseBall();
 };

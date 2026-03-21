@@ -13,12 +13,19 @@ ADebugProbeActor::ADebugProbeActor()
 
 void ADebugProbeActor::BeginPlay()
 {
-    UE_LOG(LogTemp, Warning, TEXT("BeginPlay"));
     Super::BeginPlay();
 
-   // FVector StartLocation = GetActorLocation();
-   // StartLocation.Z = Z_o;
-   // SetActorLocation(StartLocation);
+    EnableInput(GetWorld()->GetFirstPlayerController());
+
+    if (InputComponent)
+    {
+        InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &ADebugProbeActor::ReleaseBall);
+    }
+}
+
+void ADebugProbeActor::ReleaseBall()
+{
+    bReleased = true;
 }
 
 void ADebugProbeActor::Tick(float DeltaTime)
@@ -30,11 +37,6 @@ void ADebugProbeActor::Tick(float DeltaTime)
     AverageDeltaTime = RunningTime / FrameCount;
 
     FVector CurrentLocation = GetActorLocation();
-
-    if (!bReleased && RunningTime >= ReleaseTime)
-    {
-        bReleased = true;
-    }
 
     // FÍSICA Tras activación
     if (bReleased && !bAtGround)
