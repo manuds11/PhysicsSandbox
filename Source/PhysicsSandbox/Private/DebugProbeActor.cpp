@@ -64,9 +64,13 @@ void ADebugProbeActor::Tick(float DeltaTime)
 
     if (GEngine)
     {
-        FString StateText = !bReleased ? TEXT("WAITING") : (bAtGround ? TEXT("RESTING") : TEXT("RELEASED"));
-        FColor StateColor = (!bReleased || bAtGround) ? FColor::Red : FColor::Green;
-        GEngine->AddOnScreenDebugMessage( 1, 0.0f, StateColor, StateText );
+        FString PromptText = !bReleased
+            ? TEXT("PRESS SPACE BAR TO RELEASE")
+            : (bAtGround ? TEXT("RESTING") : TEXT("RELEASED"));
+        FColor PromptColor = !bReleased
+            ? FColor::Red
+            : FColor::Green;
+        GEngine->AddOnScreenDebugMessage(10, 0.0f, PromptColor, PromptText );
 
         GEngine->AddOnScreenDebugMessage( 2,
             0.0f, 
