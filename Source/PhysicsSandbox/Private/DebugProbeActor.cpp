@@ -14,18 +14,9 @@ ADebugProbeActor::ADebugProbeActor()
 void ADebugProbeActor::BeginPlay()
 {
     Super::BeginPlay();
-
+    InitialLocation = GetActorLocation();
     EnableInput(GetWorld()->GetFirstPlayerController());
 
-    if (InputComponent)
-    {
-        InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &ADebugProbeActor::ReleaseBall);
-    }
-}
-
-void ADebugProbeActor::ReleaseBall()
-{
-    bReleased = true;
 }
 
 void ADebugProbeActor::Tick(float DeltaTime)
@@ -38,49 +29,8 @@ void ADebugProbeActor::Tick(float DeltaTime)
 
     FVector CurrentLocation = GetActorLocation();
 
-    // FÍSICA Tras activación
-    if (bReleased && !bAtGround)
-    { 
-        v_Z += a_Z * DeltaTime;
-        CurrentLocation.Z += v_Z * DeltaTime;
+    // FÍSICA tras activación
 
-        if (CurrentLocation.Z <= GroundZ)
-        {
-            CurrentLocation.Z = GroundZ;
 
-            if (v_Z < 0.0f) {
-                v_Z = -v_Z * Restitution; // rebote con pérdida
-
-                if (v_Z < StopSpeedThreshold)
-                {
-                    v_Z = 0.0f;
-                    bAtGround = true;
-                }
-            }
-        }
-
-        SetActorLocation(CurrentLocation);
-    }
-
-    if (GEngine)
-    {
-        FString PromptText = !bReleased
-            ? TEXT("PRESS SPACE BAR TO RELEASE")
-            : (bAtGround ? TEXT("RESTING") : TEXT("RELEASED"));
-        FColor PromptColor = !bReleased
-            ? FColor::Red
-            : FColor::Green;
-        GEngine->AddOnScreenDebugMessage(10, 0.0f, PromptColor, PromptText );
-
-        GEngine->AddOnScreenDebugMessage( 2,
-            0.0f, 
-            FColor::Green,
-            FString::Printf( 
-                TEXT("Z: %.2f | vZ: %.2f | aZ: %.2f\nRunningTime: %.2f\nAv. DeltaTime: %.4f"),
-                CurrentLocation.Z, v_Z, a_Z, 
-                RunningTime,
-                AverageDeltaTime
-            )
-        );
-    }
+    // MENSAJES por pantalla
 }
