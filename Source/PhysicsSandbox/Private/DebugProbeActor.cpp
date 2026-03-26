@@ -20,7 +20,16 @@ void ADebugProbeActor::BeginPlay()
     Pos_0 = GetActorLocation();
     Pos_prevTick = Pos_0;
 
-    // EnableInput(GetWorld()->GetFirstPlayerController());
+    EnableInput(GetWorld()->GetFirstPlayerController());
+    if (InputComponent)
+    {
+        InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &ADebugProbeActor::ReleaseActor);
+    }
+}
+
+void ADebugProbeActor::ReleaseActor()
+{
+    bReleased = true;
 }
 
 FVector ADebugProbeActor::ComputeHelixPosition(float t) const
@@ -40,22 +49,27 @@ void ADebugProbeActor::Tick(float DeltaTime)
     FrameCount++;
     RunningTime += DeltaTime;
     AverageDeltaTime = RunningTime / FrameCount;
-    Time += DeltaTime;
-
-    Pos_Tick = ComputeHelixPosition(Time);
-
-    if (DeltaTime > KINDA_SMALL_NUMBER)
-    {
-        Vel_Tick = (Pos_Tick - Pos_prevTick) / DeltaTime;
-    }
-    else
-    {
-        Vel_Tick = FVector::ZeroVector;
-    }
-
-    SetActorLocation(Pos_Tick);
     
-    Pos_prevTick = Pos_Tick;
+    if (bReleased) 
+    {
+
+        Time += DeltaTime;
+
+        Pos_Tick = ComputeHelixPosition(Time);
+
+        if (DeltaTime > KINDA_SMALL_NUMBER)
+        {
+            Vel_Tick = (Pos_Tick - Pos_prevTick) / DeltaTime;
+        }
+        else
+        {
+            Vel_Tick = FVector::ZeroVector;
+        }
+
+        SetActorLocation(Pos_Tick);
+    
+        Pos_prevTick = Pos_Tick;
+    }
 
     PrintDebugInfo();
 }
@@ -78,18 +92,25 @@ void ADebugProbeActor::PrintDebugInfo() const
         0.0f,
         FColor::Cyan,
         FString::Printf(
-            TEXT("Pos (m) [X Y Z]: %.2f | %.2f | %.2f\nVel (m/s) [X Y Z]: %.2f | %.2f | %.2f"
-            "\nRadius (cm): %.2f | Angularfreq (rad/s): %.2f"),
+            TEXT("t (s): %.3f"
+                "\nPos (m) [X Y Z]: %.2f | %.2f | %.2f\nVel (m/s) [X Y Z]: %.2f | %.2f | %.2f"
+            "\nRadius (m): %.2f | Angularfreq (rad/s): %.2f"),
+            Time, 
             PosMeters.X, PosMeters.Y, PosMeters.Z,
             VelMeters.X, VelMeters.Y, VelMeters.Z,
-            Radius, Omega
+            Radius * CmToM, Omega
         )
     );
+
+    FString PromptText = !bReleased ?
+        TEXT("CLICK ANYWHERE AND PRESS SPACE BAR TO RELEASE")
+        : FString::Printf(TEXT("HELICAL TRANSLATION ACTIVE\nRunning Time: %.2f | Avg. dt: %.4f"), RunningTime, AverageDeltaTime);
+    FColor PromptColor = !bReleased ? FColor::Red : FColor::Green;
 
     GEngine->AddOnScreenDebugMessage(
         10,
         0.0f,
-        FColor::Green,
-        FString::Printf(TEXT("HELICAL TRANSLATION ACTIVE\nTime: %.2f | Avg. dt: %.4f"), Time, AverageDeltaTime)
+        PromptColor,
+        PromptText
     );
 }

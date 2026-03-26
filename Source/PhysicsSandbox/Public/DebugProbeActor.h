@@ -25,7 +25,10 @@ private:
 	int FrameCount = 0;
 	float RunningTime = 0.0f; //
 	float AverageDeltaTime = 0.0f;
-	float Time = 0.0f; // Tiempo físico
+	float Time = 0.0f; // Tiempo físico desde que el actor comienza a moverse
+
+	// Action variables
+	bool bReleased = false;
 
 	// Reference frame
 	FVector Pos_0 = FVector::ZeroVector;
@@ -42,6 +45,8 @@ private:
 	float Omega = PI;     // Angular freq (rad/s)
 	float Vel_Z = 500.0f;  // cm/s
 
+	// Methods
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	void PrintDebugInfo() const;
+	void ReleaseActor();
 };
