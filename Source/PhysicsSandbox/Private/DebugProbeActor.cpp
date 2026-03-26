@@ -3,12 +3,15 @@
 #include "DebugProbeActor.h"
 
 #include "Engine/World.h"
-#include "GameFramework/Actor.h"
+
+namespace
+{
+    constexpr float CmToM = 0.01f;
+}
 
 ADebugProbeActor::ADebugProbeActor()
 {
     PrimaryActorTick.bCanEverTick = true;
-    FrameCount = 0;
 }
 
 void ADebugProbeActor::BeginPlay()
@@ -20,11 +23,11 @@ void ADebugProbeActor::BeginPlay()
     // EnableInput(GetWorld()->GetFirstPlayerController());
 }
 
-FVector ADebugProbeActor::ComputeHelixPosition(float time) const
+FVector ADebugProbeActor::ComputeHelixPosition(float t) const
 {
-    const float X = Radius * FMath::Cos(w * time);
-    const float Y = Radius * FMath::Sin(w * time);
-    const float Z = V_z * time;
+    const float X = Radius * FMath::Cos(Omega * t);
+    const float Y = Radius * FMath::Sin(Omega * t);
+    const float Z = Vel_Z * t;
 
     const FVector Offset(X, Y, Z);
     return Pos_0 + Offset;
@@ -35,19 +38,19 @@ void ADebugProbeActor::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     FrameCount++;
-    SimTime += DeltaTime;
-    AverageDeltaTime = SimTime / FrameCount;
-    t += DeltaTime;
+    RunningTime += DeltaTime;
+    AverageDeltaTime = RunningTime / FrameCount;
+    Time += DeltaTime;
 
-    const FVector Pos_Tick = ComputeHelixPosition(t);
+    Pos_Tick = ComputeHelixPosition(Time);
 
     if (DeltaTime > KINDA_SMALL_NUMBER)
     {
-        V_Tick = (Pos_Tick - Pos_prevTick) / DeltaTime;
+        Vel_Tick = (Pos_Tick - Pos_prevTick) / DeltaTime;
     }
     else
     {
-        V_Tick = FVector::ZeroVector;
+        Vel_Tick = FVector::ZeroVector;
     }
 
     SetActorLocation(Pos_Tick);
@@ -64,37 +67,29 @@ void ADebugProbeActor::PrintDebugInfo() const
         return;
     }
 
-    const FVector Pos = GetActorLocation();
-
-    GEngine->AddOnScreenDebugMessage(
-        10,
-        0.0f,
-        FColor::Green,
-        FString::Printf( TEXT("HELICAL TRANSLATION ACTIVE\nAvg. dt: %.4f"), AverageDeltaTime )
-    );
+    const FVector PosMeters = Pos_Tick * CmToM;
+    const FVector VelMeters = Vel_Tick * CmToM;
+    
+    // AddOnScreenDebugMessage displays these blocks in reverse visual order,
+    // so they are intentionally called from bottom block to top block.
 
     GEngine->AddOnScreenDebugMessage(
         11,
         0.0f,
         FColor::Cyan,
         FString::Printf(
-            TEXT("Pos [X Y Z]: %.2f | %.2f | %.2f\nVel [X Y Z]: %.2f | %.2f | %.2f"),
-            Pos.X, Pos.Y, Pos.Z,
-            V_Tick.X, V_Tick.Y, V_Tick.Z
+            TEXT("Pos (m) [X Y Z]: %.2f | %.2f | %.2f\nVel (m/s) [X Y Z]: %.2f | %.2f | %.2f"
+            "\nRadius (cm): %.2f | Angularfreq (rad/s): %.2f"),
+            PosMeters.X, PosMeters.Y, PosMeters.Z,
+            VelMeters.X, VelMeters.Y, VelMeters.Z,
+            Radius, Omega
         )
     );
 
     GEngine->AddOnScreenDebugMessage(
-        12,
+        10,
         0.0f,
-        FColor::Yellow,
-        FString::Printf(
-            TEXT("t: %.2f | Avg dt: %.4f\nRadius: %.2f | Angularfreq: %.2f | V_z: %.2f"),
-            t,
-            AverageDeltaTime,
-            Radius,
-            w,
-            V_z
-        )
+        FColor::Green,
+        FString::Printf(TEXT("HELICAL TRANSLATION ACTIVE\nTime: %.2f | Avg. dt: %.4f"), Time, AverageDeltaTime)
     );
 }

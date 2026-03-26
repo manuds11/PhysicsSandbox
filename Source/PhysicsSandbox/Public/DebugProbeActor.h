@@ -22,24 +22,25 @@ public:
 
 private:
 	// Actor::Tick variables
-	int FrameCount;
-	float SimTime = 0.0f; // Tiempo de simulación
+	int FrameCount = 0;
+	float RunningTime = 0.0f; //
 	float AverageDeltaTime = 0.0f;
-	float t = 0.0f; // Tiempo físico
+	float Time = 0.0f; // Tiempo físico
 
 	// Reference frame
 	FVector Pos_0 = FVector::ZeroVector;
+	FVector Pos_Tick = FVector::ZeroVector;
 	FVector Pos_prevTick = FVector::ZeroVector;
-	FVector V_Tick = FVector::ZeroVector;
+	FVector Vel_Tick = FVector::ZeroVector;
 	
 	// Physical variables
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float g = -980.0f; // g = 980 cm/s^2 Para gravedad terrestre en unreal
 
 	// Trajectory parameters
-	float Radius = 200.0f;
-	float w = 1.0f;     // Angular freq (rad/s)
-	float V_z = 100.0f;  // cm/s
+	float Radius = 500.0f;
+	float Omega = PI;     // Angular freq (rad/s)
+	float Vel_Z = 500.0f;  // cm/s
 
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	void PrintDebugInfo() const;
