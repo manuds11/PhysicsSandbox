@@ -18,6 +18,7 @@ void ADebugProbeActor::BeginPlay()
 {
     Super::BeginPlay();
     Pos_0 = GetActorLocation();
+    Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
 
     EnableInput(GetWorld()->GetFirstPlayerController());
@@ -29,12 +30,17 @@ void ADebugProbeActor::BeginPlay()
 
 void ADebugProbeActor::ReleaseActor()
 {
+    if (bReleased)
+    {
+        return;
+    }
+    
     bReleased = true;
 }
 
 FVector ADebugProbeActor::ComputeHelixPosition(float t) const
 {
-    const float X = Radius * FMath::Cos(Omega * t);
+    const float X = Radius * FMath::Cos(Omega * t) - Radius;
     const float Y = Radius * FMath::Sin(Omega * t);
     const float Z = Vel_Z * t;
 
@@ -52,7 +58,6 @@ void ADebugProbeActor::Tick(float DeltaTime)
     
     if (bReleased) 
     {
-
         Time += DeltaTime;
 
         Pos_Tick = ComputeHelixPosition(Time);
