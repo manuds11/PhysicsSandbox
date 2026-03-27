@@ -1,8 +1,9 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "DebugProbeActor.h"
 
 #include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 
 namespace
 {
@@ -71,6 +72,20 @@ void ADebugProbeActor::Tick(float DeltaTime)
             Vel_Tick = FVector::ZeroVector;
         }
 
+        if (bEnableDebugDraw)
+        {
+            if (bDrawTrajectory)
+            {
+                DrawDebugTrajectory();
+            }
+
+            if (bDrawVelocityVector)
+            {
+                DrawDebugVelocityVector();
+            }
+        }
+        
+
         SetActorLocation(Pos_Tick);
     
         Pos_prevTick = Pos_Tick;
@@ -78,6 +93,43 @@ void ADebugProbeActor::Tick(float DeltaTime)
 
     PrintDebugInfo();
 }
+
+void ADebugProbeActor::DrawDebugTrajectory() const
+{
+    DrawDebugLine(
+        GetWorld(),        // UWorld* → contexto del mundo donde dibujar
+        Pos_prevTick,      // FVector → punto inicial de la línea (posición anterior)
+        Pos_Tick,          // FVector → punto final de la línea (posición actual)
+        FColor::Blue,      // FColor → color de la línea
+        false,             // bool bPersistentLines → si la línea es permanente (false = temporal)
+        10.0f,             // float LifeTime → tiempo en segundos que permanece visible
+        0,                 // uint8 DepthPriority → prioridad de render (0 = normal)
+        2.0f               // float Thickness → grosor de la línea
+    );
+}
+
+void ADebugProbeActor::DrawDebugVelocityVector() const {
+    
+    if (!Vel_Tick.IsNearlyZero())
+    {
+        const FVector ArrowEnd = Pos_Tick + Vel_Tick * VelocityArrowScale;
+
+        DrawDebugDirectionalArrow(
+            GetWorld(),        // UWorld* → contexto del mundo
+            Pos_Tick,          // FVector → inicio de la flecha (posición actual)
+            ArrowEnd,          // FVector → final de la flecha (dirección + magnitud escalada)
+            50.0f,             // float ArrowSize → tamaño de la punta de la flecha
+            FColor::Black,       // FColor → color de la flecha
+            false,             // bool bPersistentLines → si la flecha es persistente
+            0.0f,              // float LifeTime → 0 = solo un frame
+            0,                 // uint8 DepthPriority → prioridad de render
+            5.0f               // float Thickness → grosor de la flecha
+        );
+    }
+    
+
+}
+
 
 void ADebugProbeActor::PrintDebugInfo() const
 {
@@ -108,7 +160,7 @@ void ADebugProbeActor::PrintDebugInfo() const
     );
 
     FString PromptText = !bReleased ?
-        TEXT("CLICK ANYWHERE AND PRESS SPACE BAR TO RELEASE")
+        FString::Printf(TEXT("CLICK ANYWHERE AND PRESS SPACE BAR TO RELEASE\nAvg. dt: %.4f"), AverageDeltaTime)
         : FString::Printf(TEXT("HELICAL TRANSLATION ACTIVE\nRunning Time: %.2f | Avg. dt: %.4f"), RunningTime, AverageDeltaTime);
     FColor PromptColor = !bReleased ? FColor::Red : FColor::Green;
 

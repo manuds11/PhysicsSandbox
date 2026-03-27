@@ -29,6 +29,11 @@ private:
 
 	// Action variables
 	bool bReleased = false;
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bEnableDebugDraw = true;
+	bool bDrawTrajectory = true;
+	bool bDrawVelocityVector = true;
+	float VelocityArrowScale = 1.0f; // Scale factor of speed module. 1 means its real size.
 
 	// Reference frame
 	FVector Pos_0 = FVector::ZeroVector;
@@ -46,7 +51,9 @@ private:
 	float Vel_Z = 500.0f;  // cm/s
 
 	// Methods
-	FVector ComputeHelixPosition(float CurrentTime) const;
-	void PrintDebugInfo() const;
 	void ReleaseActor();
+	FVector ComputeHelixPosition(float CurrentTime) const;
+	void DrawDebugTrajectory() const;
+	void DrawDebugVelocityVector() const;
+	void PrintDebugInfo() const;	
 };
