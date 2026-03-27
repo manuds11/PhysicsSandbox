@@ -35,7 +35,6 @@ void ADebugProbeActor::ReleaseActor()
     {
         return;
     }
-    
     bReleased = true;
 }
 
@@ -47,6 +46,18 @@ FVector ADebugProbeActor::ComputeHelixPosition(float t) const
 
     const FVector Offset(X, Y, Z);
     return Pos_0 + Offset;
+}
+
+FVector ADebugProbeActor::ComputeVelocityVector(float dt) const 
+{
+    if (dt > KINDA_SMALL_NUMBER)
+    {
+        return (Pos_Tick - Pos_prevTick) / dt;
+    }
+    else
+    {
+        return FVector::ZeroVector;
+    }
 }
 
 void ADebugProbeActor::Tick(float DeltaTime)
@@ -62,15 +73,7 @@ void ADebugProbeActor::Tick(float DeltaTime)
         Time += DeltaTime;
 
         Pos_Tick = ComputeHelixPosition(Time);
-
-        if (DeltaTime > KINDA_SMALL_NUMBER)
-        {
-            Vel_Tick = (Pos_Tick - Pos_prevTick) / DeltaTime;
-        }
-        else
-        {
-            Vel_Tick = FVector::ZeroVector;
-        }
+        Vel_Tick = ComputeVelocityVector(DeltaTime);
 
         if (bEnableDebugDraw)
         {
@@ -78,14 +81,12 @@ void ADebugProbeActor::Tick(float DeltaTime)
             {
                 DrawDebugTrajectory();
             }
-
             if (bDrawVelocityVector)
             {
                 DrawDebugVelocityVector();
             }
         }
         
-
         SetActorLocation(Pos_Tick);
     
         Pos_prevTick = Pos_Tick;
@@ -118,7 +119,7 @@ void ADebugProbeActor::DrawDebugVelocityVector() const {
             GetWorld(),        // UWorld* → contexto del mundo
             Pos_Tick,          // FVector → inicio de la flecha (posición actual)
             ArrowEnd,          // FVector → final de la flecha (dirección + magnitud escalada)
-            50.0f,             // float ArrowSize → tamaño de la punta de la flecha
+            10000.0f,             // float ArrowSize → tamaño de la punta de la flecha
             FColor::Black,       // FColor → color de la flecha
             false,             // bool bPersistentLines → si la flecha es persistente
             0.0f,              // float LifeTime → 0 = solo un frame
@@ -126,10 +127,7 @@ void ADebugProbeActor::DrawDebugVelocityVector() const {
             5.0f               // float Thickness → grosor de la flecha
         );
     }
-    
-
 }
-
 
 void ADebugProbeActor::PrintDebugInfo() const
 {

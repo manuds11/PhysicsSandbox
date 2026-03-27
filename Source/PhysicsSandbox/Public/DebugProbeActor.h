@@ -53,6 +53,7 @@ private:
 	// Methods
 	void ReleaseActor();
 	FVector ComputeHelixPosition(float CurrentTime) const;
+	FVector ComputeVelocityVector(float dt) const;
 	void DrawDebugTrajectory() const;
 	void DrawDebugVelocityVector() const;
 	void PrintDebugInfo() const;	
