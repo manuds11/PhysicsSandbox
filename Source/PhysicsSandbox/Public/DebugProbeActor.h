@@ -31,8 +31,11 @@ private:
 	bool bReleased = false;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bEnableDebugDraw = true;
+	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawTrajectory = true;
+	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawVelocityVector = true;
+	UPROPERTY(EditAnywhere, Category = "Debug")
 	float VelocityArrowScale = 1.0f; // Scale factor of speed module. 1 means its real size.
 
 	// Reference frame
@@ -44,10 +47,12 @@ private:
 	// Physical variables
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float g = -980.0f; // g = 980 cm/s^2 Para gravedad terrestre en unreal
-
 	// Trajectory parameters
+	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Radius = 500.0f;
+	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Omega = PI;     // Angular freq (rad/s)
+	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Vel_Z = 500.0f;  // cm/s
 
 	// Methods

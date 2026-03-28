@@ -50,14 +50,11 @@ FVector ADebugProbeActor::ComputeHelixPosition(float t) const
 
 FVector ADebugProbeActor::ComputeVelocityVector(float dt) const 
 {
-    if (dt > KINDA_SMALL_NUMBER)
-    {
-        return (Pos_Tick - Pos_prevTick) / dt;
-    }
-    else
+    if (dt <= KINDA_SMALL_NUMBER)
     {
         return FVector::ZeroVector;
     }
+    return (Pos_Tick - Pos_prevTick) / dt;
 }
 
 void ADebugProbeActor::Tick(float DeltaTime)
