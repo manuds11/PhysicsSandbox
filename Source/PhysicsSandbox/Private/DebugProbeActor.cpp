@@ -72,6 +72,12 @@ void ADebugProbeActor::Tick(float DeltaTime)
         Pos_Tick = ComputeHelixPosition(Time);
         Vel_Tick = ComputeVelocityVector(DeltaTime);
 
+        if (!Vel_Tick.IsNearlyZero())
+        {
+            const FRotator NewRotation = Vel_Tick.Rotation();
+            SetActorRotation(NewRotation);
+        }
+
         if (bEnableDebugDraw)
         {
             if (bDrawTrajectory)
