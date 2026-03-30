@@ -76,17 +76,23 @@ void ADebugProbeActor::Tick(float DeltaTime)
         {
             const FRotator NewRotation = Vel_Tick.Rotation();
             SetActorRotation(NewRotation);
+
+            FVector ForwardVec = GetActorForwardVector();
         }
 
         if (bEnableDebugDraw)
         {
             if (bDrawTrajectory)
             {
-                DrawDebugTrajectory();
+                DrawTrajectory();
             }
             if (bDrawVelocityVector)
             {
-                DrawDebugVelocityVector();
+                DrawVelocityVector();
+            }
+            if (bDrawBodyFrame)
+            {
+                DrawBodyFrame();
             }
         }
         
@@ -98,7 +104,7 @@ void ADebugProbeActor::Tick(float DeltaTime)
     PrintDebugInfo();
 }
 
-void ADebugProbeActor::DrawDebugTrajectory() const
+void ADebugProbeActor::DrawTrajectory() const
 {
     DrawDebugLine(
         GetWorld(),        // UWorld* → contexto del mundo donde dibujar
@@ -112,7 +118,7 @@ void ADebugProbeActor::DrawDebugTrajectory() const
     );
 }
 
-void ADebugProbeActor::DrawDebugVelocityVector() const {
+void ADebugProbeActor::DrawVelocityVector() const {
     
     if (!Vel_Tick.IsNearlyZero())
     {
@@ -130,6 +136,48 @@ void ADebugProbeActor::DrawDebugVelocityVector() const {
             5.0f               // float Thickness → grosor de la flecha
         );
     }
+}
+
+void ADebugProbeActor::DrawBodyFrame() const
+{
+    const FVector Origin = Pos_Tick;
+
+    const FVector ForwardEnd = Origin + GetActorForwardVector() * BodyFrameAxisLength;
+    const FVector RightEnd = Origin + GetActorRightVector() * BodyFrameAxisLength;
+    const FVector UpEnd = Origin + GetActorUpVector() * BodyFrameAxisLength;
+
+    DrawDebugLine(
+        GetWorld(),
+        Origin,
+        ForwardEnd,
+        FColor::Red,
+        false,
+        0.0f,
+        0,
+        3.0f
+    );
+
+    DrawDebugLine(
+        GetWorld(),
+        Origin,
+        RightEnd,
+        FColor::Green,
+        false,
+        0.0f,
+        0,
+        3.0f
+    );
+
+    DrawDebugLine(
+        GetWorld(),
+        Origin,
+        UpEnd,
+        FColor::Blue,
+        false,
+        0.0f,
+        0,
+        3.0f
+    );
 }
 
 void ADebugProbeActor::PrintDebugInfo() const

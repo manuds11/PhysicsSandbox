@@ -29,6 +29,7 @@ private:
 
 	// Action variables
 	bool bReleased = false;
+	// Editable
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bEnableDebugDraw = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
@@ -37,6 +38,10 @@ private:
 	bool bDrawVelocityVector = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float VelocityArrowScale = 1.0f; // Scale factor of speed module. 1 means its real size.
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawBodyFrame = true;
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	float BodyFrameAxisLength = 200.0f;
 
 	// Reference frame
 	FVector Pos_0 = FVector::ZeroVector;
@@ -59,7 +64,8 @@ private:
 	void ReleaseActor();
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	FVector ComputeVelocityVector(float dt) const;
-	void DrawDebugTrajectory() const;
-	void DrawDebugVelocityVector() const;
+	void DrawTrajectory() const;
+	void DrawVelocityVector() const;
+	void DrawBodyFrame() const;
 	void PrintDebugInfo() const;	
 };
