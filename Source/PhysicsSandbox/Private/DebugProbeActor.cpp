@@ -4,6 +4,8 @@
 
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
+#include "Math/Quat.h"
+#include "Math/RotationMatrix.h"
 
 namespace
 {
@@ -57,6 +59,41 @@ FVector ADebugProbeActor::ComputeVelocityVector(float dt) const
     return (Pos_Tick - Pos_prevTick) / dt;
 }
 
+void ADebugProbeActor::UpdateActorRotation(float DeltaTime)
+{
+    if (Vel_Tick.IsNearlyZero())
+    {
+        return;
+    }
+
+    const FVector Forward = Vel_Tick.GetSafeNormal();
+    const FVector WorldUp = FVector::UpVector;
+
+    // Construye una orientación base:
+    // X = Forward
+    // Z = lo más cercano posible a WorldUp
+    const FMatrix BaseRotationMatrix = FRotationMatrix::MakeFromXZ(Forward, WorldUp);
+    const FQuat BaseQuat = BaseRotationMatrix.ToQuat();
+
+    if (!bSpinAroundForward)
+    {
+        SetActorRotation(BaseQuat);
+        return;
+    }
+
+    RollAngleDeg += RollRateDeg * DeltaTime;
+
+    const float RollAngleRad = FMath::DegreesToRadians(RollAngleDeg);
+
+    // Rotación extra alrededor del eje Forward
+    const FQuat RollQuat(Forward, RollAngleRad);
+
+    // Composición final
+    const FQuat FinalQuat = RollQuat * BaseQuat;
+
+    SetActorRotation(FinalQuat);
+}
+
 void ADebugProbeActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
@@ -71,14 +108,7 @@ void ADebugProbeActor::Tick(float DeltaTime)
 
         Pos_Tick = ComputeHelixPosition(Time);
         Vel_Tick = ComputeVelocityVector(DeltaTime);
-
-        if (!Vel_Tick.IsNearlyZero())
-        {
-            const FRotator NewRotation = Vel_Tick.Rotation();
-            SetActorRotation(NewRotation);
-
-            FVector ForwardVec = GetActorForwardVector();
-        }
+    UpdateActorRotation(DeltaTime);
 
         if (bEnableDebugDraw)
         {

@@ -56,14 +56,21 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Radius = 500.0f;
 	UPROPERTY(EditAnywhere, Category = "Physics")
-	float Omega = PI;     // Angular freq (rad/s)
+	float Omega = PI/4;     // Angular freq (rad/s)
 	UPROPERTY(EditAnywhere, Category = "Physics")
-	float Vel_Z = 500.0f;  // cm/s
+	float Vel_Z = 100.0f;  // cm/s
+	//Rotation
+	UPROPERTY(EditAnywhere, Category = "Rotation")
+	bool bSpinAroundForward = true;
+	UPROPERTY(EditAnywhere, Category = "Rotation")
+	float RollRateDeg = 45.0f; // deg/s
+	float RollAngleDeg = 0.0f;
 
 	// Methods
 	void ReleaseActor();
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	FVector ComputeVelocityVector(float dt) const;
+	void UpdateActorRotation(float DeltaTime);
 	void DrawTrajectory() const;
 	void DrawVelocityVector() const;
 	void DrawBodyFrame() const;
