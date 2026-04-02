@@ -15,6 +15,12 @@ namespace
 ADebugProbeActor::ADebugProbeActor()
 {
     PrimaryActorTick.bCanEverTick = true;
+
+    Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+    RootComponent = Mesh;
+
+    Mesh->SetSimulatePhysics(false);
+    Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void ADebugProbeActor::BeginPlay()
@@ -83,10 +89,9 @@ void ADebugProbeActor::UpdateActorRotation(float DeltaTime)
 
     RollAngleDeg += RollRateDeg * DeltaTime;
 
-    const float RollAngleRad = FMath::DegreesToRadians(RollAngleDeg);
-
     // Rotación extra alrededor del eje Forward
-    const FQuat RollQuat(Forward, RollAngleRad);
+    const FQuat RollQuat( Forward, FMath::DegreesToRadians(RollAngleDeg) );
+    
 
     // Composición final
     const FQuat FinalQuat = RollQuat * BaseQuat;

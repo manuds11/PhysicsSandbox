@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/StaticMeshComponent.h"
 #include "DebugProbeActor.generated.h"
 
 UCLASS()
@@ -21,6 +22,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	// Components
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UStaticMeshComponent* Mesh = nullptr;
+
 	// Actor::Tick variables
 	int FrameCount = 0;
 	float RunningTime = 0.0f; //
