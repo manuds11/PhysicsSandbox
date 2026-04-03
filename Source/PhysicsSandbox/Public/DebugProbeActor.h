@@ -32,8 +32,15 @@ private:
 	float AverageDeltaTime = 0.0f;
 	float Time = 0.0f; // Tiempo físico desde que el actor comienza a moverse
 
+	// Reference frame
+	FVector Pos_0 = FVector::ZeroVector;
+	FVector Pos_Tick = FVector::ZeroVector;
+	FVector Pos_prevTick = FVector::ZeroVector;
+	FVector Vel_Tick = FVector::ZeroVector;
+
 	// Action variables
 	bool bReleased = false;
+	
 	// Editable
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bEnableDebugDraw = true;
@@ -47,12 +54,6 @@ private:
 	bool bDrawBodyFrame = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float BodyFrameAxisLength = 200.0f;
-
-	// Reference frame
-	FVector Pos_0 = FVector::ZeroVector;
-	FVector Pos_Tick = FVector::ZeroVector;
-	FVector Pos_prevTick = FVector::ZeroVector;
-	FVector Vel_Tick = FVector::ZeroVector;
 	
 	// Physical variables
 	UPROPERTY(EditAnywhere, Category = "Physics")
@@ -64,7 +65,8 @@ private:
 	float Omega = PI/4;     // Angular freq (rad/s)
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Vel_Z = 100.0f;  // cm/s
-	//Rotation
+	
+	// Rotation
 	UPROPERTY(EditAnywhere, Category = "Rotation")
 	bool bSpinAroundForward = true;
 	UPROPERTY(EditAnywhere, Category = "Rotation")

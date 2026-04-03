@@ -21,6 +21,9 @@ ADebugProbeActor::ADebugProbeActor()
 
     Mesh->SetSimulatePhysics(false);
     Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    // 🔴 CORRECCIÓN DE ORIENTACIÓN DEL MESH
+    Mesh->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
 }
 
 void ADebugProbeActor::BeginPlay()
@@ -113,7 +116,7 @@ void ADebugProbeActor::Tick(float DeltaTime)
 
         Pos_Tick = ComputeHelixPosition(Time);
         Vel_Tick = ComputeVelocityVector(DeltaTime);
-    UpdateActorRotation(DeltaTime);
+        UpdateActorRotation(DeltaTime);
 
         if (bEnableDebugDraw)
         {
