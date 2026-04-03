@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DebugProbeActor.generated.h"
 
@@ -23,6 +24,8 @@ public:
 
 private:
 	// Components
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	USceneComponent* SceneRoot = nullptr;
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UStaticMeshComponent* Mesh = nullptr;
 

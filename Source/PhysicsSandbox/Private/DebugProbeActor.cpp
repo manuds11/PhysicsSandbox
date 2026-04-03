@@ -16,14 +16,17 @@ ADebugProbeActor::ADebugProbeActor()
 {
     PrimaryActorTick.bCanEverTick = true;
 
+    SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+    RootComponent = SceneRoot;
+
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-    RootComponent = Mesh;
+    Mesh->SetupAttachment(SceneRoot);
 
     Mesh->SetSimulatePhysics(false);
     Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     // 🔴 CORRECCIÓN DE ORIENTACIÓN DEL MESH
-    Mesh->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
+    Mesh->SetRelativeRotation(FRotator(90.0f, 90.0f, 0.0f));
 }
 
 void ADebugProbeActor::BeginPlay()
