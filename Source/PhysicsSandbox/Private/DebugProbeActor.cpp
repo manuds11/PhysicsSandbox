@@ -31,7 +31,11 @@ ADebugProbeActor::ADebugProbeActor()
 
 void ADebugProbeActor::BeginPlay()
 {
-    Super::BeginPlay();
+   Super::BeginPlay();
+
+    // 🔴 FORZAR OFFSET VISUAL
+    Mesh->SetRelativeRotation(FRotator(90.0f, -90.0f, 0.0f));
+
     Pos_0 = GetActorLocation();
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
@@ -230,6 +234,14 @@ void ADebugProbeActor::PrintDebugInfo() const
 
     const FVector PosMeters = Pos_Tick * CmToM;
     const FVector VelMeters = Vel_Tick * CmToM;
+
+    const FRotator ActorRot = GetActorRotation();
+
+    const FRotator MeshRelRot = Mesh ? Mesh->GetRelativeRotation() : FRotator::ZeroRotator;
+    const FRotator MeshWorldRot = Mesh ? Mesh->GetComponentRotation() : FRotator::ZeroRotator;
+
+    const FVector ActorFwd = GetActorForwardVector();
+    const FVector MeshFwd = Mesh ? Mesh->GetForwardVector() : FVector::ZeroVector;
     
     // AddOnScreenDebugMessage displays these blocks in reverse visual order,
     // so they are intentionally called from bottom block to top block.
@@ -240,12 +252,27 @@ void ADebugProbeActor::PrintDebugInfo() const
         FColor::Cyan,
         FString::Printf(
             TEXT("t (s): %.3f"
-                "\nPos (m) [X Y Z]: %.2f | %.2f | %.2f\nVel (m/s) [X Y Z]: %.2f | %.2f | %.2f"
-            "\nRadius (m): %.2f | Angularfreq (rad/s): %.2f"),
-            Time, 
+                "\nPos (m) [X Y Z]: %.2f | %.2f | %.2f"
+                "\nVel (m/s) [X Y Z]: %.2f | %.2f | %.2f"
+                "\nRadius (m): %.2f | Angularfreq (rad/s): %.2f"
+                "\n"
+                "\nActor Rot [P Y R]: %.2f | %.2f | %.2f"
+                "\nMesh RelRot [P Y R]: %.2f | %.2f | %.2f"
+                "\nMesh WorldRot [P Y R]: %.2f | %.2f | %.2f"
+                "\n"
+                "\nActor Fwd: %.2f | %.2f | %.2f"
+                "\nMesh  Fwd: %.2f | %.2f | %.2f"),
+            Time,
             PosMeters.X, PosMeters.Y, PosMeters.Z,
             VelMeters.X, VelMeters.Y, VelMeters.Z,
-            Radius * CmToM, Omega
+            Radius * CmToM, Omega,
+
+            ActorRot.Pitch, ActorRot.Yaw, ActorRot.Roll,
+            MeshRelRot.Pitch, MeshRelRot.Yaw, MeshRelRot.Roll,
+            MeshWorldRot.Pitch, MeshWorldRot.Yaw, MeshWorldRot.Roll,
+
+            ActorFwd.X, ActorFwd.Y, ActorFwd.Z,
+            MeshFwd.X, MeshFwd.Y, MeshFwd.Z
         )
     );
 
