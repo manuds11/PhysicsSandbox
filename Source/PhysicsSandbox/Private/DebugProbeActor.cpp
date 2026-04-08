@@ -26,7 +26,7 @@ ADebugProbeActor::ADebugProbeActor()
     Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     // 🔴 CORRECCIÓN DE ORIENTACIÓN DEL MESH
-    Mesh->SetRelativeRotation(FRotator(90.0f, 90.0f, 0.0f));
+    Mesh->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
 }
 
 void ADebugProbeActor::BeginPlay()
@@ -34,7 +34,7 @@ void ADebugProbeActor::BeginPlay()
    Super::BeginPlay();
 
     // 🔴 FORZAR OFFSET VISUAL
-    Mesh->SetRelativeRotation(FRotator(90.0f, -90.0f, 0.0f));
+    Mesh->SetRelativeRotation(MeshRotationOffset);
 
     Pos_0 = GetActorLocation();
     Pos_Tick = Pos_0;
@@ -116,6 +116,12 @@ void ADebugProbeActor::Tick(float DeltaTime)
     FrameCount++;
     RunningTime += DeltaTime;
     AverageDeltaTime = RunningTime / FrameCount;
+
+    if (bEnableDebugDraw && bDrawBodyFrame)
+    {
+        DrawActorFrame();
+        DrawMeshFrame();
+    }
     
     if (bReleased) 
     {
@@ -135,10 +141,7 @@ void ADebugProbeActor::Tick(float DeltaTime)
             {
                 DrawVelocityVector();
             }
-            if (bDrawBodyFrame)
-            {
-                DrawBodyFrame();
-            }
+            
         }
         
         SetActorLocation(Pos_Tick);
@@ -183,45 +186,49 @@ void ADebugProbeActor::DrawVelocityVector() const {
     }
 }
 
-void ADebugProbeActor::DrawBodyFrame() const
+void ADebugProbeActor::DrawComponentFrame(
+    const USceneComponent* Component,
+    FColor ColorForward,
+    FColor ColorRight,
+    FColor ColorUp,
+    float LineThickness
+) const
 {
-    const FVector Origin = Pos_Tick;
+    if (!Component || !GetWorld())
+    {
+        return;
+    }
 
-    const FVector ForwardEnd = Origin + GetActorForwardVector() * BodyFrameAxisLength;
-    const FVector RightEnd = Origin + GetActorRightVector() * BodyFrameAxisLength;
-    const FVector UpEnd = Origin + GetActorUpVector() * BodyFrameAxisLength;
+    const FVector Origin = Component->GetComponentLocation();
 
-    DrawDebugLine(
-        GetWorld(),
-        Origin,
-        ForwardEnd,
+    const FVector ForwardEnd = Origin + Component->GetForwardVector() * BodyFrameAxisLength;
+    const FVector RightEnd = Origin + Component->GetRightVector() * BodyFrameAxisLength;
+    const FVector UpEnd = Origin + Component->GetUpVector() * BodyFrameAxisLength;
+
+    DrawDebugLine(GetWorld(), Origin, ForwardEnd, ColorForward, false, 0.0f, 0, LineThickness);
+    DrawDebugLine(GetWorld(), Origin, RightEnd, ColorRight, false, 0.0f, 0, LineThickness);
+    DrawDebugLine(GetWorld(), Origin, UpEnd, ColorUp, false, 0.0f, 0, LineThickness);
+}
+
+void ADebugProbeActor::DrawActorFrame() const
+{
+    DrawComponentFrame(
+        RootComponent,
         FColor::Red,
-        false,
-        0.0f,
-        0,
-        3.0f
-    );
-
-    DrawDebugLine(
-        GetWorld(),
-        Origin,
-        RightEnd,
         FColor::Green,
-        false,
-        0.0f,
-        0,
+        FColor::Blue,
         3.0f
     );
+}
 
-    DrawDebugLine(
-        GetWorld(),
-        Origin,
-        UpEnd,
-        FColor::Blue,
-        false,
-        0.0f,
-        0,
-        3.0f
+void ADebugProbeActor::DrawMeshFrame() const
+{
+    DrawComponentFrame(
+        Mesh,
+        FColor(160, 0, 200),   // morado → forward
+        FColor::Yellow,    // gris oscuro → right
+        FColor(0, 0, 0),       // negro → up
+        1.5f
     );
 }
 

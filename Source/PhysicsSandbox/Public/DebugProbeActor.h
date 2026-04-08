@@ -44,13 +44,13 @@ private:
 	// Action variables
 	bool bReleased = false;
 	
-	// Editable
+	// EDITABLE
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bEnableDebugDraw = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawTrajectory = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawVelocityVector = true;
+	bool bDrawVelocityVector = false;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float VelocityArrowScale = 1.0f; // Scale factor of speed module. 1 means its real size.
 	UPROPERTY(EditAnywhere, Category = "Debug")
@@ -60,6 +60,8 @@ private:
 	
 	// Physical variables
 	UPROPERTY(EditAnywhere, Category = "Physics")
+	FRotator MeshRotationOffset = FRotator(-90.0f, 0.0f, 90.0f); // (Pitch, Yaw, Roll) -- En el UE editor se muestran en distinto orden.
+	UPROPERTY(EditAnywhere, Category = "Physics")
 	float g = -980.0f; // g = 980 cm/s^2 Para gravedad terrestre en unreal
 	// Trajectory parameters
 	UPROPERTY(EditAnywhere, Category = "Physics")
@@ -68,21 +70,30 @@ private:
 	float Omega = PI/4;     // Angular freq (rad/s)
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Vel_Z = 100.0f;  // cm/s
-	
 	// Rotation
 	UPROPERTY(EditAnywhere, Category = "Rotation")
 	bool bSpinAroundForward = true;
 	UPROPERTY(EditAnywhere, Category = "Rotation")
 	float RollRateDeg = 45.0f; // deg/s
+	UPROPERTY(EditAnywhere, Category = "Rotation")
 	float RollAngleDeg = 0.0f;
 
-	// Methods
+	// METHODS
 	void ReleaseActor();
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	FVector ComputeVelocityVector(float dt) const;
 	void UpdateActorRotation(float DeltaTime);
 	void DrawTrajectory() const;
 	void DrawVelocityVector() const;
-	void DrawBodyFrame() const;
+	void DrawComponentFrame(
+		const USceneComponent* Component,
+		FColor ColorForward,
+		FColor ColorRight,
+		FColor ColorUp,
+		float LineThickness
+	) const;
+	void DrawActorFrame() const;
+	void DrawMeshFrame() const;
+	void DrawBodyFrame(FColor ColorForward, FColor ColorRight, FColor ColorUp) const; // Por eliminar
 	void PrintDebugInfo() const;	
 };
