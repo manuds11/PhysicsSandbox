@@ -50,6 +50,10 @@ private:
 	FVector Pos_prevTick = FVector::ZeroVector;
 	FVector Vel_Tick = FVector::ZeroVector;
 
+	// Camera variables
+	UPROPERTY(EditAnywhere, Category = "Camera")
+	bool bUseOnboardCamera = true;
+
 	// Action variables
 	bool bReleased = false;
 	
@@ -89,6 +93,7 @@ private:
 
 	// METHODS
 	void ReleaseActor();
+	void ToggleCamera();
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	FVector ComputeVelocityVector(float dt) const;
 	void UpdateActorRotation(float DeltaTime);

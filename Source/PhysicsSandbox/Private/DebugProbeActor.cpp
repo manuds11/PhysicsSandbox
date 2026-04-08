@@ -35,7 +35,7 @@ ADebugProbeActor::ADebugProbeActor()
 
     // Configuración básica
     SpringArm->TargetArmLength = 600.0f;              // distancia
-    SpringArm->SetRelativeRotation(FRotator(-10.0f, 0.0f, 90.0f)); // ligera inclinación hacia abajo
+    SpringArm->SetRelativeRotation(FRotator(-10.0f, 90.0f, 0.0f)); // ligera inclinación hacia abajo
     SpringArm->bUsePawnControlRotation = false;
     SpringArm->bInheritPitch = true;
     SpringArm->bInheritYaw = true;
@@ -56,8 +56,15 @@ void ADebugProbeActor::BeginPlay()
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
 
-    OnboardCamera->SetActive(false);
-    ChaseCamera->SetActive(true);
+    if (OnboardCamera)
+    {
+        OnboardCamera->SetActive(bUseOnboardCamera);
+    }
+    if (ChaseCamera)
+    {
+        ChaseCamera->SetActive(!bUseOnboardCamera);
+    }
+
     if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
     {
         PlayerController->SetViewTarget(this);
@@ -67,6 +74,7 @@ void ADebugProbeActor::BeginPlay()
     if (InputComponent)
     {
         InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &ADebugProbeActor::ReleaseActor);
+        InputComponent->BindKey(EKeys::C, IE_Pressed, this, &ADebugProbeActor::ToggleCamera);
     }
 }
 
@@ -77,6 +85,21 @@ void ADebugProbeActor::ReleaseActor()
         return;
     }
     bReleased = true;
+}
+
+void ADebugProbeActor::ToggleCamera()
+{
+    bUseOnboardCamera = !bUseOnboardCamera;
+
+    if (OnboardCamera)
+    {
+        OnboardCamera->SetActive(bUseOnboardCamera);
+    }
+
+    if (ChaseCamera)
+    {
+        ChaseCamera->SetActive(!bUseOnboardCamera);
+    }
 }
 
 FVector ADebugProbeActor::ComputeHelixPosition(float t) const
