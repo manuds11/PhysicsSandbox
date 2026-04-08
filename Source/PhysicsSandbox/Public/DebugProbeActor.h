@@ -4,8 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Camera/CameraComponent.h"
+
 #include "DebugProbeActor.generated.h"
 
 UCLASS()
@@ -28,6 +31,12 @@ private:
 	USceneComponent* SceneRoot = nullptr;
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UStaticMeshComponent* Mesh = nullptr;
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UCameraComponent* OnboardCamera = nullptr;
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	USpringArmComponent* SpringArm = nullptr;
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UCameraComponent* ChaseCamera = nullptr;
 
 	// Actor::Tick variables
 	int FrameCount = 0;
@@ -60,7 +69,7 @@ private:
 	
 	// Physical variables
 	UPROPERTY(EditAnywhere, Category = "Physics")
-	FRotator MeshRotationOffset = FRotator(-90.0f, 0.0f, 90.0f); // (Pitch, Yaw, Roll) -- En el UE editor se muestran en distinto orden.
+	FRotator MeshRotationOffset = FRotator(0.0f, 0.0f, 0.0f); // (Pitch, Yaw, Roll) -- En el UE editor se muestran en distinto orden.
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float g = -980.0f; // g = 980 cm/s^2 Para gravedad terrestre en unreal
 	// Trajectory parameters
@@ -94,6 +103,5 @@ private:
 	) const;
 	void DrawActorFrame() const;
 	void DrawMeshFrame() const;
-	void DrawBodyFrame(FColor ColorForward, FColor ColorRight, FColor ColorUp) const; // Por eliminar
 	void PrintDebugInfo() const;	
 };

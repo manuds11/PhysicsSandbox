@@ -18,15 +18,31 @@ ADebugProbeActor::ADebugProbeActor()
 
     SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
     RootComponent = SceneRoot;
+    RootComponent->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f)); // 🔴 OFFSET INICIAL ACTOR
 
     Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
     Mesh->SetupAttachment(SceneRoot);
-
     Mesh->SetSimulatePhysics(false);
     Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    // 🔴 CORRECCIÓN DE ORIENTACIÓN DEL MESH
-    Mesh->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
+    OnboardCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("OnboardCamera"));
+    OnboardCamera->SetupAttachment(SceneRoot);
+    OnboardCamera->SetRelativeLocation(FVector(-300.0f, 0.0f, 100.0f));
+    OnboardCamera->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
+
+    SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+    SpringArm->SetupAttachment(SceneRoot);
+
+    // Configuración básica
+    SpringArm->TargetArmLength = 600.0f;              // distancia
+    SpringArm->SetRelativeRotation(FRotator(-10.0f, 0.0f, 90.0f)); // ligera inclinación hacia abajo
+    SpringArm->bUsePawnControlRotation = false;
+    SpringArm->bInheritPitch = true;
+    SpringArm->bInheritYaw = true;
+    SpringArm->bInheritRoll = false;
+
+    ChaseCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ChaseCamera"));
+    ChaseCamera->SetupAttachment(SpringArm);
 }
 
 void ADebugProbeActor::BeginPlay()
@@ -39,6 +55,13 @@ void ADebugProbeActor::BeginPlay()
     Pos_0 = GetActorLocation();
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
+
+    OnboardCamera->SetActive(false);
+    ChaseCamera->SetActive(true);
+    if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
+    {
+        PlayerController->SetViewTarget(this);
+    }
 
     EnableInput(GetWorld()->GetFirstPlayerController());
     if (InputComponent)
@@ -206,8 +229,8 @@ void ADebugProbeActor::DrawComponentFrame(
     const FVector UpEnd = Origin + Component->GetUpVector() * BodyFrameAxisLength;
 
     DrawDebugLine(GetWorld(), Origin, ForwardEnd, ColorForward, false, 0.0f, 0, LineThickness);
-    DrawDebugLine(GetWorld(), Origin, RightEnd, ColorRight, false, 0.0f, 0, LineThickness);
-    DrawDebugLine(GetWorld(), Origin, UpEnd, ColorUp, false, 0.0f, 0, LineThickness);
+    // DrawDebugLine(GetWorld(), Origin, RightEnd, ColorRight, false, 0.0f, 0, LineThickness);
+    // DrawDebugLine(GetWorld(), Origin, UpEnd, ColorUp, false, 0.0f, 0, LineThickness);
 }
 
 void ADebugProbeActor::DrawActorFrame() const
