@@ -11,6 +11,15 @@
 
 #include "DebugProbeActor.generated.h"
 
+UENUM()
+enum class ECameraMode : uint8
+{
+	Onboard,
+	Chase,
+	Top,
+	Free
+};
+
 UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 {
@@ -37,6 +46,8 @@ private:
 	USpringArmComponent* SpringArm = nullptr;
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UCameraComponent* ChaseCamera = nullptr;
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	UCameraComponent* TopCamera = nullptr;
 
 	// Actor::Tick variables
 	int FrameCount = 0;
@@ -53,12 +64,8 @@ private:
 	// Camera variables
 	UPROPERTY(EditAnywhere, Category = "Cameras")
 	bool bUseOnboardCamera = true;
-	UPROPERTY(EditAnywhere, Category = "Cameras")
-	bool bInheritPitch = false;
-	UPROPERTY(EditAnywhere, Category = "Cameras")
-	bool bInheritYaw = false;
-	UPROPERTY(EditAnywhere, Category = "Cameras")
-	bool bInheritRoll = false;
+	
+	ECameraMode CameraMode = ECameraMode::Onboard;
 
 	// Action variables
 	bool bReleased = false;
@@ -102,6 +109,7 @@ private:
 	// METHODS
 	void ReleaseActor();
 	void ToggleCamera();
+	void ApplyCameraMode();
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	FVector ComputeVelocityVector(float dt) const;
 	void UpdateActorRotation(float DeltaTime);
@@ -116,5 +124,7 @@ private:
 	) const;
 	void DrawActorFrame() const;
 	void DrawMeshFrame() const;
-	void PrintDebugInfo() const;	
+	void PrintDebugInfo() const;
+	FString GetCameraModeString() const;
+	const TCHAR* BoolToTEXT(bool bValue) const;
 };

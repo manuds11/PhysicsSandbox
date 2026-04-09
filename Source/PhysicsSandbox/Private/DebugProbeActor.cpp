@@ -34,15 +34,21 @@ ADebugProbeActor::ADebugProbeActor()
     SpringArm->SetupAttachment(SceneRoot);
 
     // Configuración básica
-    SpringArm->TargetArmLength = 600.0f;              // distancia
-    SpringArm->SetRelativeRotation(FRotator(-10.0f, 90.0f, 0.0f)); // ligera inclinación hacia abajo
+    SpringArm->TargetArmLength = 600.0f;                            // distancia
+    SpringArm->SetRelativeRotation(FRotator(-10.0f, 90.0f, 0.0f));  // ligera inclinación hacia abajo
     SpringArm->bUsePawnControlRotation = false;
-    SpringArm->bInheritPitch = bInheritPitch;
-    SpringArm->bInheritYaw = bInheritYaw;
-    SpringArm->bInheritRoll = bInheritRoll;
+    SpringArm->bInheritPitch = false;
+    SpringArm->bInheritYaw = false;
+    SpringArm->bInheritRoll = false;
 
     ChaseCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ChaseCamera"));
     ChaseCamera->SetupAttachment(SpringArm);
+
+    TopCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("TopCamera"));
+    TopCamera->SetupAttachment(SceneRoot);
+
+    TopCamera->SetWorldLocation(FVector(0.0f, 0.0f, 0.0f));
+    TopCamera->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));    // Mirando hacia arriba (+Z)
 }
 
 void ADebugProbeActor::BeginPlay()
@@ -56,19 +62,7 @@ void ADebugProbeActor::BeginPlay()
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
 
-    if (OnboardCamera)
-    {
-        OnboardCamera->SetActive(bUseOnboardCamera);
-    }
-    if (ChaseCamera)
-    {
-        ChaseCamera->SetActive(!bUseOnboardCamera);
-    }
-
-    if (APlayerController* PlayerController = GetWorld()->GetFirstPlayerController())
-    {
-        PlayerController->SetViewTarget(this);
-    }
+    ApplyCameraMode();
 
     EnableInput(GetWorld()->GetFirstPlayerController());
     if (InputComponent)
@@ -89,16 +83,66 @@ void ADebugProbeActor::ReleaseActor()
 
 void ADebugProbeActor::ToggleCamera()
 {
-    bUseOnboardCamera = !bUseOnboardCamera;
-
-    if (OnboardCamera)
+    switch (CameraMode)
     {
-        OnboardCamera->SetActive(bUseOnboardCamera);
+    case ECameraMode::Onboard:
+        CameraMode = ECameraMode::Chase;
+        break;
+
+    case ECameraMode::Chase:
+        CameraMode = ECameraMode::Top;
+        break;
+
+    case ECameraMode::Top:
+        CameraMode = ECameraMode::Free;
+        break;
+
+    case ECameraMode::Free:
+        CameraMode = ECameraMode::Onboard;
+        break;
     }
 
-    if (ChaseCamera)
+    ApplyCameraMode();
+}
+
+void ADebugProbeActor::ApplyCameraMode()
+{
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
+    if (!PC) return;
+
+    // Desactivar todas
+    OnboardCamera->SetActive(false);
+    ChaseCamera->SetActive(false);
+    TopCamera->SetActive(false);
+
+    switch (CameraMode)
     {
-        ChaseCamera->SetActive(!bUseOnboardCamera);
+    case ECameraMode::Onboard:
+        PC->SetViewTarget(this);
+        OnboardCamera->SetActive(true);
+        break;
+
+    case ECameraMode::Chase:
+        PC->SetViewTarget(this);
+        ChaseCamera->SetActive(true);
+        break;
+
+    case ECameraMode::Top:
+    {
+        PC->SetViewTarget(this);
+
+        TopCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+
+        TopCamera->SetWorldLocation(FVector(0.0f, 0.0f, 0.0f));
+        TopCamera->SetWorldRotation(FRotator(90.0f, 0.0f, 0.0f));
+
+        TopCamera->SetActive(true);
+        break;
+    }
+
+    case ECameraMode::Free:
+        PC->SetViewTarget(nullptr); // vuelve al editor
+        break;
     }
 }
 
@@ -243,7 +287,7 @@ void ADebugProbeActor::DrawComponentFrame(
     FColor ColorRight,
     FColor ColorUp,
     float LineThickness
-) const
+    ) const
 {
     if (!Component || !GetWorld())
     {
@@ -314,6 +358,8 @@ void ADebugProbeActor::PrintDebugInfo() const
                 "\nVel (m/s) [X Y Z]: %.2f | %.2f | %.2f"
                 "\nRadius (m): %.2f | Angularfreq (rad/s): %.2f"
                 "\n"
+                "\nCamera Mode: %s"
+                "\n"
                 "\nActor Rot [P Y R]: %.2f | %.2f | %.2f"
                 "\nMesh RelRot [P Y R]: %.2f | %.2f | %.2f"
                 "\nMesh WorldRot [P Y R]: %.2f | %.2f | %.2f"
@@ -324,6 +370,8 @@ void ADebugProbeActor::PrintDebugInfo() const
             PosMeters.X, PosMeters.Y, PosMeters.Z,
             VelMeters.X, VelMeters.Y, VelMeters.Z,
             Radius * CmToM, Omega,
+
+            *GetCameraModeString(),
 
             ActorRot.Pitch, ActorRot.Yaw, ActorRot.Roll,
             MeshRelRot.Pitch, MeshRelRot.Yaw, MeshRelRot.Roll,
@@ -345,4 +393,37 @@ void ADebugProbeActor::PrintDebugInfo() const
         PromptColor,
         PromptText
     );
+}
+
+FString ADebugProbeActor::GetCameraModeString() const
+{
+    switch (CameraMode)
+    {
+    case ECameraMode::Onboard:
+        return TEXT("ONBOARD");
+
+    case ECameraMode::Chase:
+    {
+        return FString::Printf(
+            TEXT("CHASE [P:%s Y:%s R:%s]"),
+            BoolToTEXT(SpringArm && SpringArm->bInheritPitch),
+            BoolToTEXT(SpringArm && SpringArm->bInheritYaw),
+            BoolToTEXT(SpringArm && SpringArm->bInheritRoll)
+        );
+    }
+
+    case ECameraMode::Top:
+        return TEXT("BOTTOM");
+
+    case ECameraMode::Free:
+        return TEXT("FREE");
+
+    default:
+        return TEXT("UNKNOWN");
+    }
+}
+
+const TCHAR* ADebugProbeActor::BoolToTEXT(bool bValue) const
+{
+    return bValue ? TEXT("True") : TEXT("False");
 }
