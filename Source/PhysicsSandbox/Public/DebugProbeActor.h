@@ -51,8 +51,14 @@ private:
 	FVector Vel_Tick = FVector::ZeroVector;
 
 	// Camera variables
-	UPROPERTY(EditAnywhere, Category = "Camera")
+	UPROPERTY(EditAnywhere, Category = "Cameras")
 	bool bUseOnboardCamera = true;
+	UPROPERTY(EditAnywhere, Category = "Cameras")
+	bool bInheritPitch = false;
+	UPROPERTY(EditAnywhere, Category = "Cameras")
+	bool bInheritYaw = false;
+	UPROPERTY(EditAnywhere, Category = "Cameras")
+	bool bInheritRoll = false;
 
 	// Action variables
 	bool bReleased = false;
@@ -67,7 +73,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float VelocityArrowScale = 1.0f; // Scale factor of speed module. 1 means its real size.
 	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawBodyFrame = true;
+	bool bDrawActorFrame = true;
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawMeshFrame = false;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float BodyFrameAxisLength = 200.0f;
 	

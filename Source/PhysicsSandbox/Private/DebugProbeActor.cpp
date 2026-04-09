@@ -37,9 +37,9 @@ ADebugProbeActor::ADebugProbeActor()
     SpringArm->TargetArmLength = 600.0f;              // distancia
     SpringArm->SetRelativeRotation(FRotator(-10.0f, 90.0f, 0.0f)); // ligera inclinación hacia abajo
     SpringArm->bUsePawnControlRotation = false;
-    SpringArm->bInheritPitch = true;
-    SpringArm->bInheritYaw = true;
-    SpringArm->bInheritRoll = false;
+    SpringArm->bInheritPitch = bInheritPitch;
+    SpringArm->bInheritYaw = bInheritYaw;
+    SpringArm->bInheritRoll = bInheritRoll;
 
     ChaseCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("ChaseCamera"));
     ChaseCamera->SetupAttachment(SpringArm);
@@ -163,10 +163,16 @@ void ADebugProbeActor::Tick(float DeltaTime)
     RunningTime += DeltaTime;
     AverageDeltaTime = RunningTime / FrameCount;
 
-    if (bEnableDebugDraw && bDrawBodyFrame)
+    if (bEnableDebugDraw)
     {
-        DrawActorFrame();
-        DrawMeshFrame();
+        if (bDrawActorFrame)
+        {
+            DrawActorFrame();
+        }
+        if (bDrawMeshFrame)
+        {
+            DrawMeshFrame();
+        }
     }
     
     if (bReleased) 
@@ -187,7 +193,6 @@ void ADebugProbeActor::Tick(float DeltaTime)
             {
                 DrawVelocityVector();
             }
-            
         }
         
         SetActorLocation(Pos_Tick);
@@ -252,8 +257,8 @@ void ADebugProbeActor::DrawComponentFrame(
     const FVector UpEnd = Origin + Component->GetUpVector() * BodyFrameAxisLength;
 
     DrawDebugLine(GetWorld(), Origin, ForwardEnd, ColorForward, false, 0.0f, 0, LineThickness);
-    // DrawDebugLine(GetWorld(), Origin, RightEnd, ColorRight, false, 0.0f, 0, LineThickness);
-    // DrawDebugLine(GetWorld(), Origin, UpEnd, ColorUp, false, 0.0f, 0, LineThickness);
+    DrawDebugLine(GetWorld(), Origin, RightEnd, ColorRight, false, 0.0f, 0, LineThickness);
+    DrawDebugLine(GetWorld(), Origin, UpEnd, ColorUp, false, 0.0f, 0, LineThickness);
 }
 
 void ADebugProbeActor::DrawActorFrame() const
