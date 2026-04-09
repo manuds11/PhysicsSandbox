@@ -60,6 +60,8 @@ private:
 	FVector Pos_Tick = FVector::ZeroVector;
 	FVector Pos_prevTick = FVector::ZeroVector;
 	FVector Vel_Tick = FVector::ZeroVector;
+	FVector ChaseCamPos_Tick = FVector::ZeroVector;
+	FVector ChaseCamPos_prevTick = FVector::ZeroVector;
 
 	// Camera variables
 	UPROPERTY(EditAnywhere, Category = "Cameras")
@@ -78,31 +80,34 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawVelocityVector = false;
 	UPROPERTY(EditAnywhere, Category = "Debug")
-	float VelocityArrowScale = 1.0f; // Scale factor of speed module. 1 means its real size.
+	bool bDrawChaseCameraTrajectory = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawActorFrame = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawMeshFrame = false;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float BodyFrameAxisLength = 200.0f;
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	float VelocityArrowScale = 1.0f;							// Scale factor of speed module. 1 means its real size.
 	
 	// Physical variables
 	UPROPERTY(EditAnywhere, Category = "Physics")
-	FRotator MeshRotationOffset = FRotator(0.0f, 0.0f, 0.0f); // (Pitch, Yaw, Roll) -- En el UE editor se muestran en distinto orden.
+	FRotator MeshRotationOffset = FRotator(0.0f, 0.0f, 0.0f);	// (Pitch, Yaw, Roll) -- En el UE editor se muestran en distinto orden.
 	UPROPERTY(EditAnywhere, Category = "Physics")
-	float g = -980.0f; // g = 980 cm/s^2 Para gravedad terrestre en unreal
+	float g = -980.0f;											// g = 980 cm/s^2 Para gravedad terrestre en unreal
+	
 	// Trajectory parameters
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Radius = 500.0f;
 	UPROPERTY(EditAnywhere, Category = "Physics")
-	float Omega = PI/4;     // Angular freq (rad/s)
+	float Omega = PI/4;											// Angular freq (rad/s)
 	UPROPERTY(EditAnywhere, Category = "Physics")
-	float Vel_Z = 100.0f;  // cm/s
+	float Vel_Z = 100.0f;										// cm/s
 	// Rotation
 	UPROPERTY(EditAnywhere, Category = "Rotation")
 	bool bSpinAroundForward = true;
 	UPROPERTY(EditAnywhere, Category = "Rotation")
-	float RollRateDeg = 45.0f; // deg/s
+	float RollRateDeg = 45.0f;									// deg/s
 	UPROPERTY(EditAnywhere, Category = "Rotation")
 	float RollAngleDeg = 0.0f;
 
@@ -113,7 +118,8 @@ private:
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	FVector ComputeVelocityVector(float dt) const;
 	void UpdateActorRotation(float DeltaTime);
-	void DrawTrajectory() const;
+	void DrawActorTrajectory() const;
+	void DrawChaseCameraTrajectory() const;
 	void DrawVelocityVector() const;
 	void DrawComponentFrame(
 		const USceneComponent* Component,

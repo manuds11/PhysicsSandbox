@@ -46,8 +46,6 @@ ADebugProbeActor::ADebugProbeActor()
 
     TopCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("TopCamera"));
     TopCamera->SetupAttachment(SceneRoot);
-
-    TopCamera->SetWorldLocation(FVector(0.0f, 0.0f, 0.0f));
     TopCamera->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));    // Mirando hacia arriba (+Z)
 }
 
@@ -55,12 +53,18 @@ void ADebugProbeActor::BeginPlay()
 {
    Super::BeginPlay();
 
-    // 🔴 FORZAR OFFSET VISUAL
+    // 🔴 FORZAR OFFSET MESH
     Mesh->SetRelativeRotation(MeshRotationOffset);
 
     Pos_0 = GetActorLocation();
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
+
+    if (ChaseCamera)
+    {
+        ChaseCamPos_Tick = ChaseCamera->GetComponentLocation();
+        ChaseCamPos_prevTick = ChaseCamPos_Tick;
+    }
 
     ApplyCameraMode();
 
@@ -225,29 +229,39 @@ void ADebugProbeActor::Tick(float DeltaTime)
 
         Pos_Tick = ComputeHelixPosition(Time);
         Vel_Tick = ComputeVelocityVector(DeltaTime);
+        
         UpdateActorRotation(DeltaTime);
+        SetActorLocation(Pos_Tick);
+
+        if (ChaseCamera)
+        {
+            ChaseCamPos_Tick = ChaseCamera->GetComponentLocation();
+        }
 
         if (bEnableDebugDraw)
         {
             if (bDrawTrajectory)
             {
-                DrawTrajectory();
+                DrawActorTrajectory();
             }
             if (bDrawVelocityVector)
             {
                 DrawVelocityVector();
             }
+            if (bDrawChaseCameraTrajectory)
+            {
+                DrawChaseCameraTrajectory();
+            }
         }
-        
-        SetActorLocation(Pos_Tick);
-    
+            
         Pos_prevTick = Pos_Tick;
+        ChaseCamPos_prevTick = ChaseCamPos_Tick;
     }
 
     PrintDebugInfo();
 }
 
-void ADebugProbeActor::DrawTrajectory() const
+void ADebugProbeActor::DrawActorTrajectory() const
 {
     DrawDebugLine(
         GetWorld(),        // UWorld* → contexto del mundo donde dibujar
@@ -258,6 +272,25 @@ void ADebugProbeActor::DrawTrajectory() const
         10.0f,             // float LifeTime → tiempo en segundos que permanece visible
         0,                 // uint8 DepthPriority → prioridad de render (0 = normal)
         2.0f               // float Thickness → grosor de la línea
+    );
+}
+
+void ADebugProbeActor::DrawChaseCameraTrajectory() const
+{
+    if (!GetWorld() || !ChaseCamera)
+    {
+        return;
+    }
+
+    DrawDebugLine(
+        GetWorld(),
+        ChaseCamPos_prevTick,
+        ChaseCamPos_Tick,
+        FColor::Yellow,
+        false,
+        10.0f,
+        0,
+        2.0f
     );
 }
 
