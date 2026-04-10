@@ -76,6 +76,11 @@ void ADebugProbeActor::BeginPlay()
     }
 }
 
+void ADebugProbeActor::SetOmega(float NewOmega)
+{
+    Omega = NewOmega;
+}
+
 void ADebugProbeActor::ReleaseActor()
 {
     if (bReleased)

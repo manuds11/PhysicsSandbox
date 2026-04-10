@@ -28,11 +28,21 @@ class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 public:
 	ADebugProbeActor();
 
+	UFUNCTION(BlueprintCallable, Category = "Physics|Trajectory")
+	void SetOmega(float NewOmega);
+
+	UFUNCTION(BlueprintPure, Category = "Physics|Trajectory")
+	float GetOmega() const { return Omega; }
+
 protected:
 	virtual void BeginPlay() override;
 
 public:
 	virtual void Tick(float DeltaTime) override;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics|Trajectory")
+	float Omega = PI / 4;										// Angular freq (rad/s)
 
 private:
 	// Components
@@ -53,7 +63,7 @@ private:
 	int FrameCount = 0;
 	float RunningTime = 0.0f; //
 	float AverageDeltaTime = 0.0f;
-	float Time = 0.0f; // Tiempo físico desde que el actor comienza a moverse
+	float Time = 0.0f;											// Tiempo físico desde que el actor comienza a moverse
 
 	// Reference frame
 	FVector Pos_0 = FVector::ZeroVector;
@@ -102,9 +112,7 @@ private:
 	
 	// Trajectory parameters
 	UPROPERTY(EditAnywhere, Category = "Physics")
-	float Radius = 500.0f;
-	UPROPERTY(EditAnywhere, Category = "Physics")
-	float Omega = PI/4;											// Angular freq (rad/s)
+	float Radius = 500.0f;									
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Vel_Z = 100.0f;										// cm/s
 	// Rotation
