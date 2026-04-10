@@ -82,9 +82,13 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawChaseCameraTrajectory = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawChaseCameraMarker = false;
+	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawActorFrame = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	bool bDrawMeshFrame = false;
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawChaseCameraFrame = true;
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float BodyFrameAxisLength = 200.0f;
 	UPROPERTY(EditAnywhere, Category = "Debug")
@@ -130,6 +134,7 @@ private:
 	) const;
 	void DrawActorFrame() const;
 	void DrawMeshFrame() const;
+	void DrawChaseCameraFrame() const;
 	void PrintDebugInfo() const;
 	FString GetCameraModeString() const;
 	const TCHAR* BoolToTEXT(bool bValue) const;

@@ -221,6 +221,10 @@ void ADebugProbeActor::Tick(float DeltaTime)
         {
             DrawMeshFrame();
         }
+        if (bDrawChaseCameraFrame)
+        {
+            DrawChaseCameraFrame();
+        }
     }
     
     if (bReleased) 
@@ -252,6 +256,7 @@ void ADebugProbeActor::Tick(float DeltaTime)
             {
                 DrawChaseCameraTrajectory();
             }
+
         }
             
         Pos_prevTick = Pos_Tick;
@@ -292,6 +297,21 @@ void ADebugProbeActor::DrawChaseCameraTrajectory() const
         0,
         2.0f
     );
+
+    if (bDrawChaseCameraMarker)
+    {
+        DrawDebugSphere(
+            GetWorld(),
+            ChaseCamPos_Tick,
+            20.0f,
+            12,
+            FColor::Yellow,
+            false,
+            0.0f,
+            0,
+            2.0f
+        );
+    }
 }
 
 void ADebugProbeActor::DrawVelocityVector() const {
@@ -357,6 +377,17 @@ void ADebugProbeActor::DrawMeshFrame() const
         FColor::Yellow,    // gris oscuro → right
         FColor(0, 0, 0),       // negro → up
         1.5f
+    );
+}
+
+void ADebugProbeActor::DrawChaseCameraFrame() const
+{
+    DrawComponentFrame(
+        ChaseCamera,
+        FColor::Red,
+        FColor::Green,
+        FColor::Blue,
+        3.0f
     );
 }
 
