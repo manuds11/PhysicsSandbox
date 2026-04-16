@@ -69,6 +69,8 @@ void ADebugProbeActor::BeginPlay()
     }
 
     ApplyCameraMode();
+    
+    APlayerController* PC = GetWorld()->GetFirstPlayerController();
 
     // Widget
     if (ControlWidgetClass)
@@ -76,15 +78,22 @@ void ADebugProbeActor::BeginPlay()
         UDebugProbeControlWidget* Widget =
             CreateWidget<UDebugProbeControlWidget>(GetWorld(), ControlWidgetClass);
 
-        if (Widget)
+        if (PC && Widget)
         {
-            Widget->SetProbeReference(this);   // 🔥 AQUÍ Pasamos
+            Widget->SetProbeReference(this);   // 🔥 Aquí Pasamos el actor a la clase
             Widget->AddToViewport();
+
+            FInputModeGameAndUI InputMode;
+            InputMode.SetWidgetToFocus(Widget->TakeWidget());
+            InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+            PC->SetInputMode(InputMode);
+            PC->bShowMouseCursor = true;
         }
     }
 
     // Inputs
-    EnableInput(GetWorld()->GetFirstPlayerController());
+    EnableInput(PC);
     if (InputComponent)
     {
         InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &ADebugProbeActor::ReleaseActor);
