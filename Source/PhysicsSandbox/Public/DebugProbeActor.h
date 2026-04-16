@@ -20,6 +20,8 @@ enum class ECameraMode : uint8
 	Free
 };
 
+class UDebugProbeControlWidget;
+
 UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 {
@@ -59,9 +61,13 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UCameraComponent* TopCamera = nullptr;
 
+	// Widget
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UDebugProbeControlWidget> ControlWidgetClass;
+
 	// Actor::Tick variables
 	int FrameCount = 0;
-	float RunningTime = 0.0f; //
+	float RunningTime = 0.0f;
 	float AverageDeltaTime = 0.0f;
 	float Time = 0.0f;											// Tiempo físico desde que el actor comienza a moverse
 

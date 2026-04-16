@@ -1,6 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "DebugProbeActor.h"
+#include "DebugProbeControlWidget.h"
 
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
@@ -60,6 +61,7 @@ void ADebugProbeActor::BeginPlay()
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
 
+    // Cameras
     if (ChaseCamera)
     {
         ChaseCamPos_Tick = ChaseCamera->GetComponentLocation();
@@ -68,6 +70,20 @@ void ADebugProbeActor::BeginPlay()
 
     ApplyCameraMode();
 
+    // Widget
+    if (ControlWidgetClass)
+    {
+        UDebugProbeControlWidget* Widget =
+            CreateWidget<UDebugProbeControlWidget>(GetWorld(), ControlWidgetClass);
+
+        if (Widget)
+        {
+            Widget->SetProbeReference(this);   // 🔥 AQUÍ Pasamos
+            Widget->AddToViewport();
+        }
+    }
+
+    // Inputs
     EnableInput(GetWorld()->GetFirstPlayerController());
     if (InputComponent)
     {

@@ -23,6 +23,10 @@ protected:
     UPROPERTY(meta = (BindWidget))
     UTextBlock* OmegaValueText = nullptr;
 
+public:
+    UFUNCTION(BlueprintCallable)
+    void SetProbeReference(ADebugProbeActor* InProbe);
+
 private:
     UPROPERTY()
     ADebugProbeActor* ProbeRef = nullptr;
@@ -30,7 +34,6 @@ private:
     UFUNCTION()
     void OnOmegaSliderChanged(float Value);
 
-    void InitializeProbeReference();
     void InitializeSliderValue();
     void UpdateOmegaText(float OmegaValue);
 };
