@@ -101,7 +101,10 @@ void ADebugProbeActor::BeginPlay()
 
 void ADebugProbeActor::SetOmega(float NewOmega)
 {
-    Omega = NewOmega;
+    OmegaTransitionStart = Omega;
+    OmegaTarget = NewOmega;
+    OmegaTransitionElapsedTime = 0.0f;
+    bOmegaTransitionActive = true;
 }
 
 void ADebugProbeActor::ReleaseActor()
@@ -232,6 +235,42 @@ FVector ADebugProbeActor::ComputeVelocityVector(float dt) const
     return (Pos_Tick - Pos_prevTick) / dt;
 }
 
+void ADebugProbeActor::UpdateOmegaTransition(float DeltaTime)
+{
+    if (!bOmegaTransitionActive)
+    {
+        return;
+    }
+
+    if (OmegaTransitionDuration <= KINDA_SMALL_NUMBER)
+    {
+        Omega = OmegaTarget;
+        bOmegaTransitionActive = false;
+        return;
+    }
+
+    OmegaTransitionElapsedTime += DeltaTime;
+
+    const float Alpha = FMath::Clamp(
+        OmegaTransitionElapsedTime / OmegaTransitionDuration,
+        0.0f,
+        1.0f
+    );
+
+    const float SmoothAlpha =
+        6.0f * FMath::Pow(Alpha, 5)
+        - 15.0f * FMath::Pow(Alpha, 4)
+        + 10.0f * FMath::Pow(Alpha, 3);
+
+    Omega = FMath::Lerp(OmegaTransitionStart, OmegaTarget, SmoothAlpha);
+
+    if (Alpha >= 1.0f)
+    {
+        Omega = OmegaTarget;
+        bOmegaTransitionActive = false;
+    }
+}
+
 void ADebugProbeActor::UpdateActorRotation(float DeltaTime)
 {
     if (Vel_Tick.IsNearlyZero())
@@ -293,6 +332,8 @@ void ADebugProbeActor::Tick(float DeltaTime)
     if (bReleased) 
     {
         Time += DeltaTime;
+
+        UpdateOmegaTransition(DeltaTime);
 
         Pos_Tick = ComputeHelixPosition(Time);
         Vel_Tick = ComputeVelocityVector(DeltaTime);

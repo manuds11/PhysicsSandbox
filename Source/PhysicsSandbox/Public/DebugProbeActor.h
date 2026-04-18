@@ -122,11 +122,20 @@ private:
 	FRotator MeshRotationOffset = FRotator(0.0f, 0.0f, 0.0f);	// (Pitch, Yaw, Roll) -- En el UE editor se muestran en distinto orden.
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float g = -980.0f;											// g = 980 cm/s^2 Para gravedad terrestre en unreal
+	
 	// Trajectory parameters
+	// -- Angular Frequency Widget --
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics|Trajectory")
 	float Omega = PI / 4;										// Angular freq (rad/s)
 private:	
+	float OmegaTransitionStart = Omega;		// Valor por defecto para iniciar la variable.
+	float OmegaTarget = Omega;
+	float OmegaTransitionElapsedTime = 0.0f;
+	UPROPERTY(EditAnywhere, Category = "Physics|Trajectory")
+	float OmegaTransitionDuration = 0.7f;
+	bool bOmegaTransitionActive = false;
+	
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Radius = 500.0f;									
 	UPROPERTY(EditAnywhere, Category = "Physics")
@@ -148,6 +157,8 @@ private:
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	FVector ComputeVelocityVector(float dt) const;
 	void UpdateActorRotation(float DeltaTime);
+	void UpdateOmegaTransition(float DeltaTime);
+	float ComputeQuinticSmoothStep(float Alpha) const;
 	void DrawActorTrajectory() const;
 	void DrawChaseCameraTrajectory() const;
 	void DrawVelocityVector() const;
