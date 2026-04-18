@@ -7,6 +7,11 @@
 #include "DrawDebugHelpers.h"
 #include "Math/Quat.h"
 #include "Math/RotationMatrix.h"
+#include "Components/SceneComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/PlayerController.h"
 
 namespace
 {
@@ -53,13 +58,14 @@ ADebugProbeActor::ADebugProbeActor()
 void ADebugProbeActor::BeginPlay()
 {
    Super::BeginPlay();
-
-    // 🔴 FORZAR OFFSET MESH
-    Mesh->SetRelativeRotation(MeshRotationOffset);
+    
+    Mesh->SetRelativeRotation(MeshRotationOffset);   // 🔴 
 
     Pos_0 = GetActorLocation();
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
+
+    PlayerController = GetWorld()->GetFirstPlayerController();
 
     // Cameras
     if (ChaseCamera)
@@ -69,35 +75,27 @@ void ADebugProbeActor::BeginPlay()
     }
 
     ApplyCameraMode();
-    
-    APlayerController* PC = GetWorld()->GetFirstPlayerController();
 
     // Widget
-    if (ControlWidgetClass)
+    if (ControlWidgetClass && PlayerController)
     {
-        UDebugProbeControlWidget* Widget =
-            CreateWidget<UDebugProbeControlWidget>(GetWorld(), ControlWidgetClass);
+        ControlWidget = CreateWidget<UDebugProbeControlWidget>(PlayerController, ControlWidgetClass);
 
-        if (PC && Widget)
+        if (ControlWidget)
         {
-            Widget->SetProbeReference(this);   // 🔥 Aquí Pasamos el actor a la clase
-            Widget->AddToViewport();
-
-            FInputModeGameAndUI InputMode;
-            InputMode.SetWidgetToFocus(Widget->TakeWidget());
-            InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-
-            PC->SetInputMode(InputMode);
-            PC->bShowMouseCursor = true;
+            ControlWidget->SetProbeReference(this);
+            ControlWidget->AddToViewport();
         }
     }
 
-    // Inputs
-    EnableInput(PC);
+    ApplyInputMode();
+
+    EnableInput(PlayerController);
     if (InputComponent)
     {
         InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &ADebugProbeActor::ReleaseActor);
         InputComponent->BindKey(EKeys::C, IE_Pressed, this, &ADebugProbeActor::ToggleCamera);
+        InputComponent->BindKey(EKeys::Tab, IE_Pressed, this, &ADebugProbeActor::ToggleInputMode);
     }
 }
 
@@ -141,8 +139,7 @@ void ADebugProbeActor::ToggleCamera()
 
 void ADebugProbeActor::ApplyCameraMode()
 {
-    APlayerController* PC = GetWorld()->GetFirstPlayerController();
-    if (!PC) return;
+    if (!PlayerController) return;
 
     // Desactivar todas
     OnboardCamera->SetActive(false);
@@ -152,18 +149,18 @@ void ADebugProbeActor::ApplyCameraMode()
     switch (CameraMode)
     {
     case ECameraMode::Onboard:
-        PC->SetViewTarget(this);
+        PlayerController->SetViewTarget(this);
         OnboardCamera->SetActive(true);
         break;
 
     case ECameraMode::Chase:
-        PC->SetViewTarget(this);
+        PlayerController->SetViewTarget(this);
         ChaseCamera->SetActive(true);
         break;
 
     case ECameraMode::Top:
     {
-        PC->SetViewTarget(this);
+        PlayerController->SetViewTarget(this);
 
         TopCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 
@@ -175,8 +172,44 @@ void ADebugProbeActor::ApplyCameraMode()
     }
 
     case ECameraMode::Free:
-        PC->SetViewTarget(nullptr); // vuelve al editor
+        PlayerController->SetViewTarget(nullptr); // vuelve al editor
         break;
+    }
+}
+
+void ADebugProbeActor::ToggleInputMode()
+{
+    bUIInputMode = !bUIInputMode;
+    ApplyInputMode();
+}
+
+void ADebugProbeActor::ApplyInputMode()
+{
+    if (!PlayerController)
+    {
+        return;
+    }
+
+    if (bUIInputMode)
+    {
+        FInputModeGameAndUI InputMode;
+
+        if (ControlWidget)
+        {
+            InputMode.SetWidgetToFocus(ControlWidget->TakeWidget());
+        }
+
+        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+        InputMode.SetHideCursorDuringCapture(false);
+
+        PlayerController->SetInputMode(InputMode);
+        PlayerController->bShowMouseCursor = true;
+    }
+    else
+    {
+        FInputModeGameOnly InputMode;
+        PlayerController->SetInputMode(InputMode);
+        PlayerController->bShowMouseCursor = false;
     }
 }
 
@@ -447,7 +480,9 @@ void ADebugProbeActor::PrintDebugInfo() const
         0.0f,
         FColor::Cyan,
         FString::Printf(
-            TEXT("t (s): %.3f"
+            TEXT("\nInput Mode: %s"
+                "\n"
+                "t (s): %.3f"
                 "\nPos (m) [X Y Z]: %.2f | %.2f | %.2f"
                 "\nVel (m/s) [X Y Z]: %.2f | %.2f | %.2f"
                 "\nRadius (m): %.2f | Angularfreq (rad/s): %.2f"
@@ -460,6 +495,8 @@ void ADebugProbeActor::PrintDebugInfo() const
                 "\n"
                 "\nActor Fwd: %.2f | %.2f | %.2f"
                 "\nMesh  Fwd: %.2f | %.2f | %.2f"),
+            bUIInputMode ? TEXT("UI") : TEXT("GAME"),
+            
             Time,
             PosMeters.X, PosMeters.Y, PosMeters.Z,
             VelMeters.X, VelMeters.Y, VelMeters.Z,

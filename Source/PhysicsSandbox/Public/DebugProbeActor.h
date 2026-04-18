@@ -1,15 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
-
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Components/SceneComponent.h"
-#include "Components/StaticMeshComponent.h"
-#include "Camera/CameraComponent.h"
 
 #include "DebugProbeActor.generated.h"
+
+// Forward declarations
+class USceneComponent;
+class UStaticMeshComponent;
+class UCameraComponent;
+class USpringArmComponent;
+class UDebugProbeControlWidget;
+class APlayerController;
 
 UENUM()
 enum class ECameraMode : uint8
@@ -20,7 +23,7 @@ enum class ECameraMode : uint8
 	Free
 };
 
-class UDebugProbeControlWidget;
+
 
 UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
@@ -42,10 +45,6 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics|Trajectory")
-	float Omega = PI / 4;										// Angular freq (rad/s)
-
 private:
 	// Components
 	UPROPERTY(VisibleAnywhere, Category = "Components")
@@ -61,9 +60,14 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UCameraComponent* TopCamera = nullptr;
 
+	// Controller
+	APlayerController* PlayerController = nullptr;
+
 	// Widget
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<UDebugProbeControlWidget> ControlWidgetClass;
+	UPROPERTY()
+	UDebugProbeControlWidget* ControlWidget = nullptr;
 
 	// Actor::Tick variables
 	int FrameCount = 0;
@@ -82,8 +86,11 @@ private:
 	// Camera variables
 	UPROPERTY(EditAnywhere, Category = "Cameras")
 	bool bUseOnboardCamera = true;
-	
+
 	ECameraMode CameraMode = ECameraMode::Onboard;
+
+	// WidgetMode variable
+	bool bUIInputMode = false;
 
 	// Action variables
 	bool bReleased = false;
@@ -115,8 +122,11 @@ private:
 	FRotator MeshRotationOffset = FRotator(0.0f, 0.0f, 0.0f);	// (Pitch, Yaw, Roll) -- En el UE editor se muestran en distinto orden.
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float g = -980.0f;											// g = 980 cm/s^2 Para gravedad terrestre en unreal
-	
 	// Trajectory parameters
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics|Trajectory")
+	float Omega = PI / 4;										// Angular freq (rad/s)
+private:	
 	UPROPERTY(EditAnywhere, Category = "Physics")
 	float Radius = 500.0f;									
 	UPROPERTY(EditAnywhere, Category = "Physics")
@@ -129,10 +139,12 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Rotation")
 	float RollAngleDeg = 0.0f;
 
-	// METHODS
+	// Methods
 	void ReleaseActor();
 	void ToggleCamera();
 	void ApplyCameraMode();
+	void ToggleInputMode();
+	void ApplyInputMode();
 	FVector ComputeHelixPosition(float CurrentTime) const;
 	FVector ComputeVelocityVector(float dt) const;
 	void UpdateActorRotation(float DeltaTime);
