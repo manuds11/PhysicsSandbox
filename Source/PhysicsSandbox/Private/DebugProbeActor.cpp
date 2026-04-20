@@ -216,23 +216,25 @@ void ADebugProbeActor::ApplyInputMode()
     }
 }
 
-FVector ADebugProbeActor::ComputeHelixPosition(float t) const
+FVector ADebugProbeActor::ComputeHelixPosition(float DeltaTime)
 {
-    const float X = Radius * FMath::Cos(Omega * t) - Radius;
-    const float Y = Radius * FMath::Sin(Omega * t);
-    const float Z = Vel_Z * t;
+    Theta += Omega * DeltaTime;
+
+    const float X = Radius * FMath::Cos(Theta) - Radius;
+    const float Y = Radius * FMath::Sin(Theta);
+    const float Z = Vel_Z * Time;
 
     const FVector Offset(X, Y, Z);
     return Pos_0 + Offset;
 }
 
-FVector ADebugProbeActor::ComputeVelocityVector(float dt) const 
+FVector ADebugProbeActor::ComputeVelocityVector(float DeltaTime) const 
 {
-    if (dt <= KINDA_SMALL_NUMBER)
+    if (DeltaTime <= KINDA_SMALL_NUMBER)
     {
         return FVector::ZeroVector;
     }
-    return (Pos_Tick - Pos_prevTick) / dt;
+    return (Pos_Tick - Pos_prevTick) / DeltaTime;
 }
 
 void ADebugProbeActor::UpdateOmegaTransition(float DeltaTime)
@@ -335,7 +337,7 @@ void ADebugProbeActor::Tick(float DeltaTime)
 
         UpdateOmegaTransition(DeltaTime);
 
-        Pos_Tick = ComputeHelixPosition(Time);
+        Pos_Tick = ComputeHelixPosition(DeltaTime);
         Vel_Tick = ComputeVelocityVector(DeltaTime);
         
         UpdateActorRotation(DeltaTime);
@@ -555,7 +557,7 @@ void ADebugProbeActor::PrintDebugInfo() const
     );
 
     FString PromptText = !bReleased ?
-        FString::Printf(TEXT("CLICK ANYWHERE AND PRESS SPACE BAR TO RELEASE\nAvg. dt: %.4f"), AverageDeltaTime)
+        FString::Printf(TEXT("CLICK ANYWHERE AND PRESS SPACE BAR TO RELEASE\nAvg. DeltaTime: %.4f"), AverageDeltaTime)
         : FString::Printf(TEXT("HELICAL TRANSLATION ACTIVE\nRunning Time: %.2f | Avg. dt: %.4f"), RunningTime, AverageDeltaTime);
     FColor PromptColor = !bReleased ? FColor::Red : FColor::Green;
 

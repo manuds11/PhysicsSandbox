@@ -75,11 +75,14 @@ private:
 	float AverageDeltaTime = 0.0f;
 	float Time = 0.0f;											// Tiempo físico desde que el actor comienza a moverse
 
+	float Theta = 0.0f;
+
 	// Reference frame
 	FVector Pos_0 = FVector::ZeroVector;
 	FVector Pos_Tick = FVector::ZeroVector;
 	FVector Pos_prevTick = FVector::ZeroVector;
 	FVector Vel_Tick = FVector::ZeroVector;
+
 	FVector ChaseCamPos_Tick = FVector::ZeroVector;
 	FVector ChaseCamPos_prevTick = FVector::ZeroVector;
 
@@ -154,8 +157,8 @@ private:
 	void ApplyCameraMode();
 	void ToggleInputMode();
 	void ApplyInputMode();
-	FVector ComputeHelixPosition(float CurrentTime) const;
-	FVector ComputeVelocityVector(float dt) const;
+	FVector ComputeHelixPosition(float DeltaTime);
+	FVector ComputeVelocityVector(float DeltaTime) const;
 	void UpdateActorRotation(float DeltaTime);
 	void UpdateOmegaTransition(float DeltaTime);
 	float ComputeQuinticSmoothStep(float Alpha) const;
