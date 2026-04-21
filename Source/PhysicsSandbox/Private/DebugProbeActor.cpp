@@ -253,24 +253,26 @@ void ADebugProbeActor::UpdateOmegaTransition(float DeltaTime)
 
     OmegaTransitionElapsedTime += DeltaTime;
 
-    const float Alpha = FMath::Clamp(
-        OmegaTransitionElapsedTime / OmegaTransitionDuration,
-        0.0f,
-        1.0f
-    );
-
-    const float SmoothAlpha =
-        6.0f * FMath::Pow(Alpha, 5)
-        - 15.0f * FMath::Pow(Alpha, 4)
-        + 10.0f * FMath::Pow(Alpha, 3);
-
-    Omega = FMath::Lerp(OmegaTransitionStart, OmegaTarget, SmoothAlpha);
+    float Alpha = FMath::Clamp(OmegaTransitionElapsedTime / OmegaTransitionDuration, 0.0f, 1.0f);
+    float S_Alpha = ComputeQuinticSmoothStep(Alpha);
+    Omega = FMath::Lerp(OmegaTransitionStart, OmegaTarget, S_Alpha);
 
     if (Alpha >= 1.0f)
     {
         Omega = OmegaTarget;
         bOmegaTransitionActive = false;
     }
+}
+
+float ADebugProbeActor::ComputeQuinticSmoothStep(float Alpha) const
+{
+    // Quintic smoothstep:
+    // s(a) = 6a^5 - 15a^4 + 10a^3
+    // Tiene velocidad y aceleración suaves en inicio y final.
+    const float A2 = Alpha * Alpha;
+    const float A3 = A2 * Alpha;
+
+    return A3 * (10.0f - 15.0f * Alpha + 6.0f * A2);
 }
 
 void ADebugProbeActor::UpdateActorRotation(float DeltaTime)
