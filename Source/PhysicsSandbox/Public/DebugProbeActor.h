@@ -157,7 +157,7 @@ private:
 	void ApplyCameraMode();
 	void ToggleInputMode();
 	void ApplyInputMode();
-	FVector ComputeHelixPosition(float DeltaTime);
+	FVector ComputeHelixPosition();
 	FVector ComputeVelocityVector(float DeltaTime) const;
 	void UpdateActorRotation(float DeltaTime);
 	void UpdateOmegaTransition(float DeltaTime);

@@ -216,10 +216,8 @@ void ADebugProbeActor::ApplyInputMode()
     }
 }
 
-FVector ADebugProbeActor::ComputeHelixPosition(float DeltaTime)
+FVector ADebugProbeActor::ComputeHelixPosition()
 {
-    Theta += Omega * DeltaTime;
-
     const float X = Radius * FMath::Cos(Theta) - Radius;
     const float Y = Radius * FMath::Sin(Theta);
     const float Z = Vel_Z * Time;
@@ -336,10 +334,11 @@ void ADebugProbeActor::Tick(float DeltaTime)
     if (bReleased) 
     {
         Time += DeltaTime;
+        Theta += Omega * DeltaTime;
 
         UpdateOmegaTransition(DeltaTime);
 
-        Pos_Tick = ComputeHelixPosition(DeltaTime);
+        Pos_Tick = ComputeHelixPosition();
         Vel_Tick = ComputeVelocityVector(DeltaTime);
         
         UpdateActorRotation(DeltaTime);
