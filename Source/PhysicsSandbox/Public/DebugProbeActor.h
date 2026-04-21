@@ -23,8 +23,6 @@ enum class ECameraMode : uint8
 	Free
 };
 
-
-
 UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 {
@@ -33,11 +31,12 @@ class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 public:
 	ADebugProbeActor();
 
-	UFUNCTION(BlueprintCallable, Category = "Physics|Trajectory")
-	void SetOmega(float NewOmega);
+	// Public parameter API
+	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
+	void SetOmegaTarget(float NewOmega);
 
-	UFUNCTION(BlueprintPure, Category = "Physics|Trajectory")
-	float GetOmega() const { return Omega; }
+	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
+	float GetOmegaTarget() const { return Omega; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -46,125 +45,168 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	// =========================
 	// Components
+	// =========================
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	USceneComponent* SceneRoot = nullptr;
+
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UStaticMeshComponent* Mesh = nullptr;
+
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UCameraComponent* OnboardCamera = nullptr;
+
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	USpringArmComponent* SpringArm = nullptr;
+
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UCameraComponent* ChaseCamera = nullptr;
+
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UCameraComponent* TopCamera = nullptr;
 
-	// Controller
+	// =========================
+	// UI / Controller references
+	// =========================
 	APlayerController* PlayerController = nullptr;
 
-	// Widget
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TSubclassOf<UDebugProbeControlWidget> ControlWidgetClass;
+
 	UPROPERTY()
 	UDebugProbeControlWidget* ControlWidget = nullptr;
 
-	// Actor::Tick variables
+	// =========================
+	// Interaction / camera state
+	// =========================
+	ECameraMode CameraMode = ECameraMode::Onboard;
+
+	bool bUIInputMode = false;
+	bool bReleased = false;
+
+	// =========================
+	// Simulation state
+	// =========================
 	int FrameCount = 0;
 	float RunningTime = 0.0f;
 	float AverageDeltaTime = 0.0f;
-	float Time = 0.0f;											// Tiempo físico desde que el actor comienza a moverse
+	float Time = 0.0f; // Tiempo físico desde que el actor comienza a moverse
+	float Theta = 0.0f; // rad
 
-	float Theta = 0.0f;
+	FVector Pos_0 = FVector::ZeroVector; // cm
+	FVector Pos_Tick = FVector::ZeroVector; // cm
+	FVector Pos_prevTick = FVector::ZeroVector; // cm
+	FVector Vel_Tick = FVector::ZeroVector; // cm/s
 
-	// Reference frame
-	FVector Pos_0 = FVector::ZeroVector;
-	FVector Pos_Tick = FVector::ZeroVector;
-	FVector Pos_prevTick = FVector::ZeroVector;
-	FVector Vel_Tick = FVector::ZeroVector;
+	FVector ChaseCamPos_Tick = FVector::ZeroVector; // cm
+	FVector ChaseCamPos_prevTick = FVector::ZeroVector; // cm
 
-	FVector ChaseCamPos_Tick = FVector::ZeroVector;
-	FVector ChaseCamPos_prevTick = FVector::ZeroVector;
+	// =========================
+	// Mesh
+	// =========================
+	UPROPERTY(EditAnywhere, Category = "Mesh")
+	FRotator MeshRotationOffset = FRotator(0.0f, 0.0f, 0.0f); // (Pitch, Yaw, Roll)
 
-	// Camera variables
-	UPROPERTY(EditAnywhere, Category = "Cameras")
-	bool bUseOnboardCamera = true;
+	// =========================
+	// Simulation: general
+	// =========================
+	UPROPERTY(EditAnywhere, Category = "Simulation")
+	float g = -980.0f; // cm/s^2 (gravedad terrestre en Unreal)
 
-	ECameraMode CameraMode = ECameraMode::Onboard;
-
-	// WidgetMode variable
-	bool bUIInputMode = false;
-
-	// Action variables
-	bool bReleased = false;
-	
-	// EDITABLE
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bEnableDebugDraw = true;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawTrajectory = true;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawVelocityVector = false;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawChaseCameraTrajectory = true;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawChaseCameraMarker = false;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawActorFrame = true;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawMeshFrame = false;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawChaseCameraFrame = true;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	float BodyFrameAxisLength = 200.0f;
-	UPROPERTY(EditAnywhere, Category = "Debug")
-	float VelocityArrowScale = 1.0f;							// Scale factor of speed module. 1 means its real size.
-	
-	// Physical variables
-	UPROPERTY(EditAnywhere, Category = "Physics")
-	FRotator MeshRotationOffset = FRotator(0.0f, 0.0f, 0.0f);	// (Pitch, Yaw, Roll) -- En el UE editor se muestran en distinto orden.
-	UPROPERTY(EditAnywhere, Category = "Physics")
-	float g = -980.0f;											// g = 980 cm/s^2 Para gravedad terrestre en unreal
-	
-	// Trajectory parameters
-	// -- Angular Frequency Widget --
+	// =========================
+	// Simulation: trajectory parameters
+	// =========================
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics|Trajectory")
-	float Omega = PI / 4;										// Angular freq (rad/s)
-private:	
-	float OmegaTransitionStart = Omega;		// Valor por defecto para iniciar la variable.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Simulation|Trajectory")
+	float Omega = PI / 4; // Angular frequency (rad/s)
+
+private:
+	float OmegaTransitionStart = Omega;
 	float OmegaTarget = Omega;
 	float OmegaTransitionElapsedTime = 0.0f;
-	UPROPERTY(EditAnywhere, Category = "Physics|Trajectory")
-	float OmegaTransitionDuration = 0.7f;
-	bool bOmegaTransitionActive = false;
-	
-	UPROPERTY(EditAnywhere, Category = "Physics")
-	float Radius = 500.0f;									
-	UPROPERTY(EditAnywhere, Category = "Physics")
-	float Vel_Z = 100.0f;										// cm/s
-	// Rotation
-	UPROPERTY(EditAnywhere, Category = "Rotation")
-	bool bSpinAroundForward = true;
-	UPROPERTY(EditAnywhere, Category = "Rotation")
-	float RollRateDeg = 45.0f;									// deg/s
-	UPROPERTY(EditAnywhere, Category = "Rotation")
-	float RollAngleDeg = 0.0f;
 
-	// Methods
+	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
+	float OmegaTransitionDuration = 0.7f; // s
+
+	bool bOmegaTransitionActive = false;
+
+	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
+	float Radius = 500.0f; // cm
+
+	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
+	float Vel_Z = 100.0f; // cm/s
+
+	// =========================
+	// Simulation: rotation parameters
+	// =========================
+	UPROPERTY(EditAnywhere, Category = "Simulation|Rotation")
+	bool bSpinAroundForward = true;
+
+	UPROPERTY(EditAnywhere, Category = "Simulation|Rotation")
+	float RollRateDeg = 45.0f; // deg/s
+
+	UPROPERTY(EditAnywhere, Category = "Simulation|Rotation")
+	float RollAngleDeg = 0.0f; // deg
+
+	// =========================
+	// Debug settings
+	// =========================
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bEnableDebugDraw = true;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawTrajectory = true;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawVelocityVector = false;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawChaseCameraTrajectory = true;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawChaseCameraMarker = false;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawActorFrame = true;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawMeshFrame = false;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	bool bDrawChaseCameraFrame = true;
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	float BodyFrameAxisLength = 200.0f; // cm
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
+	float VelocityArrowScale = 1.0f; // Velocity vector scale factor
+
+	// =========================
+	// Internal methods: input / camera / UI
+	// =========================
 	void ReleaseActor();
 	void ToggleCamera();
 	void ApplyCameraMode();
 	void ToggleInputMode();
 	void ApplyInputMode();
+
+	// =========================
+	// Internal methods: simulation
+	// =========================
 	FVector ComputeHelixPosition();
 	FVector ComputeVelocityVector(float DeltaTime) const;
 	void UpdateActorRotation(float DeltaTime);
 	void UpdateOmegaTransition(float DeltaTime);
 	float ComputeQuinticSmoothStep(float Alpha) const;
+
+	// =========================
+	// Internal methods: debug draw / text
+	// =========================
 	void DrawActorTrajectory() const;
 	void DrawChaseCameraTrajectory() const;
 	void DrawVelocityVector() const;
+
 	void DrawComponentFrame(
 		const USceneComponent* Component,
 		FColor ColorForward,
@@ -172,6 +214,7 @@ private:
 		FColor ColorUp,
 		float LineThickness
 	) const;
+
 	void DrawActorFrame() const;
 	void DrawMeshFrame() const;
 	void DrawChaseCameraFrame() const;

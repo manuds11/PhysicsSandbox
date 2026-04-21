@@ -31,10 +31,10 @@ void UDebugProbeControlWidget::InitializeSliderValue()
     }
 
     // Mapeo simple inicial [-3, 3] → [0,1]
-    const float OmegaScaled = (ProbeRef->GetOmega() + 3.0f) / 6.0f;
+    const float OmegaScaled = (ProbeRef->GetOmegaTarget() + 3.0f) / 6.0f;
     OmegaSlider->SetValue(OmegaScaled);
 
-    UpdateOmegaText(ProbeRef->GetOmega());
+    UpdateOmegaText(ProbeRef->GetOmegaTarget());
 }
 
 void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
@@ -47,7 +47,7 @@ void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
     // Mapear [0,1] → [-3,3]
     const float Omega = -3.0f + Value * 6.0f;
 
-    ProbeRef->SetOmega(Omega);
+    ProbeRef->SetOmegaTarget(Omega);
 
     UpdateOmegaText(Omega);
 }

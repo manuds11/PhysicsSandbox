@@ -99,7 +99,7 @@ void ADebugProbeActor::BeginPlay()
     }
 }
 
-void ADebugProbeActor::SetOmega(float NewOmega)
+void ADebugProbeActor::SetOmegaTarget(float NewOmega)
 {
     OmegaTransitionStart = Omega;
     OmegaTarget = NewOmega;
