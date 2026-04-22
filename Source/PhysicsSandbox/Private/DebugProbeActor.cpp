@@ -65,9 +65,6 @@ void ADebugProbeActor::BeginPlay()
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
 
-    Omega.Current = PI / 4;
-    Omega.Target = Omega.Current;
-
     PlayerController = GetWorld()->GetFirstPlayerController();
 
     // Cameras
@@ -104,7 +101,12 @@ void ADebugProbeActor::BeginPlay()
 
 void ADebugProbeActor::SetOmegaTarget(float NewOmega)
 {
-    Omega.SetTarget(NewOmega);
+    OmegaParam.SetTarget(NewOmega);
+}
+
+void ADebugProbeActor::SetRadiusTarget(float NewRadius)
+{
+    RadiusParam.SetTarget(NewRadius);
 }
 
 void ADebugProbeActor::ReleaseActor()
@@ -218,8 +220,8 @@ void ADebugProbeActor::ApplyInputMode()
 
 FVector ADebugProbeActor::ComputeHelixPosition()
 {
-    const float X = Radius * FMath::Cos(Theta) - Radius;
-    const float Y = Radius * FMath::Sin(Theta);
+    const float X = RadiusParam.Current * FMath::Cos(Theta) - RadiusParam.Current;
+    const float Y = RadiusParam.Current * FMath::Sin(Theta);
     const float Z = Vel_Z * MotionTime;
 
     const FVector Offset(X, Y, Z);
@@ -296,9 +298,10 @@ void ADebugProbeActor::Tick(float DeltaTime)
     if (bReleased) 
     {
         MotionTime += DeltaTime;
-        Theta += Omega.Current * DeltaTime;
-
-        Omega.Update(DeltaTime);
+        
+        Theta += OmegaParam.Current * DeltaTime;
+        OmegaParam.Update(DeltaTime);       // For Transitioning between different Omegas.
+        RadiusParam.Update(DeltaTime);      // Same for Radius transitioning.
 
         Pos_Tick = ComputeHelixPosition();
         Vel_Tick = ComputeVelocityVector(DeltaTime);
@@ -506,7 +509,7 @@ void ADebugProbeActor::PrintDebugInfo() const
             MotionTime,
             PosMeters.X, PosMeters.Y, PosMeters.Z,
             VelMeters.X, VelMeters.Y, VelMeters.Z,
-            Radius * CmToM, Omega.Current,
+            RadiusParam.Current* CmToM, OmegaParam.Current,
 
             *GetCameraModeString(),
 

@@ -34,9 +34,13 @@ public:
 	// Public parameter API
 	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
 	void SetOmegaTarget(float NewOmega);
+	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
+	void SetRadiusTarget(float NewRadius);
 
 	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
-	float GetOmegaTarget() const { return Omega.Target; }
+	float GetOmegaTarget() const { return OmegaParam.Target; }
+	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
+	float GetRadiusTarget() const { return RadiusParam.Target; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -172,10 +176,8 @@ private:
 		}
 	};
 	
-	FTransParameter Omega{ PI / 4 };
-
-	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
-	float Radius = 500.0f; // cm
+	FTransParameter OmegaParam{ PI / 4 };
+	FTransParameter RadiusParam{ 500.0f };
 
 	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
 	float Vel_Z = 100.0f; // cm/s

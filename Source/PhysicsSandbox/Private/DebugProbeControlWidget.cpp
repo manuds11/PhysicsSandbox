@@ -14,8 +14,12 @@ void UDebugProbeControlWidget::NativeConstruct()
         // Escucha el evento y desencadena el efecto 'OnOmegaSliderChanged'
         OmegaSlider->OnValueChanged.AddDynamic(this, &UDebugProbeControlWidget::OnOmegaSliderChanged);
     }
-
-    InitializeSliderValue();  // Valor inicial del Slider fijado en DebugProbeActor.
+    if (RadiusSlider)
+    {
+        RadiusSlider->OnValueChanged.AddDynamic(this, &UDebugProbeControlWidget::OnRadiusSliderChanged);
+    }
+    InitializeOmegaControls();  // Valor inicial del Slider fijado en DebugProbeActor.
+    InitializeRadiusControls();
 }
 
 void UDebugProbeControlWidget::SetProbeReference(ADebugProbeActor* InProbe)
@@ -23,7 +27,7 @@ void UDebugProbeControlWidget::SetProbeReference(ADebugProbeActor* InProbe)
     ProbeRef = InProbe;
 }
 
-void UDebugProbeControlWidget::InitializeSliderValue()
+void UDebugProbeControlWidget::InitializeOmegaControls()
 {
     if (!ProbeRef || !OmegaSlider)
     {
@@ -35,6 +39,19 @@ void UDebugProbeControlWidget::InitializeSliderValue()
     OmegaSlider->SetValue(OmegaScaled);
 
     UpdateOmegaText(ProbeRef->GetOmegaTarget());
+}
+
+void UDebugProbeControlWidget::InitializeRadiusControls()
+{
+    if (!ProbeRef || !RadiusSlider)
+    {
+        return;
+    }
+
+    const float RadiusScaled = (ProbeRef->GetRadiusTarget() - 100.0f) / 900.0f;
+    RadiusSlider->SetValue(RadiusScaled);
+
+    UpdateRadiusText(ProbeRef->GetRadiusTarget());
 }
 
 void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
@@ -52,12 +69,35 @@ void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
     UpdateOmegaText(NewOmega);
 }
 
+void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
+{
+    if (!ProbeRef)
+    {
+        return;
+    }
+
+    const float Radius = 100.0f + Value * 900.0f;
+
+    ProbeRef->SetRadiusTarget(Radius);
+    UpdateRadiusText(Radius);
+}
+
 void UDebugProbeControlWidget::UpdateOmegaText(float OmegaValue)
 {
     if (OmegaValueText)
     {
         OmegaValueText->SetText(
             FText::FromString(FString::Printf(TEXT("%.3f rad/s"), OmegaValue))
+        );
+    }
+}
+
+void UDebugProbeControlWidget::UpdateRadiusText(float RadiusValue)
+{
+    if (RadiusValueText)
+    {
+        RadiusValueText->SetText(
+            FText::FromString(FString::Printf(TEXT("%.1f cm"), RadiusValue))
         );
     }
 }

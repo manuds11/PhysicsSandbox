@@ -17,11 +17,23 @@ protected:
     virtual void NativeConstruct() override;
 
     // Bindings con UMG
+    // =========================
+    // Omega
+    // =========================
     UPROPERTY(meta = (BindWidget))
     USlider* OmegaSlider = nullptr;
 
     UPROPERTY(meta = (BindWidget))
     UTextBlock* OmegaValueText = nullptr;
+    
+    // =========================
+    // Radius
+    // =========================
+    UPROPERTY(meta = (BindWidget))
+    USlider* RadiusSlider = nullptr;
+
+    UPROPERTY(meta = (BindWidget))
+    UTextBlock* RadiusValueText = nullptr;
 
 public:
     UFUNCTION(BlueprintCallable)
@@ -30,10 +42,20 @@ public:
 private:
     UPROPERTY()
     ADebugProbeActor* ProbeRef = nullptr;
-
+    
+    // =========================
+    // OmegaMethods
+    // =========================
     UFUNCTION()
     void OnOmegaSliderChanged(float Value);
-
-    void InitializeSliderValue();
+    void InitializeOmegaControls();
     void UpdateOmegaText(float OmegaValue);
+
+    // =========================
+    // RadiousMethods
+    // =========================
+    UFUNCTION()
+    void OnRadiusSliderChanged(float Value); 
+    void InitializeRadiusControls();
+    void UpdateRadiusText(float RadiusValue);
 };
