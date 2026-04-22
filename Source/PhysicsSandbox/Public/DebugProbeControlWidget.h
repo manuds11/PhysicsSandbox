@@ -42,6 +42,8 @@ public:
 private:
     UPROPERTY()
     ADebugProbeActor* ProbeRef = nullptr;
+
+    
     
     // =========================
     // OmegaMethods

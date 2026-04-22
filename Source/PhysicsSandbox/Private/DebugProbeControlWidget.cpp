@@ -1,4 +1,5 @@
 ﻿#include "DebugProbeControlWidget.h"
+#include "Math/Units.h"
 
 #include "Components/Slider.h"
 #include "Components/TextBlock.h"
@@ -97,7 +98,7 @@ void UDebugProbeControlWidget::UpdateRadiusText(float RadiusValue)
     if (RadiusValueText)
     {
         RadiusValueText->SetText(
-            FText::FromString(FString::Printf(TEXT("%.1f cm"), RadiusValue))
+            FText::FromString(FString::Printf(TEXT("%.2f m"), RadiusValue * Units::CmToM))
         );
     }
 }

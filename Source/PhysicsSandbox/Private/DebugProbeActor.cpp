@@ -2,6 +2,7 @@
 
 #include "DebugProbeActor.h"
 #include "DebugProbeControlWidget.h"
+#include "Math/Units.h"
 
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
@@ -12,11 +13,6 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
-
-namespace
-{
-    constexpr float CmToM = 0.01f;
-}
 
 ADebugProbeActor::ADebugProbeActor()
 {
@@ -470,8 +466,8 @@ void ADebugProbeActor::PrintDebugInfo() const
         return;
     }
 
-    const FVector PosMeters = Pos_Tick * CmToM;
-    const FVector VelMeters = Vel_Tick * CmToM;
+    const FVector PosMeters = Pos_Tick * Units::CmToM;
+    const FVector VelMeters = Vel_Tick * Units::CmToM;
 
     const FRotator ActorRot = GetActorRotation();
 
@@ -509,7 +505,7 @@ void ADebugProbeActor::PrintDebugInfo() const
             MotionTime,
             PosMeters.X, PosMeters.Y, PosMeters.Z,
             VelMeters.X, VelMeters.Y, VelMeters.Z,
-            RadiusParam.Current* CmToM, OmegaParam.Current,
+            RadiusParam.Current* Units::CmToM, OmegaParam.Current,
 
             *GetCameraModeString(),
 
