@@ -117,11 +117,10 @@ private:
 	// =========================
 	// Simulation: trajectory parameters
 	// =========================
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Simulation|Trajectory")
+private:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Simulation|Trajectory", meta = (AllowPrivateAccess = "true"))
 	float Omega = PI / 4; // Angular frequency (rad/s)
 
-private:
 	float OmegaTransitionStart = Omega;
 	float OmegaTarget = Omega;
 	float OmegaTransitionElapsedTime = 0.0f;
