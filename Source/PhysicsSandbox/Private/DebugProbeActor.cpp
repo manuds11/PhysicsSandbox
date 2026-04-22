@@ -57,13 +57,16 @@ ADebugProbeActor::ADebugProbeActor()
 
 void ADebugProbeActor::BeginPlay()
 {
-   Super::BeginPlay();
+    Super::BeginPlay();
     
     Mesh->SetRelativeRotation(MeshRotationOffset);   // 🔴 
 
     Pos_0 = GetActorLocation();
     Pos_Tick = Pos_0;
     Pos_prevTick = Pos_0;
+
+    Omega.Current = PI / 4;
+    Omega.Target = Omega.Current;
 
     PlayerController = GetWorld()->GetFirstPlayerController();
 
@@ -101,10 +104,7 @@ void ADebugProbeActor::BeginPlay()
 
 void ADebugProbeActor::SetOmegaTarget(float NewOmega)
 {
-    OmegaTransitionStart = Omega;
-    OmegaTarget = NewOmega;
-    OmegaTransitionElapsedTime = 0.0f;
-    bOmegaTransitionActive = true;
+    Omega.SetTarget(NewOmega);
 }
 
 void ADebugProbeActor::ReleaseActor()
@@ -220,7 +220,7 @@ FVector ADebugProbeActor::ComputeHelixPosition()
 {
     const float X = Radius * FMath::Cos(Theta) - Radius;
     const float Y = Radius * FMath::Sin(Theta);
-    const float Z = Vel_Z * Time;
+    const float Z = Vel_Z * MotionTime;
 
     const FVector Offset(X, Y, Z);
     return Pos_0 + Offset;
@@ -233,44 +233,6 @@ FVector ADebugProbeActor::ComputeVelocityVector(float DeltaTime) const
         return FVector::ZeroVector;
     }
     return (Pos_Tick - Pos_prevTick) / DeltaTime;
-}
-
-void ADebugProbeActor::UpdateOmegaTransition(float DeltaTime)
-{
-    if (!bOmegaTransitionActive)
-    {
-        return;
-    }
-
-    if (OmegaTransitionDuration <= KINDA_SMALL_NUMBER)
-    {
-        Omega = OmegaTarget;
-        bOmegaTransitionActive = false;
-        return;
-    }
-
-    OmegaTransitionElapsedTime += DeltaTime;
-
-    float Alpha = FMath::Clamp(OmegaTransitionElapsedTime / OmegaTransitionDuration, 0.0f, 1.0f);
-    float S_Alpha = ComputeQuinticSmoothStep(Alpha);
-    Omega = FMath::Lerp(OmegaTransitionStart, OmegaTarget, S_Alpha);
-
-    if (Alpha >= 1.0f)
-    {
-        Omega = OmegaTarget;
-        bOmegaTransitionActive = false;
-    }
-}
-
-float ADebugProbeActor::ComputeQuinticSmoothStep(float Alpha) const
-{
-    // Quintic smoothstep:
-    // s(a) = 6a^5 - 15a^4 + 10a^3
-    // Tiene velocidad y aceleración suaves en inicio y final.
-    const float A2 = Alpha * Alpha;
-    const float A3 = A2 * Alpha;
-
-    return A3 * (10.0f - 15.0f * Alpha + 6.0f * A2);
 }
 
 void ADebugProbeActor::UpdateActorRotation(float DeltaTime)
@@ -333,10 +295,10 @@ void ADebugProbeActor::Tick(float DeltaTime)
     
     if (bReleased) 
     {
-        Time += DeltaTime;
-        Theta += Omega * DeltaTime;
+        MotionTime += DeltaTime;
+        Theta += Omega.Current * DeltaTime;
 
-        UpdateOmegaTransition(DeltaTime);
+        Omega.Update(DeltaTime);
 
         Pos_Tick = ComputeHelixPosition();
         Vel_Tick = ComputeVelocityVector(DeltaTime);
@@ -541,10 +503,10 @@ void ADebugProbeActor::PrintDebugInfo() const
                 "\nMesh  Fwd: %.2f | %.2f | %.2f"),
             bUIInputMode ? TEXT("UI") : TEXT("GAME"),
             
-            Time,
+            MotionTime,
             PosMeters.X, PosMeters.Y, PosMeters.Z,
             VelMeters.X, VelMeters.Y, VelMeters.Z,
-            Radius * CmToM, Omega,
+            Radius * CmToM, Omega.Current,
 
             *GetCameraModeString(),
 

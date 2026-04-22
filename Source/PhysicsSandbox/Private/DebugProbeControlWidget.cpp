@@ -45,11 +45,11 @@ void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
     }
 
     // Mapear [0,1] → [-3,3]
-    const float Omega = -3.0f + Value * 6.0f;
+    const float NewOmega = -3.0f + Value * 6.0f;
 
-    ProbeRef->SetOmegaTarget(Omega);
+    ProbeRef->SetOmegaTarget(NewOmega);
 
-    UpdateOmegaText(Omega);
+    UpdateOmegaText(NewOmega);
 }
 
 void UDebugProbeControlWidget::UpdateOmegaText(float OmegaValue)

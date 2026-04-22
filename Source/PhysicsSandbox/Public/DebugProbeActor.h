@@ -36,7 +36,7 @@ public:
 	void SetOmegaTarget(float NewOmega);
 
 	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
-	float GetOmegaTarget() const { return Omega; }
+	float GetOmegaTarget() const { return Omega.Target; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -91,7 +91,7 @@ private:
 	int FrameCount = 0;
 	float RunningTime = 0.0f;
 	float AverageDeltaTime = 0.0f;
-	float Time = 0.0f; // Tiempo físico desde que el actor comienza a moverse
+	float MotionTime = 0.0f; // Tiempo físico desde que el actor comienza a moverse
 	float Theta = 0.0f; // rad
 
 	FVector Pos_0 = FVector::ZeroVector; // cm
@@ -118,17 +118,61 @@ private:
 	// Simulation: trajectory parameters
 	// =========================
 private:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Simulation|Trajectory", meta = (AllowPrivateAccess = "true"))
-	float Omega = PI / 4; // Angular frequency (rad/s)
 
-	float OmegaTransitionStart = Omega;
-	float OmegaTarget = Omega;
-	float OmegaTransitionElapsedTime = 0.0f;
+	// =========================
+	// Internal types
+	// =========================
+	struct FTransParameter
+	{
+		float Current = 0.0f;
+		float Target = 0.0f;
+		float Start = 0.0f;
 
-	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
-	float OmegaTransitionDuration = 0.7f; // s
+		float ElapsedTime = 0.0f;
+		float TransDuration = 0.7f;
 
-	bool bOmegaTransitionActive = false;
+		bool bActive = false;
+
+		FTransParameter() = default;
+
+		explicit FTransParameter(float InitialValue)
+			: Current(InitialValue)
+			, Target(InitialValue)
+			, Start(InitialValue)
+		{}
+
+		void SetTarget(float NewTarget)
+		{
+			Start = Current;
+			Target = NewTarget;
+			ElapsedTime = 0.0f;
+			bActive = true;
+		}
+
+		void Update(float DeltaTime)
+		{
+			if (!bActive) return;
+
+			ElapsedTime += DeltaTime;
+
+			const float Alpha = FMath::Clamp(ElapsedTime / TransDuration, 0.0f, 1.0f);
+			// Quintic smoothstep: S(a) = 6a^5 - 15a^4 + 10a^3
+			const float A2 = Alpha * Alpha;
+			const float A3 = A2 * Alpha;
+			const float SmoothStep =
+				A3 * (10.0f - 15.0f * Alpha + 6.0f * A2);
+
+			Current = FMath::Lerp(Start, Target, SmoothStep);
+
+			if (Alpha >= 1.0f)
+			{
+				Current = Target;
+				bActive = false;
+			}
+		}
+	};
+	
+	FTransParameter Omega{ PI / 4 };
 
 	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
 	float Radius = 500.0f; // cm
@@ -196,8 +240,6 @@ private:
 	FVector ComputeHelixPosition();
 	FVector ComputeVelocityVector(float DeltaTime) const;
 	void UpdateActorRotation(float DeltaTime);
-	void UpdateOmegaTransition(float DeltaTime);
-	float ComputeQuinticSmoothStep(float Alpha) const;
 
 	// =========================
 	// Internal methods: debug draw / text
