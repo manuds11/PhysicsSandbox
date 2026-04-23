@@ -86,7 +86,7 @@ private:
         }
     };
     
-    FSliderRange OmegaRange{ -3.0f, 3.0f };
+    FSliderRange OmegaRange{ -PI, PI };
     FSliderRange RadiusRange{ 100.0f, 1000.0f };
     
     UFUNCTION()

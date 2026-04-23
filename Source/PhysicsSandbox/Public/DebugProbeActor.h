@@ -31,7 +31,9 @@ class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 public:
 	ADebugProbeActor();
 
-	// Public parameter API
+	// =========================
+	// Public Parameter API
+	// =========================
 	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
 	void SetOmegaTarget(float NewOmega);
 	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")

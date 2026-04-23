@@ -51,7 +51,7 @@ void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
     const float RadiusValue = RadiusRange.ToRealMagnitude(Value);
     ProbeRef->SetRadiusTarget(RadiusValue);
 
-    UpdateValueText(RadiusValueText, RadiusValue, TEXT("cm"), 1);
+    UpdateValueText(RadiusValueText, RadiusValue * Units::CmToM, TEXT("m"), 2);
 }
 
 void UDebugProbeControlWidget::InitializeOmegaControls()
@@ -82,7 +82,7 @@ void UDebugProbeControlWidget::InitializeRadiusControls()
         RadiusSlider,
         RadiusValueText,
         RadiusRange,
-        ProbeRef->GetRadiusTarget() * Units::CmToM,
+        ProbeRef->GetRadiusTarget(),
         TEXT("m"),
         2
     );
@@ -107,7 +107,7 @@ void UDebugProbeControlWidget::InitializeSliderFromValue(
     {
         ValueText->SetText(
             FText::FromString(
-                FString::Printf(TEXT("%.*f %s"), NumDecimals, Value, *Suffix)
+                FString::Printf(TEXT("%.*f %s"), NumDecimals, Value * Units::CmToM, *Suffix)
             )
         );
     }
