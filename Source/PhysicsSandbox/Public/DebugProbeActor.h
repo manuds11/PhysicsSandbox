@@ -176,8 +176,8 @@ private:
 		}
 	};
 	
-	FTransParameter OmegaParam{ PI / 4 };
-	FTransParameter RadiusParam{ 500.0f };
+	FTransParameter OmegaParam{ PI / 4 };   // rad/s
+	FTransParameter RadiusParam{ 500.0f };  // cm
 
 	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
 	float Vel_Z = 100.0f; // cm/s

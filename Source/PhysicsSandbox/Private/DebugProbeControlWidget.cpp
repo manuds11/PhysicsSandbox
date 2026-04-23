@@ -28,33 +28,6 @@ void UDebugProbeControlWidget::SetProbeReference(ADebugProbeActor* InProbe)
     ProbeRef = InProbe;
 }
 
-void UDebugProbeControlWidget::InitializeOmegaControls()
-{
-    if (!ProbeRef || !OmegaSlider)
-    {
-        return;
-    }
-
-    // Mapeo simple inicial [-3, 3] → [0,1]
-    const float OmegaScaled = (ProbeRef->GetOmegaTarget() + 3.0f) / 6.0f;
-    OmegaSlider->SetValue(OmegaScaled);
-
-    UpdateOmegaText(ProbeRef->GetOmegaTarget());
-}
-
-void UDebugProbeControlWidget::InitializeRadiusControls()
-{
-    if (!ProbeRef || !RadiusSlider)
-    {
-        return;
-    }
-
-    const float RadiusScaled = (ProbeRef->GetRadiusTarget() - 100.0f) / 900.0f;
-    RadiusSlider->SetValue(RadiusScaled);
-
-    UpdateRadiusText(ProbeRef->GetRadiusTarget());
-}
-
 void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
 {
     if (!ProbeRef)
@@ -62,12 +35,10 @@ void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
         return;
     }
 
-    // Mapear [0,1] → [-3,3]
-    const float NewOmega = -3.0f + Value * 6.0f;
+    const float OmegaValue = OmegaRange.ToRealMagnitude(Value);
+    ProbeRef->SetOmegaTarget(OmegaValue);
 
-    ProbeRef->SetOmegaTarget(NewOmega);
-
-    UpdateOmegaText(NewOmega);
+    UpdateValueText(OmegaValueText, OmegaValue, TEXT("rad/s"), 3);
 }
 
 void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
@@ -77,28 +48,86 @@ void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
         return;
     }
 
-    const float Radius = 100.0f + Value * 900.0f;
+    const float RadiusValue = RadiusRange.ToRealMagnitude(Value);
+    ProbeRef->SetRadiusTarget(RadiusValue);
 
-    ProbeRef->SetRadiusTarget(Radius);
-    UpdateRadiusText(Radius);
+    UpdateValueText(RadiusValueText, RadiusValue, TEXT("cm"), 1);
 }
 
-void UDebugProbeControlWidget::UpdateOmegaText(float OmegaValue)
+void UDebugProbeControlWidget::InitializeOmegaControls()
 {
-    if (OmegaValueText)
+    if (!ProbeRef)
     {
-        OmegaValueText->SetText(
-            FText::FromString(FString::Printf(TEXT("%.3f rad/s"), OmegaValue))
+        return;
+    }
+
+    InitializeSliderFromValue(
+        OmegaSlider,
+        OmegaValueText,
+        OmegaRange,
+        ProbeRef->GetOmegaTarget(),
+        TEXT("rad/s"),
+        3
+    );
+}
+
+void UDebugProbeControlWidget::InitializeRadiusControls()
+{
+    if (!ProbeRef)
+    {
+        return;
+    }
+
+    InitializeSliderFromValue(
+        RadiusSlider,
+        RadiusValueText,
+        RadiusRange,
+        ProbeRef->GetRadiusTarget() * Units::CmToM,
+        TEXT("m"),
+        2
+    );
+}
+
+void UDebugProbeControlWidget::InitializeSliderFromValue(
+    USlider* Slider,
+    UTextBlock* ValueText,
+    const FSliderRange& Range,
+    float Value,
+    const FString& Suffix,
+    int32 NumDecimals)
+{
+    if (!Slider)
+    {
+        return;
+    }
+
+    Slider->SetValue(Range.ToNormalized(Value));
+
+    if (ValueText)
+    {
+        ValueText->SetText(
+            FText::FromString(
+                FString::Printf(TEXT("%.*f %s"), NumDecimals, Value, *Suffix)
+            )
         );
     }
 }
 
-void UDebugProbeControlWidget::UpdateRadiusText(float RadiusValue)
+void UDebugProbeControlWidget::UpdateValueText(
+    UTextBlock* ValueText,
+    float Value,
+    const FString& Suffix,
+    int32 NumDecimals)
 {
-    if (RadiusValueText)
+    if (!ValueText)
     {
-        RadiusValueText->SetText(
-            FText::FromString(FString::Printf(TEXT("%.2f m"), RadiusValue * Units::CmToM))
-        );
+        return;
     }
+
+    ValueText->SetText(
+        FText::FromString(
+            FString::Printf(TEXT("%.*f %s"), NumDecimals, Value, *Suffix)
+        )
+    );
 }
+
