@@ -50,22 +50,33 @@ private:
     // =========================
     // Actor linkage
     // =========================
-    struct FSliderRange
+    struct FSliderUIBinding
     {
+        USlider* Slider = nullptr;
+        UTextBlock* ValueText = nullptr;
+
         float MinValue = 0.0f;
         float MaxValue = 1.0f;
 
-        FSliderRange() = default;
+        FString Suffix;
+        int32 NumDecimals = 2;
 
-        explicit FSliderRange(float InMaxValue)
-            : MinValue(0.0f)
-            , MaxValue(InMaxValue)
-        {
-        }
+        FSliderUIBinding() = default;
 
-        FSliderRange(float InMinValue, float InMaxValue)
-            : MinValue(InMinValue)
+        FSliderUIBinding(
+            USlider* InSlider,
+            UTextBlock* InValueText,
+            float InMinValue,
+            float InMaxValue,
+            FString InSuffix,
+            int32 InNumDecimals
+        )
+            : Slider(InSlider)
+            , ValueText(InValueText)
+            , MinValue(InMinValue)
             , MaxValue(InMaxValue)
+            , Suffix(MoveTemp(InSuffix))
+            , NumDecimals(InNumDecimals)
         {
         }
 
@@ -86,8 +97,11 @@ private:
         }
     };
     
-    FSliderRange OmegaRange{ -PI, PI };
-    FSliderRange RadiusRange{ 100.0f, 1000.0f };
+    FSliderUIBinding OmegaBinding;
+    FSliderUIBinding RadiusBinding;
+
+    FSliderUIBinding MakeOmegaBinding() const;
+    FSliderUIBinding MakeRadiusBinding() const;
     
     UFUNCTION()
     void OnOmegaSliderChanged(float Value);
@@ -95,23 +109,13 @@ private:
     UFUNCTION()
     void OnRadiusSliderChanged(float Value); 
 
-    void InitializeSliderFromValue(
-        USlider* Slider,
-        UTextBlock* ValueText,
-        const FSliderRange& Range,
-        float Value,
-        const FString& Suffix,
-        int32 NumDecimals);
-    void UpdateValueText(
-        UTextBlock* ValueText,
-        float Value,
-        const FString& Suffix,
-        int32 NumDecimals);
+    void InitializeControl(
+        const FSliderUIBinding& Binding,
+        float Value);
 
-    void InitializeOmegaControls();
-    void UpdateOmegaText(float OmegaValue);
-    void InitializeRadiusControls();
-    void UpdateRadiusText(float RadiusValue);
+    void UpdateValueText(
+        const FSliderUIBinding& Binding,
+        float Value);
 };
 
 

@@ -6,9 +6,37 @@
 #include "Kismet/GameplayStatics.h"
 #include "DebugProbeActor.h"
 
+using FSliderUIBinding = UDebugProbeControlWidget::FSliderUIBinding;
+
+FSliderUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
+{
+    return FSliderUIBinding(
+        OmegaSlider,
+        OmegaValueText,
+        -PI,
+        PI,
+        TEXT("rad/s"),
+        3
+    );
+}
+
+FSliderUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
+{
+    return FSliderUIBinding(
+        RadiusSlider,
+        RadiusValueText,
+        100.0f,
+        1000.0f,
+        TEXT("m"),
+        2
+    );
+}
+
 void UDebugProbeControlWidget::NativeConstruct()
 {
     Super::NativeConstruct();
+    OmegaBinding = MakeOmegaBinding();
+    RadiusBinding = MakeRadiusBinding();
 
     if (OmegaSlider)
     {   
@@ -19,9 +47,11 @@ void UDebugProbeControlWidget::NativeConstruct()
     {
         RadiusSlider->OnValueChanged.AddDynamic(this, &UDebugProbeControlWidget::OnRadiusSliderChanged);
     }
-    InitializeOmegaControls();  // Valor inicial del Slider fijado en DebugProbeActor.
-    InitializeRadiusControls();
+    InitializeControl(OmegaBinding, ProbeRef->GetOmegaTarget());
+    InitializeControl(RadiusBinding, ProbeRef->GetRadiusTarget() * Units::CmToM);  // Valor inicial del Slider fijado en DebugProbeActor.
 }
+
+
 
 void UDebugProbeControlWidget::SetProbeReference(ADebugProbeActor* InProbe)
 {
@@ -35,10 +65,10 @@ void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
         return;
     }
 
-    const float OmegaValue = OmegaRange.ToRealMagnitude(Value);
+    const float OmegaValue = OmegaBinding.ToRealMagnitude(Value);
     ProbeRef->SetOmegaTarget(OmegaValue);
 
-    UpdateValueText(OmegaValueText, OmegaValue, TEXT("rad/s"), 3);
+    UpdateValueText(OmegaBinding, OmegaValue);
 }
 
 void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
@@ -48,85 +78,55 @@ void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
         return;
     }
 
-    const float RadiusValue = RadiusRange.ToRealMagnitude(Value);
+    const float RadiusValue = RadiusBinding.ToRealMagnitude(Value);
     ProbeRef->SetRadiusTarget(RadiusValue);
 
-    UpdateValueText(RadiusValueText, RadiusValue * Units::CmToM, TEXT("m"), 2);
+    UpdateValueText(RadiusBinding, RadiusValue * Units::CmToM);
 }
 
-void UDebugProbeControlWidget::InitializeOmegaControls()
+void UDebugProbeControlWidget::InitializeControl(
+    const FSliderUIBinding& Binding,
+    float Value)
 {
-    if (!ProbeRef)
+    if (!Binding.Slider)
     {
         return;
     }
 
-    InitializeSliderFromValue(
-        OmegaSlider,
-        OmegaValueText,
-        OmegaRange,
-        ProbeRef->GetOmegaTarget(),
-        TEXT("rad/s"),
-        3
-    );
-}
+    Binding.Slider->SetValue(Binding.ToNormalized(Value));
 
-void UDebugProbeControlWidget::InitializeRadiusControls()
-{
-    if (!ProbeRef)
+    if (Binding.ValueText)
     {
-        return;
-    }
-
-    InitializeSliderFromValue(
-        RadiusSlider,
-        RadiusValueText,
-        RadiusRange,
-        ProbeRef->GetRadiusTarget(),
-        TEXT("m"),
-        2
-    );
-}
-
-void UDebugProbeControlWidget::InitializeSliderFromValue(
-    USlider* Slider,
-    UTextBlock* ValueText,
-    const FSliderRange& Range,
-    float Value,
-    const FString& Suffix,
-    int32 NumDecimals)
-{
-    if (!Slider)
-    {
-        return;
-    }
-
-    Slider->SetValue(Range.ToNormalized(Value));
-
-    if (ValueText)
-    {
-        ValueText->SetText(
+        Binding.ValueText->SetText(
             FText::FromString(
-                FString::Printf(TEXT("%.*f %s"), NumDecimals, Value * Units::CmToM, *Suffix)
+                FString::Printf(
+                    TEXT("%.*f %s"),
+                    Binding.NumDecimals,
+                    Value,
+                    *Binding.Suffix
+                )
             )
         );
     }
 }
 
 void UDebugProbeControlWidget::UpdateValueText(
-    UTextBlock* ValueText,
-    float Value,
-    const FString& Suffix,
-    int32 NumDecimals)
+    const FSliderUIBinding& Binding,
+    float Value)
 {
-    if (!ValueText)
+    if (!Binding.ValueText)
     {
         return;
     }
 
-    ValueText->SetText(
+    Binding.ValueText->SetText(
         FText::FromString(
-            FString::Printf(TEXT("%.*f %s"), NumDecimals, Value, *Suffix)
+            FString::Printf(
+                TEXT("%.*f %s"),
+                Binding.NumDecimals,
+                Value,
+                *Binding.Suffix
+            )
         )
     );
 }
