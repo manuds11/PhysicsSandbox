@@ -25,7 +25,7 @@ protected:
     USlider* OmegaSlider = nullptr;
 
     UPROPERTY(meta = (BindWidget))
-    UTextBlock* OmegaValueText = nullptr;
+    UTextBlock* OmegaDisplayBlockText = nullptr;
     
     // =========================
     // Radius
@@ -34,7 +34,7 @@ protected:
     USlider* RadiusSlider = nullptr;
 
     UPROPERTY(meta = (BindWidget))
-    UTextBlock* RadiusValueText = nullptr;
+    UTextBlock* RadiusDisplayBlockText = nullptr;
 
 
     // =========================
@@ -53,7 +53,7 @@ private:
     struct FUIBinding   // UI Binding
     {
         USlider* Slider = nullptr;
-        UTextBlock* ValueText = nullptr;
+        UTextBlock* DisplayBlockText = nullptr;
 
         float MinValue = 0.0f;
         float MaxValue = 1.0f;
@@ -65,14 +65,14 @@ private:
 
         FUIBinding(
             USlider* InSlider,
-            UTextBlock* InValueText,
+            UTextBlock* InDisplayBlockText,
             float InMinValue,
             float InMaxValue,
             FString InSuffix,
             int32 InNumDecimals
         )
             : Slider(InSlider)
-            , ValueText(InValueText)
+            , DisplayBlockText(InDisplayBlockText)
             , MinValue(InMinValue)
             , MaxValue(InMaxValue)
             , Suffix(MoveTemp(InSuffix))
@@ -96,7 +96,7 @@ private:
             return FMath::Lerp(MinValue, MaxValue, Alpha);
         }
 
-        void UpdateValueText(float Value);
+        void UpdateDisplayBlockText(float Value);
 
         void InitializeControl(float Value);
     };

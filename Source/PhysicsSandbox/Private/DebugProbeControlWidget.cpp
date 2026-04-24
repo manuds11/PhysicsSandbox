@@ -12,7 +12,7 @@ FUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
 {
     return FUIBinding(
         OmegaSlider,
-        OmegaValueText,
+        OmegaDisplayBlockText,
         -PI,
         PI,
         TEXT("rad/s"),
@@ -24,7 +24,7 @@ FUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
 {
     return FUIBinding(
         RadiusSlider,
-        RadiusValueText,
+        RadiusDisplayBlockText,
         100.0f,
         1000.0f,
         TEXT("m"),
@@ -32,14 +32,14 @@ FUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
     );
 }
 
-void FUIBinding::UpdateValueText(float Value)
+void FUIBinding::UpdateDisplayBlockText(float Value)
 {
-    if (!ValueText)
+    if (!DisplayBlockText)
     {
         return;
     }
 
-    ValueText->SetText(
+    DisplayBlockText->SetText(
         FText::FromString(
             FString::Printf(
                 TEXT("%.*f %s"),
@@ -60,7 +60,7 @@ void FUIBinding::InitializeControl(float Value)
 
     Slider->SetValue(ToNormalized(Value));
 
-    UpdateValueText(Value);
+    UpdateDisplayBlockText(Value);
 }
 
 void UDebugProbeControlWidget::NativeConstruct()
@@ -99,7 +99,7 @@ void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
     const float OmegaValue = OmegaBinding.ToRealMagnitude(Value);
     ProbeRef->SetOmegaTarget(OmegaValue);
 
-    OmegaBinding.UpdateValueText(OmegaValue);
+    OmegaBinding.UpdateDisplayBlockText(OmegaValue);
 }
 
 void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
@@ -112,7 +112,7 @@ void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
     const float RadiusValue = RadiusBinding.ToRealMagnitude(Value);
     ProbeRef->SetRadiusTarget(RadiusValue);
 
-    RadiusBinding.UpdateValueText(RadiusValue);
+    RadiusBinding.UpdateDisplayBlockText(RadiusValue);
 }
 
 
