@@ -6,11 +6,11 @@
 #include "Kismet/GameplayStatics.h"
 #include "DebugProbeActor.h"
 
-using FSliderUIBinding = UDebugProbeControlWidget::FSliderUIBinding;
+using FUIBinding = UDebugProbeControlWidget::FUIBinding;
 
-FSliderUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
+FUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
 {
-    return FSliderUIBinding(
+    return FUIBinding(
         OmegaSlider,
         OmegaValueText,
         -PI,
@@ -20,9 +20,9 @@ FSliderUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
     );
 }
 
-FSliderUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
+FUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
 {
-    return FSliderUIBinding(
+    return FUIBinding(
         RadiusSlider,
         RadiusValueText,
         100.0f,
@@ -30,6 +30,37 @@ FSliderUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
         TEXT("m"),
         2
     );
+}
+
+void FUIBinding::UpdateValueText(float Value)
+{
+    if (!ValueText)
+    {
+        return;
+    }
+
+    ValueText->SetText(
+        FText::FromString(
+            FString::Printf(
+                TEXT("%.*f %s"),
+                NumDecimals,
+                Value,
+                *Suffix
+            )
+        )
+    );
+}
+
+void FUIBinding::InitializeControl(float Value)
+{
+    if (!Slider)
+    {
+        return;
+    }
+
+    Slider->SetValue(ToNormalized(Value));
+
+    UpdateValueText(Value);
 }
 
 void UDebugProbeControlWidget::NativeConstruct()
@@ -47,8 +78,8 @@ void UDebugProbeControlWidget::NativeConstruct()
     {
         RadiusSlider->OnValueChanged.AddDynamic(this, &UDebugProbeControlWidget::OnRadiusSliderChanged);
     }
-    InitializeControl(OmegaBinding, ProbeRef->GetOmegaTarget());
-    InitializeControl(RadiusBinding, ProbeRef->GetRadiusTarget() * Units::CmToM);  // Valor inicial del Slider fijado en DebugProbeActor.
+    OmegaBinding.InitializeControl(ProbeRef->GetOmegaTarget());     // Valor inicial del Slider fijado en DebugProbeActor.
+    RadiusBinding.InitializeControl(ProbeRef->GetRadiusTarget());  
 }
 
 
@@ -68,7 +99,7 @@ void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
     const float OmegaValue = OmegaBinding.ToRealMagnitude(Value);
     ProbeRef->SetOmegaTarget(OmegaValue);
 
-    UpdateValueText(OmegaBinding, OmegaValue);
+    OmegaBinding.UpdateValueText(OmegaValue);
 }
 
 void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
@@ -81,53 +112,8 @@ void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
     const float RadiusValue = RadiusBinding.ToRealMagnitude(Value);
     ProbeRef->SetRadiusTarget(RadiusValue);
 
-    UpdateValueText(RadiusBinding, RadiusValue * Units::CmToM);
+    RadiusBinding.UpdateValueText(RadiusValue);
 }
 
-void UDebugProbeControlWidget::InitializeControl(
-    const FSliderUIBinding& Binding,
-    float Value)
-{
-    if (!Binding.Slider)
-    {
-        return;
-    }
 
-    Binding.Slider->SetValue(Binding.ToNormalized(Value));
-
-    if (Binding.ValueText)
-    {
-        Binding.ValueText->SetText(
-            FText::FromString(
-                FString::Printf(
-                    TEXT("%.*f %s"),
-                    Binding.NumDecimals,
-                    Value,
-                    *Binding.Suffix
-                )
-            )
-        );
-    }
-}
-
-void UDebugProbeControlWidget::UpdateValueText(
-    const FSliderUIBinding& Binding,
-    float Value)
-{
-    if (!Binding.ValueText)
-    {
-        return;
-    }
-
-    Binding.ValueText->SetText(
-        FText::FromString(
-            FString::Printf(
-                TEXT("%.*f %s"),
-                Binding.NumDecimals,
-                Value,
-                *Binding.Suffix
-            )
-        )
-    );
-}
 

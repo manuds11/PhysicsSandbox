@@ -50,7 +50,7 @@ private:
     // =========================
     // Actor linkage
     // =========================
-    struct FSliderUIBinding
+    struct FUIBinding   // UI Binding
     {
         USlider* Slider = nullptr;
         UTextBlock* ValueText = nullptr;
@@ -61,9 +61,9 @@ private:
         FString Suffix;
         int32 NumDecimals = 2;
 
-        FSliderUIBinding() = default;
+        FUIBinding() = default;
 
-        FSliderUIBinding(
+        FUIBinding(
             USlider* InSlider,
             UTextBlock* InValueText,
             float InMinValue,
@@ -95,27 +95,23 @@ private:
             const float Alpha = FMath::Clamp(NormalizedValue, 0.0f, 1.0f);
             return FMath::Lerp(MinValue, MaxValue, Alpha);
         }
+
+        void UpdateValueText(float Value);
+
+        void InitializeControl(float Value);
     };
     
-    FSliderUIBinding OmegaBinding;
-    FSliderUIBinding RadiusBinding;
+    FUIBinding OmegaBinding;
+    FUIBinding RadiusBinding;
 
-    FSliderUIBinding MakeOmegaBinding() const;
-    FSliderUIBinding MakeRadiusBinding() const;
+    FUIBinding MakeOmegaBinding() const;
+    FUIBinding MakeRadiusBinding() const;
     
     UFUNCTION()
     void OnOmegaSliderChanged(float Value);
 
     UFUNCTION()
-    void OnRadiusSliderChanged(float Value); 
-
-    void InitializeControl(
-        const FSliderUIBinding& Binding,
-        float Value);
-
-    void UpdateValueText(
-        const FSliderUIBinding& Binding,
-        float Value);
+    void OnRadiusSliderChanged(float Value);
 };
 
 
