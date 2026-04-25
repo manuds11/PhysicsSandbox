@@ -61,6 +61,8 @@ private:
         FString Suffix;
         int32 NumDecimals = 2;
 
+        float DisplayScale = 1.0f;
+
         FUIBinding() = default;
 
         FUIBinding(
@@ -68,17 +70,21 @@ private:
             UTextBlock* InDisplayBlockText,
             float InMinValue,
             float InMaxValue,
-            FString InSuffix,
-            int32 InNumDecimals
+            const FString& InSuffix,
+            int32 InNumDecimals,
+            float InDisplayScale = 1.0f
         )
             : Slider(InSlider)
             , DisplayBlockText(InDisplayBlockText)
             , MinValue(InMinValue)
             , MaxValue(InMaxValue)
-            , Suffix(MoveTemp(InSuffix))
+            , Suffix(InSuffix)
             , NumDecimals(InNumDecimals)
+            , DisplayScale(InDisplayScale)
         {
         }
+        
+        void InitializeControl(float Value);
 
         float ToNormalized(float Value) const
         {
@@ -96,9 +102,21 @@ private:
             return FMath::Lerp(MinValue, MaxValue, Alpha);
         }
 
-        void UpdateDisplayBlockText(float Value);
+        void UpdateDisplayBlockText(float Value) const;
 
-        void InitializeControl(float Value);
+        FText MakeDisplayText(float Value) const
+        {
+            const float DisplayValue = Value * DisplayScale;
+
+            return FText::FromString(
+                FString::Printf(
+                    TEXT("%.*f %s"),
+                    NumDecimals,
+                    DisplayValue,
+                    *Suffix
+                )
+            );
+        }
     };
     
     FUIBinding OmegaBinding;

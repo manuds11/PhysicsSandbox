@@ -224,6 +224,9 @@ private:
 	bool bDrawChaseCameraFrame = true;
 
 	UPROPERTY(EditAnywhere, Category = "Debug")
+	float TrajectoryLifeTime = 10.0f; // s
+
+	UPROPERTY(EditAnywhere, Category = "Debug")
 	float BodyFrameAxisLength = 200.0f; // cm
 
 	UPROPERTY(EditAnywhere, Category = "Debug")

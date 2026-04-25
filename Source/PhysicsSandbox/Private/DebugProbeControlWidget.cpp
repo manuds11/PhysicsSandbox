@@ -8,61 +8,6 @@
 
 using FUIBinding = UDebugProbeControlWidget::FUIBinding;
 
-FUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
-{
-    return FUIBinding(
-        OmegaSlider,
-        OmegaDisplayBlockText,
-        -PI,
-        PI,
-        TEXT("rad/s"),
-        3
-    );
-}
-
-FUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
-{
-    return FUIBinding(
-        RadiusSlider,
-        RadiusDisplayBlockText,
-        100.0f,
-        1000.0f,
-        TEXT("m"),
-        2
-    );
-}
-
-void FUIBinding::UpdateDisplayBlockText(float Value)
-{
-    if (!DisplayBlockText)
-    {
-        return;
-    }
-
-    DisplayBlockText->SetText(
-        FText::FromString(
-            FString::Printf(
-                TEXT("%.*f %s"),
-                NumDecimals,
-                Value,
-                *Suffix
-            )
-        )
-    );
-}
-
-void FUIBinding::InitializeControl(float Value)
-{
-    if (!Slider)
-    {
-        return;
-    }
-
-    Slider->SetValue(ToNormalized(Value));
-
-    UpdateDisplayBlockText(Value);
-}
-
 void UDebugProbeControlWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -82,7 +27,52 @@ void UDebugProbeControlWidget::NativeConstruct()
     RadiusBinding.InitializeControl(ProbeRef->GetRadiusTarget());  
 }
 
+FUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
+{
+    return FUIBinding(
+        OmegaSlider,
+        OmegaDisplayBlockText,
+        -PI,
+        PI,
+        FString(TEXT("rad/s")),
+        3
+    );
+}
 
+FUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
+{
+    return FUIBinding(
+        RadiusSlider,
+        RadiusDisplayBlockText,
+        100.0f,
+        1000.0f,
+        FString(TEXT("m")),
+        2,
+        Units::CmToM
+    );
+}
+
+void FUIBinding::InitializeControl(float Value)
+{
+    if (!Slider)
+    {
+        return;
+    }
+
+    Slider->SetValue(ToNormalized(Value));
+
+    UpdateDisplayBlockText(Value);
+}
+
+void FUIBinding::UpdateDisplayBlockText(float Value) const
+{
+    if (!DisplayBlockText)
+    {
+        return;
+    }
+
+    DisplayBlockText->SetText(MakeDisplayText(Value));
+}
 
 void UDebugProbeControlWidget::SetProbeReference(ADebugProbeActor* InProbe)
 {

@@ -342,7 +342,7 @@ void ADebugProbeActor::DrawActorTrajectory() const
         Pos_Tick,          // FVector → punto final de la línea (posición actual)
         FColor::Blue,      // FColor → color de la línea
         false,             // bool bPersistentLines → si la línea es permanente (false = temporal)
-        10.0f,             // float LifeTime → tiempo en segundos que permanece visible
+        TrajectoryLifeTime,             // float LifeTime → tiempo en segundos que permanece visible
         0,                 // uint8 DepthPriority → prioridad de render (0 = normal)
         2.0f               // float Thickness → grosor de la línea
     );
