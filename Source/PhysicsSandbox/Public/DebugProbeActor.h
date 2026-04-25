@@ -38,11 +38,16 @@ public:
 	void SetOmegaTarget(float NewOmega);
 	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
 	void SetRadiusTarget(float NewRadius);
+	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
+	void SetVelZTarget(float NewRadius);
+
 
 	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
 	float GetOmegaTarget() const { return OmegaParam.Target; }
 	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
 	float GetRadiusTarget() const { return RadiusParam.Target; }
+	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
+	float GetVelZTarget() const { return VelZParam.Target; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -99,6 +104,7 @@ private:
 	float AverageDeltaTime = 0.0f;
 	float MotionTime = 0.0f; // Tiempo físico desde que el actor comienza a moverse
 	float Theta = 0.0f; // rad
+	float ZOffset = 0.0f;
 
 	FVector Pos_0 = FVector::ZeroVector; // cm
 	FVector Pos_Tick = FVector::ZeroVector; // cm
@@ -180,9 +186,7 @@ private:
 	
 	FTransParameter OmegaParam{ PI / 4 };   // rad/s
 	FTransParameter RadiusParam{ 500.0f };  // cm
-
-	UPROPERTY(EditAnywhere, Category = "Simulation|Trajectory")
-	float Vel_Z = 100.0f; // cm/s
+	FTransParameter VelZParam{ 100.0f };	// cm/s
 
 	// =========================
 	// Simulation: rotation parameters
@@ -221,7 +225,8 @@ private:
 	bool bDrawMeshFrame = false;
 
 	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool bDrawChaseCameraFrame = true;
+	bool DrawChaseCameraFrame_Default = true;
+	bool bDrawChaseCameraFrame = DrawChaseCameraFrame_Default;
 
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float TrajectoryLifeTime = 10.0f; // s
@@ -244,7 +249,7 @@ private:
 	// =========================
 	// Internal methods: simulation
 	// =========================
-	FVector ComputeHelixPosition();
+	FVector ComputeHelixPosition(float DeltaTime);
 	FVector ComputeVelocityVector(float DeltaTime) const;
 	void UpdateActorRotation(float DeltaTime);
 

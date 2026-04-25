@@ -13,6 +13,7 @@ void UDebugProbeControlWidget::NativeConstruct()
     Super::NativeConstruct();
     OmegaBinding = MakeOmegaBinding();
     RadiusBinding = MakeRadiusBinding();
+    VelZBinding = MakeVelZBinding();
 
     if (OmegaSlider)
     {   
@@ -23,8 +24,15 @@ void UDebugProbeControlWidget::NativeConstruct()
     {
         RadiusSlider->OnValueChanged.AddDynamic(this, &UDebugProbeControlWidget::OnRadiusSliderChanged);
     }
+    if(VelZSlider)
+    {
+        VelZSlider->OnValueChanged.AddDynamic(this, &UDebugProbeControlWidget::OnVelZSliderChanged);
+    }
+    
+    
     OmegaBinding.InitializeControl(ProbeRef->GetOmegaTarget());     // Valor inicial del Slider fijado en DebugProbeActor.
-    RadiusBinding.InitializeControl(ProbeRef->GetRadiusTarget());  
+    RadiusBinding.InitializeControl(ProbeRef->GetRadiusTarget());
+    VelZBinding.InitializeControl(ProbeRef->GetVelZTarget());
 }
 
 FUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
@@ -51,6 +59,20 @@ FUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
         Units::CmToM
     );
 }
+
+FUIBinding UDebugProbeControlWidget::MakeVelZBinding() const
+{
+    return FUIBinding(
+        VelZSlider,
+        VelZDisplayBlockText,
+        -500.0f,
+        500.0f,
+        FString(TEXT("m/s")),
+        2,
+        Units::CmToM
+    );
+}
+
 
 void FUIBinding::InitializeControl(float Value)
 {
@@ -79,30 +101,43 @@ void UDebugProbeControlWidget::SetProbeReference(ADebugProbeActor* InProbe)
     ProbeRef = InProbe;
 }
 
-void UDebugProbeControlWidget::OnOmegaSliderChanged(float Value)
+void UDebugProbeControlWidget::OnOmegaSliderChanged(float NormalizedValue)
 {
     if (!ProbeRef)
     {
         return;
     }
 
-    const float OmegaValue = OmegaBinding.ToRealMagnitude(Value);
+    const float OmegaValue = OmegaBinding.ToRealMagnitude(NormalizedValue);
     ProbeRef->SetOmegaTarget(OmegaValue);
 
     OmegaBinding.UpdateDisplayBlockText(OmegaValue);
 }
 
-void UDebugProbeControlWidget::OnRadiusSliderChanged(float Value)
+void UDebugProbeControlWidget::OnRadiusSliderChanged(float NormalizedValue)
 {
     if (!ProbeRef)
     {
         return;
     }
 
-    const float RadiusValue = RadiusBinding.ToRealMagnitude(Value);
+    const float RadiusValue = RadiusBinding.ToRealMagnitude(NormalizedValue);
     ProbeRef->SetRadiusTarget(RadiusValue);
 
     RadiusBinding.UpdateDisplayBlockText(RadiusValue);
+}
+
+void UDebugProbeControlWidget::OnVelZSliderChanged(float NormalizedValue)
+{
+    if (!ProbeRef)
+    {
+        return;
+    }
+
+    const float VelZValue = VelZBinding.ToRealMagnitude(NormalizedValue);
+    ProbeRef->SetVelZTarget(VelZValue);
+
+    VelZBinding.UpdateDisplayBlockText(VelZValue);
 }
 
 

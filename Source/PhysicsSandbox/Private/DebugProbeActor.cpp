@@ -105,6 +105,12 @@ void ADebugProbeActor::SetRadiusTarget(float NewRadius)
     RadiusParam.SetTarget(NewRadius);
 }
 
+void ADebugProbeActor::SetVelZTarget(float NewVelZ)
+{
+    VelZParam.SetTarget(NewVelZ);
+}
+
+
 void ADebugProbeActor::ReleaseActor()
 {
     if (bReleased)
@@ -176,6 +182,15 @@ void ADebugProbeActor::ApplyCameraMode()
         PlayerController->SetViewTarget(nullptr); // vuelve al editor
         break;
     }
+
+    if (CameraMode == ECameraMode::Chase)
+    {
+        bDrawChaseCameraFrame = false;
+    }
+    else
+    {
+        bDrawChaseCameraFrame = DrawChaseCameraFrame_Default;
+    }
 }
 
 void ADebugProbeActor::ToggleInputMode()
@@ -214,13 +229,16 @@ void ADebugProbeActor::ApplyInputMode()
     }
 }
 
-FVector ADebugProbeActor::ComputeHelixPosition()
+FVector ADebugProbeActor::ComputeHelixPosition(float DeltaTime)
 {
+    Theta += OmegaParam.Current * DeltaTime;
+    ZOffset += VelZParam.Current * DeltaTime;
+
     const float X = RadiusParam.Current * FMath::Cos(Theta) - RadiusParam.Current;
     const float Y = RadiusParam.Current * FMath::Sin(Theta);
-    const float Z = Vel_Z * MotionTime;
-
-    const FVector Offset(X, Y, Z);
+    const float Z = ZOffset;
+   
+    const FVector Offset(X, Y, ZOffset);
     return Pos_0 + Offset;
 }
 
@@ -294,12 +312,12 @@ void ADebugProbeActor::Tick(float DeltaTime)
     if (bReleased) 
     {
         MotionTime += DeltaTime;
-        
-        Theta += OmegaParam.Current * DeltaTime;
+
         OmegaParam.Update(DeltaTime);       // For Transitioning between different Omegas.
         RadiusParam.Update(DeltaTime);      // Same for Radius transitioning.
+        VelZParam.Update(DeltaTime); 
 
-        Pos_Tick = ComputeHelixPosition();
+        Pos_Tick = ComputeHelixPosition(DeltaTime);
         Vel_Tick = ComputeVelocityVector(DeltaTime);
         
         UpdateActorRotation(DeltaTime);

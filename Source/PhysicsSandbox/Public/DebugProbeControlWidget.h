@@ -36,6 +36,14 @@ protected:
     UPROPERTY(meta = (BindWidget))
     UTextBlock* RadiusDisplayBlockText = nullptr;
 
+    // =========================
+    // VelZ
+    // =========================
+    UPROPERTY(meta = (BindWidget))
+    USlider* VelZSlider = nullptr;
+
+    UPROPERTY(meta = (BindWidget))
+    UTextBlock* VelZDisplayBlockText = nullptr;
 
     // =========================
     // Actor linkage
@@ -121,15 +129,18 @@ private:
     
     FUIBinding OmegaBinding;
     FUIBinding RadiusBinding;
+    FUIBinding VelZBinding;
 
     FUIBinding MakeOmegaBinding() const;
     FUIBinding MakeRadiusBinding() const;
+    FUIBinding MakeVelZBinding() const;
     
     UFUNCTION()
-    void OnOmegaSliderChanged(float Value);
-
+    void OnOmegaSliderChanged(float NormalizedValue);
     UFUNCTION()
-    void OnRadiusSliderChanged(float Value);
+    void OnRadiusSliderChanged(float NormalizedValue);
+    UFUNCTION()
+    void OnVelZSliderChanged(float NormalizedValue);
 };
 
 
