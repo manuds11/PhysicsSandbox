@@ -65,8 +65,10 @@ private:
 
         float MinValue = 0.0f;
         float MaxValue = 1.0f;
-
-        FString Suffix;
+        
+        FString Magnitude;
+        FString Units;
+        
         int32 NumDecimals = 2;
 
         float DisplayScale = 1.0f;
@@ -78,7 +80,8 @@ private:
             UTextBlock* InDisplayBlockText,
             float InMinValue,
             float InMaxValue,
-            const FString& InSuffix,
+            const FString& InMagnitude,
+            const FString& InUnits,
             int32 InNumDecimals,
             float InDisplayScale = 1.0f
         )
@@ -86,7 +89,8 @@ private:
             , DisplayBlockText(InDisplayBlockText)
             , MinValue(InMinValue)
             , MaxValue(InMaxValue)
-            , Suffix(InSuffix)
+            , Magnitude(InMagnitude)
+            , Units(InUnits)
             , NumDecimals(InNumDecimals)
             , DisplayScale(InDisplayScale)
         {
@@ -118,10 +122,11 @@ private:
 
             return FText::FromString(
                 FString::Printf(
-                    TEXT("%.*f %s"),
+                    TEXT("%s %.*f %s"),
+                    *Magnitude,
                     NumDecimals,
                     DisplayValue,
-                    *Suffix
+                    *Units
                 )
             );
         }

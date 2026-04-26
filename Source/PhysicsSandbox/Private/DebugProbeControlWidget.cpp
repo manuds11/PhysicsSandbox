@@ -42,6 +42,7 @@ FUIBinding UDebugProbeControlWidget::MakeOmegaBinding() const
         OmegaDisplayBlockText,
         -PI,
         PI,
+        FString(TEXT("Freq: ")),
         FString(TEXT("rad/s")),
         3
     );
@@ -54,6 +55,7 @@ FUIBinding UDebugProbeControlWidget::MakeRadiusBinding() const
         RadiusDisplayBlockText,
         100.0f,
         1000.0f,
+        FString(TEXT("R: ")),
         FString(TEXT("m")),
         2,
         Units::CmToM
@@ -67,6 +69,7 @@ FUIBinding UDebugProbeControlWidget::MakeVelZBinding() const
         VelZDisplayBlockText,
         -500.0f,
         500.0f,
+        FString(TEXT("VelZ: ")),
         FString(TEXT("m/s")),
         2,
         Units::CmToM
