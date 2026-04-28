@@ -27,11 +27,14 @@ void UDebugProbeControlWidget::NativeConstruct()
         VelZSlider->OnValueChanged.AddDynamic(this, &UDebugProbeControlWidget::OnVelZSliderChanged);
     }
 
-    if (ProbeRef)
-    {
-        BuildBindings();
-        InitializeControls();
-    }
+    TryInitializeBindingsAndControls();
+}
+
+void UDebugProbeControlWidget::SetProbeReference(ADebugProbeActor* InProbe)
+{
+    ProbeRef = InProbe;
+
+    TryInitializeBindingsAndControls();
 }
 
 void UDebugProbeControlWidget::BuildBindings()
@@ -98,6 +101,17 @@ void FUIBinding::InitializeBindingControl()
     UpdateDisplayBlockText(Value);
 }
 
+void UDebugProbeControlWidget::TryInitializeBindingsAndControls()
+{
+    if (!ProbeRef)
+    {
+        return;
+    }
+
+    BuildBindings();
+    InitializeControls();
+}
+
 void FUIBinding::UpdateDisplayBlockText(float Value) const
 {
     if (!DisplayBlockText)
@@ -108,31 +122,13 @@ void FUIBinding::UpdateDisplayBlockText(float Value) const
     DisplayBlockText->SetText(MakeDisplayText(Value));
 }
 
-void UDebugProbeControlWidget::SetProbeReference(ADebugProbeActor* InProbe)
-{
-    ProbeRef = InProbe;
-
-    BuildBindings();
-    InitializeControls();
-}
-
 void UDebugProbeControlWidget::OnOmegaSliderChanged(float NormalizedValue)
 {
-    if (!ProbeRef)
-    {
-        return;
-    }
-
     OmegaBinding.ApplySliderValue(NormalizedValue);
 }
 
 void UDebugProbeControlWidget::OnRadiusSliderChanged(float NormalizedValue)
 {
-    if (!ProbeRef)
-    {
-        return;
-    }
-
     RadiusBinding.ApplySliderValue(NormalizedValue);
 }
 

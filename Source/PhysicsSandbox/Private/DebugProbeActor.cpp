@@ -173,7 +173,7 @@ void ADebugProbeActor::ApplyCameraMode()
     }
     else
     {
-        bDrawChaseCameraFrame = DrawChaseCameraFrame_Default;
+        bDrawChaseCameraFrame = bDrawChaseCameraFrame_Default;
     }
 }
 
@@ -220,7 +220,6 @@ FVector ADebugProbeActor::ComputeHelixPosition(float DeltaTime)
 
     const float X = RadiusParam.Current * FMath::Cos(Theta) - RadiusParam.Current;
     const float Y = RadiusParam.Current * FMath::Sin(Theta);
-    const float Z = ZOffset;
    
     const FVector Offset(X, Y, ZOffset);
     return Pos_0 + Offset;
@@ -363,7 +362,7 @@ void ADebugProbeActor::DrawChaseCameraTrajectory() const
         ChaseCamPos_Tick,
         FColor::Yellow,
         false,
-        10.0f,
+        TrajectoryLifeTime,
         0,
         2.0f
     );
@@ -394,7 +393,7 @@ void ADebugProbeActor::DrawVelocityVector() const {
             GetWorld(),        // UWorld* → contexto del mundo
             Pos_Tick,          // FVector → inicio de la flecha (posición actual)
             ArrowEnd,          // FVector → final de la flecha (dirección + magnitud escalada)
-            10000.0f,             // float ArrowSize → tamaño de la punta de la flecha
+            1000.0f,             // float ArrowSize → tamaño de la punta de la flecha
             FColor::Black,       // FColor → color de la flecha
             false,             // bool bPersistentLines → si la flecha es persistente
             0.0f,              // float LifeTime → 0 = solo un frame

@@ -139,7 +139,7 @@ private:
 	float AverageDeltaTime = 0.0f;
 	float MotionTime = 0.0f; // Tiempo físico desde que el actor comienza a moverse
 	float Theta = 0.0f; // rad
-	float ZOffset = 0.0f;
+	float ZOffset = 0.0f; // cm
 
 	FVector Pos_0 = FVector::ZeroVector; // cm
 	FVector Pos_Tick = FVector::ZeroVector; // cm
@@ -209,8 +209,8 @@ private:
 	bool bDrawMeshFrame = false;
 
 	UPROPERTY(EditAnywhere, Category = "Debug")
-	bool DrawChaseCameraFrame_Default = true;
-	bool bDrawChaseCameraFrame = DrawChaseCameraFrame_Default;
+	bool bDrawChaseCameraFrame_Default = true;
+	bool bDrawChaseCameraFrame = bDrawChaseCameraFrame_Default;
 
 	UPROPERTY(EditAnywhere, Category = "Debug")
 	float TrajectoryLifeTime = 10.0f; // s
