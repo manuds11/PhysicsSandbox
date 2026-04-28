@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tuple>
+
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "DebugProbeControlWidget.generated.h"
@@ -7,6 +9,7 @@
 class USlider;
 class UTextBlock;
 class ADebugProbeActor;
+struct FTransParam;
 
 UCLASS()
 class PHYSICSSANDBOX_API UDebugProbeControlWidget : public UUserWidget
@@ -63,6 +66,8 @@ private:
         USlider* Slider = nullptr;
         UTextBlock* DisplayBlockText = nullptr;
 
+        FTransParam* TargetParam = nullptr;
+
         float MinValue = 0.0f;
         float MaxValue = 1.0f;
         
@@ -78,6 +83,7 @@ private:
         FUIBinding(
             USlider* InSlider,
             UTextBlock* InDisplayBlockText,
+            FTransParam* InTargetParam,
             float InMinValue,
             float InMaxValue,
             const FString& InMagnitude,
@@ -87,6 +93,7 @@ private:
         )
             : Slider(InSlider)
             , DisplayBlockText(InDisplayBlockText)
+            , TargetParam(InTargetParam)
             , MinValue(InMinValue)
             , MaxValue(InMaxValue)
             , Magnitude(InMagnitude)
@@ -96,7 +103,7 @@ private:
         {
         }
         
-        void InitializeControl(float Value);
+        void InitializeBindingControl();
 
         float ToNormalized(float Value) const
         {
@@ -115,6 +122,8 @@ private:
         }
 
         void UpdateDisplayBlockText(float Value) const;
+        
+        void ApplySliderValue(float NormalizedValue) const;
 
         FText MakeDisplayText(float Value) const
         {
@@ -136,10 +145,8 @@ private:
     FUIBinding RadiusBinding;
     FUIBinding VelZBinding;
 
-    FUIBinding MakeOmegaBinding() const;
-    FUIBinding MakeRadiusBinding() const;
-    FUIBinding MakeVelZBinding() const;
-    
+    void BuildBindings();
+    void InitializeControls();
     UFUNCTION()
     void OnOmegaSliderChanged(float NormalizedValue);
     UFUNCTION()

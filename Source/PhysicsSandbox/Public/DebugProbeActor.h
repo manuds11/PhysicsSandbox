@@ -23,6 +23,59 @@ enum class ECameraMode : uint8
 	Free
 };
 
+struct FTransParam
+{
+	float Current = 0.0f;
+	float Target = 0.0f;
+	float Start = 0.0f;
+
+	float ElapsedTime = 0.0f;
+	float TransDuration = 0.7f;
+
+	bool bActive = false;
+
+	FTransParam() = default;
+
+	explicit FTransParam(float InitialValue)
+		: Current(InitialValue)
+		, Target(InitialValue)
+		, Start(InitialValue)
+	{
+	}
+
+	float GetTarget() const { return Target; }
+
+	void SetTarget(float NewTarget)
+	{
+		Start = Current;
+		Target = NewTarget;
+		ElapsedTime = 0.0f;
+		bActive = true;
+	}
+
+	void Update(float DeltaTime)
+	{
+		if (!bActive) return;
+
+		ElapsedTime += DeltaTime;
+
+		const float Alpha = FMath::Clamp(ElapsedTime / TransDuration, 0.0f, 1.0f);
+		// Quintic smoothstep: S(a) = 6a^5 - 15a^4 + 10a^3
+		const float A2 = Alpha * Alpha;
+		const float A3 = A2 * Alpha;
+		const float SmoothStep =
+			A3 * (10.0f - 15.0f * Alpha + 6.0f * A2);
+
+		Current = FMath::Lerp(Start, Target, SmoothStep);
+
+		if (Alpha >= 1.0f)
+		{
+			Current = Target;
+			bActive = false;
+		}
+	}
+};
+
 UCLASS()
 class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 {
@@ -30,24 +83,6 @@ class PHYSICSSANDBOX_API ADebugProbeActor : public AActor
 
 public:
 	ADebugProbeActor();
-
-	// =========================
-	// Public Parameter API
-	// =========================
-	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
-	void SetOmegaTarget(float NewOmega);
-	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
-	void SetRadiusTarget(float NewRadius);
-	UFUNCTION(BlueprintCallable, Category = "Simulation|Trajectory")
-	void SetVelZTarget(float NewRadius);
-
-
-	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
-	float GetOmegaTarget() const { return OmegaParam.Target; }
-	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
-	float GetRadiusTarget() const { return RadiusParam.Target; }
-	UFUNCTION(BlueprintPure, Category = "Simulation|Trajectory")
-	float GetVelZTarget() const { return VelZParam.Target; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -129,65 +164,14 @@ private:
 	// =========================
 	// Simulation: trajectory parameters
 	// =========================
+public:
+	// =========================
+	// Widget controllable parameters
+	// =========================
+	FTransParam OmegaParam{ PI / 4 };   // rad/s
+	FTransParam RadiusParam{ 500.0f };  // cm
+	FTransParam VelZParam{ 100.0f };	// cm/s
 private:
-
-	// =========================
-	// Internal types
-	// =========================
-	struct FTransParameter
-	{
-		float Current = 0.0f;
-		float Target = 0.0f;
-		float Start = 0.0f;
-
-		float ElapsedTime = 0.0f;
-		float TransDuration = 0.7f;
-
-		bool bActive = false;
-
-		FTransParameter() = default;
-
-		explicit FTransParameter(float InitialValue)
-			: Current(InitialValue)
-			, Target(InitialValue)
-			, Start(InitialValue)
-		{}
-
-		void SetTarget(float NewTarget)
-		{
-			Start = Current;
-			Target = NewTarget;
-			ElapsedTime = 0.0f;
-			bActive = true;
-		}
-
-		void Update(float DeltaTime)
-		{
-			if (!bActive) return;
-
-			ElapsedTime += DeltaTime;
-
-			const float Alpha = FMath::Clamp(ElapsedTime / TransDuration, 0.0f, 1.0f);
-			// Quintic smoothstep: S(a) = 6a^5 - 15a^4 + 10a^3
-			const float A2 = Alpha * Alpha;
-			const float A3 = A2 * Alpha;
-			const float SmoothStep =
-				A3 * (10.0f - 15.0f * Alpha + 6.0f * A2);
-
-			Current = FMath::Lerp(Start, Target, SmoothStep);
-
-			if (Alpha >= 1.0f)
-			{
-				Current = Target;
-				bActive = false;
-			}
-		}
-	};
-	
-	FTransParameter OmegaParam{ PI / 4 };   // rad/s
-	FTransParameter RadiusParam{ 500.0f };  // cm
-	FTransParameter VelZParam{ 100.0f };	// cm/s
-
 	// =========================
 	// Simulation: rotation parameters
 	// =========================

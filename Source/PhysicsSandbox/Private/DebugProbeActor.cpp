@@ -95,22 +95,6 @@ void ADebugProbeActor::BeginPlay()
     }
 }
 
-void ADebugProbeActor::SetOmegaTarget(float NewOmega)
-{
-    OmegaParam.SetTarget(NewOmega);
-}
-
-void ADebugProbeActor::SetRadiusTarget(float NewRadius)
-{
-    RadiusParam.SetTarget(NewRadius);
-}
-
-void ADebugProbeActor::SetVelZTarget(float NewVelZ)
-{
-    VelZParam.SetTarget(NewVelZ);
-}
-
-
 void ADebugProbeActor::ReleaseActor()
 {
     if (bReleased)
