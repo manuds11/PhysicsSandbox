@@ -2,7 +2,6 @@
 
 #include "DebugProbeActor.h"
 #include "DebugProbeControlWidget.h"
-#include "Math/Units.h"
 
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
@@ -13,6 +12,9 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Math/Units.h"
+
 
 ADebugProbeActor::ADebugProbeActor()
 {
@@ -92,6 +94,7 @@ void ADebugProbeActor::BeginPlay()
         InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &ADebugProbeActor::ReleaseActor);
         InputComponent->BindKey(EKeys::C, IE_Pressed, this, &ADebugProbeActor::ToggleCamera);
         InputComponent->BindKey(EKeys::Tab, IE_Pressed, this, &ADebugProbeActor::ToggleInputMode);
+        InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ADebugProbeActor::QuitGame);
     }
 }
 
@@ -211,6 +214,16 @@ void ADebugProbeActor::ApplyInputMode()
         PlayerController->SetInputMode(InputMode);
         PlayerController->bShowMouseCursor = false;
     }
+}
+
+void ADebugProbeActor::QuitGame()
+{
+    UKismetSystemLibrary::QuitGame(
+        GetWorld(),
+        PlayerController,
+        EQuitPreference::Quit,
+        false
+    );
 }
 
 FVector ADebugProbeActor::ComputeHelixPosition(float DeltaTime)
@@ -501,7 +514,7 @@ void ADebugProbeActor::PrintDebugInfo() const
                 "\n"
                 "\nActor Fwd: %.2f | %.2f | %.2f"
                 "\nMesh  Fwd: %.2f | %.2f | %.2f"),
-            bUIInputMode ? TEXT("UI") : TEXT("GAME"),
+            bUIInputMode ? TEXT("UI") : TEXT("FIXED"),
             
             MotionTime,
             PosMeters.X, PosMeters.Y, PosMeters.Z,
@@ -519,9 +532,37 @@ void ADebugProbeActor::PrintDebugInfo() const
         )
     );
 
-    FString PromptText = !bReleased ?
-        FString::Printf(TEXT("CLICK ANYWHERE AND PRESS SPACE BAR TO RELEASE\nAvg. DeltaTime: %.4f"), AverageDeltaTime)
-        : FString::Printf(TEXT("HELICAL TRANSLATION ACTIVE\nRunning Time: %.2f | Avg. dt: %.4f"), RunningTime, AverageDeltaTime);
+    FString PromptText;
+
+    if (!bReleased)
+    {
+        PromptText = FString::Printf(
+            TEXT("CLICK ANYWHERE AND PRESS SPACE BAR TO RELEASE\n"
+                "Avg. DeltaTime: %.4f\n"
+                "\n"
+                "CONTROLS\n"
+                "Space : Start simulation\n"
+                "C     : Change camera\n"
+                "Tab   : Toggle UI/Game\n"
+                "Esc   : Exit"),
+            AverageDeltaTime
+        );
+    }
+    else
+    {
+        PromptText = FString::Printf(
+            TEXT("HELICAL TRANSLATION ACTIVE\n"
+                "Running Time: %.2f | Avg. dt: %.4f\n"
+                "\n"
+                "CONTROLS\n"
+                "C     : Change camera\n"
+                "Tab   : Toggle UI/Game\n"
+                "Esc   : Exit"),
+            RunningTime,
+            AverageDeltaTime
+        );
+    }
+
     FColor PromptColor = !bReleased ? FColor::Red : FColor::Green;
 
     GEngine->AddOnScreenDebugMessage(

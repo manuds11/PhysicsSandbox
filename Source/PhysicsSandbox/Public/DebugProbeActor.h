@@ -229,6 +229,7 @@ private:
 	void ApplyCameraMode();
 	void ToggleInputMode();
 	void ApplyInputMode();
+	void QuitGame();
 
 	// =========================
 	// Internal methods: simulation
