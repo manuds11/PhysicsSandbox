@@ -100,6 +100,7 @@ void ADebugProbeActor::BeginPlay()
 
 void ADebugProbeActor::ReleaseActor()
 {
+
     if (bReleased)
     {
         return;
