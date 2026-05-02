@@ -23,5 +23,10 @@ void AOscillatorActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// prueba simple
+	const float Time = GetWorld()->TimeSeconds;
+	const float X = FMath::Sin(Time) * 100.0f;
+
+	SetActorLocation(FVector(X, 0.0f, 0.0f));
 }
 
