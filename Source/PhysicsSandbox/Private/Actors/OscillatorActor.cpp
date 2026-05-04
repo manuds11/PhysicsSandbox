@@ -16,17 +16,28 @@ void AOscillatorActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	FOscillatorParams Params;
+	Params.Mass = 1.0;
+	Params.Stiffness = 10.0;
+	Params.Damping = 0.0;
+
+	FOscillatorState State;
+	State.Position = 100.0;
+	State.Velocity = 0.0;
+
+	Simulation.SetParams(Params);
+	Simulation.SetState(State);
 }
 
 // Called every frame
 void AOscillatorActor::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
+{	
+    Super::Tick(DeltaTime);
 
-	// prueba simple
-	const float Time = GetWorld()->TimeSeconds;
-	const float X = FMath::Sin(Time) * 100.0f;
+    Simulation.Step(DeltaTime);
 
-	SetActorLocation(FVector(X, 0.0f, 0.0f));
+    const double X = Simulation.GetState().Position;
+
+    SetActorLocation(FVector(X, 0.0, 500.0));
 }
 

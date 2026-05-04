@@ -31,7 +31,7 @@ void FOscillatorSimulation::Step(double Dt)
 
 double FOscillatorSimulation::ComputeAcceleration(double Position, double Velocity) const
 {
-    const double SpringForce = -Params.Stiffness * (Position - Params.RestPosition);
+    const double SpringForce = -Params.Stiffness * (Position - Params.RestPosition);    
     const double DampingForce = -Params.Damping * Velocity;
     const double TotalForce = SpringForce + DampingForce;
     const double A = TotalForce / Params.Mass;
