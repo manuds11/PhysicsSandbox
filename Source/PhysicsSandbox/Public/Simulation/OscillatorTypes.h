@@ -4,7 +4,7 @@ struct FOscillatorParams
 {
     double Mass = 1.0;
     double Stiffness = 10.0;
-    double Damping = 0.0;
+    double Damping = 0.0;   
     double RestPosition = 0.0;
 };
 

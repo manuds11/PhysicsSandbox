@@ -22,11 +22,11 @@ const FOscillatorState& FOscillatorSimulation::GetState() const
 
 void FOscillatorSimulation::Step(double Dt)
 {
-    const double Acceleration = ComputeAcceleration(State.Position, State.Velocity);
+    const double A = ComputeAcceleration(State.Position, State.Velocity);
 
-    State.Velocity += Acceleration * Dt;
+    State.Velocity += A * Dt;
     State.Position += State.Velocity * Dt;
-    State.Acceleration = Acceleration;
+    State.Acceleration = A;
 }
 
 double FOscillatorSimulation::ComputeAcceleration(double Position, double Velocity) const
@@ -34,6 +34,7 @@ double FOscillatorSimulation::ComputeAcceleration(double Position, double Veloci
     const double SpringForce = -Params.Stiffness * (Position - Params.RestPosition);
     const double DampingForce = -Params.Damping * Velocity;
     const double TotalForce = SpringForce + DampingForce;
+    const double A = TotalForce / Params.Mass;
 
-    return TotalForce / Params.Mass;
+    return A;
 }
