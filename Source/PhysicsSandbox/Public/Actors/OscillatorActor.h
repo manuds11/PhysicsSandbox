@@ -26,4 +26,23 @@ public:
 
 private:
 	FOscillatorSimulation Simulation;
+
+private:
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
+    double Mass = 1.0;
+
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
+    double Stiffness = 10.0;
+
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
+    double Damping = 0.5;
+
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
+    double RestPosition = 0.0;
+
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Initial State")
+    double InitialPosition = 100.0;
+
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Initial State")
+    double InitialVelocity = 0.0;
 };

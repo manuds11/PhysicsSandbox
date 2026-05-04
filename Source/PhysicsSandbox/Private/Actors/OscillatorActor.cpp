@@ -16,17 +16,19 @@ void AOscillatorActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	FOscillatorParams Params;
-	Params.Mass = 1.0;
-	Params.Stiffness = 10.0;
-	Params.Damping = 0.2;
+    FOscillatorParams Params;
+    Params.Mass = Mass;
+    Params.Stiffness = Stiffness;
+    Params.Damping = Damping;
+    Params.RestPosition = RestPosition;
 
-	FOscillatorState State;
-	State.Position = 100.0;
-	State.Velocity = 0.0;
+    FOscillatorState State;
+    State.Position = InitialPosition;
+    State.Velocity = InitialVelocity;
+    State.Acceleration = 0.0;
 
-	Simulation.SetParams(Params);
-	Simulation.SetState(State);
+    Simulation.SetParams(Params);
+    Simulation.SetState(State);
 }
 
 // Called every frame

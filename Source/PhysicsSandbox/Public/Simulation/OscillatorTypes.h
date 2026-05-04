@@ -2,10 +2,22 @@
 
 struct FOscillatorParams
 {
-    double Mass = 1.0;
-    double Stiffness = 10.0;
-    double Damping = 0.0;   
-    double RestPosition = 0.0;  // Longitud natural del muelle.
+    double Mass;
+    double Stiffness;
+    double Damping;
+    double RestPosition;
+
+    FOscillatorParams(
+        double InMass = 1.0,
+        double InStiffness = 10.0,
+        double InDamping = 0.0,
+        double InRestPosition = 0.0)
+        : Mass(InMass)
+        , Stiffness(InStiffness)
+        , Damping(InDamping)
+        , RestPosition(InRestPosition)
+    {
+    }
 };
 
 struct FOscillatorState
