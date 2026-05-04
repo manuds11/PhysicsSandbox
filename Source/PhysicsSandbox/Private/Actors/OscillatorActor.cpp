@@ -19,7 +19,7 @@ void AOscillatorActor::BeginPlay()
 	FOscillatorParams Params;
 	Params.Mass = 1.0;
 	Params.Stiffness = 10.0;
-	Params.Damping = 0.0;
+	Params.Damping = 0.2;
 
 	FOscillatorState State;
 	State.Position = 100.0;
