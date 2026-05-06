@@ -1,9 +1,8 @@
-// OscilatorSimulation.h
+// OscillatorSimulation.h
 
 #pragma once
 
 #include "Simulation/OscillatorTypes.h"
-#include "Debug/Debug.h"
 
 class FOscillatorSimulation
 {

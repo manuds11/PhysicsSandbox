@@ -1,3 +1,5 @@
+// OscillatorActor.cpp
+
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
@@ -49,8 +51,7 @@ void AOscillatorActor::Tick(float DeltaTime)
             GetActorLocation(),
             Simulation.GetState(),
             Simulation.GetParams(),
-            DebugSettings.VelocityArrowScale,
-            DebugSettings.AccelerationArrowScale
+            DebugSettings
         );
     }
 

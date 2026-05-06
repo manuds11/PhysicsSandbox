@@ -1,3 +1,5 @@
+// OscillatorTypes.h
+
 #pragma once
 
 struct FOscillatorParams

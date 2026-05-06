@@ -1,9 +1,10 @@
-// Debug.h
+// OscillatorDebug.h
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Simulation/OscillatorTypes.h"
-#include "Debug.generated.h"
+#include "OscillatorDebug.generated.h"
 
 class UWorld;
 
@@ -32,8 +33,7 @@ struct FOscillatorDebug
         const FVector& MassWorldPosition,
         const FOscillatorState& State,
         const FOscillatorParams& Params,
-        double VelocityArrowScale,
-        double AccelerationArrowScale
+        const FOscillatorDebugSettings& Settings
     );
 
     static void PrintInfo(

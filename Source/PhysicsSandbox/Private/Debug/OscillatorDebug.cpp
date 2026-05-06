@@ -1,10 +1,6 @@
 // OscillatorDebug.cpp
 
-#include "Debug/Debug.h"
-#include "DrawDebugHelpers.h"
-
-#include "Debug/Debug.h"
-
+#include "Debug/OscillatorDebug.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 
@@ -13,8 +9,7 @@ void FOscillatorDebug::Draw(
     const FVector& MassWorldPosition,
     const FOscillatorState& State,
     const FOscillatorParams& Params,
-    double VelocityArrowScale,
-    double AccelerationArrowScale
+    const FOscillatorDebugSettings& Settings
 )
 {
     if (!World)
@@ -56,7 +51,7 @@ void FOscillatorDebug::Draw(
     if (!FMath::IsNearlyZero(State.Velocity))
     {
         const FVector VelocityEnd =
-            MassWorldPosition + FVector(State.Velocity * VelocityArrowScale, 0.0, 0.0);
+            MassWorldPosition + FVector(State.Velocity * Settings.VelocityArrowScale, 0.0, 0.0);
 
         DrawDebugDirectionalArrow(
             World,
@@ -75,7 +70,7 @@ void FOscillatorDebug::Draw(
     if (!FMath::IsNearlyZero(State.Acceleration))
     {
         const FVector AccelerationEnd =
-            MassWorldPosition + FVector(State.Acceleration * AccelerationArrowScale, 0.0, 0.0);
+            MassWorldPosition + FVector(State.Acceleration * Settings.AccelerationArrowScale, 0.0, 0.0);
 
         DrawDebugDirectionalArrow(
             World,

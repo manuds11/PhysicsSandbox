@@ -1,3 +1,5 @@
+// OscillatorSimulation.cpp
+
 #include "Simulation/OscillatorSimulation.h"
 
 void FOscillatorSimulation::SetParams(const FOscillatorParams& InParams)
@@ -23,11 +25,6 @@ const FOscillatorState& FOscillatorSimulation::GetState() const
 void FOscillatorSimulation::Step(double Dt)
 {
     const double A = ComputeAcceleration(State.Position, State.Velocity);
-    
-    if (Params.Mass <= 0.0)
-    {
-        return;
-    }
 
     State.Acceleration = A;
     State.Velocity += A * Dt;

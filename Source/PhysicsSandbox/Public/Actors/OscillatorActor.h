@@ -1,13 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// OscillatorActor.h
 
-#pragma once
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Simulation/OscillatorSimulation.h"
-#include "Debug/Debug.h"
+#include "Debug/OscillatorDebug.h"
 #include "OscillatorActor.generated.h"
 
 UCLASS()
