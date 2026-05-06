@@ -1,10 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
-#include "Simulation/OscillatorSimulation.h"
+
+#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Simulation/OscillatorSimulation.h"
+#include "Debug/Debug.h"
 #include "OscillatorActor.generated.h"
 
 UCLASS()
@@ -27,7 +30,18 @@ public:
 private:
 	FOscillatorSimulation Simulation;
 
-private:
+    // =========================
+    // Tick Simulation variables
+    // =========================
+    double RunningTime = 0.0;
+    double AverageDeltaTime = 0.0;
+    int32 FrameCount = 0;
+
+    void UpdateTimingStats(double DeltaTime);
+
+    // =========================
+    // Oscillator editable parameters
+    // =========================
     UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
     double Mass = 1.0;
 
@@ -37,6 +51,9 @@ private:
     UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
     double Damping = 0.5;
 
+    // =========================
+    // State variables
+    // =========================
     UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
     double RestPosition = 0.0;
 
@@ -45,4 +62,11 @@ private:
 
     UPROPERTY(EditAnywhere, Category = "Oscillator|Initial State")
     double InitialVelocity = 0.0;
+
+
+    // =========================
+    // Debug
+    // =========================
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Debug")
+    FOscillatorDebugSettings DebugSettings;
 };

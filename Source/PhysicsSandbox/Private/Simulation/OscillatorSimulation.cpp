@@ -24,6 +24,11 @@ void FOscillatorSimulation::Step(double Dt)
 {
     const double A = ComputeAcceleration(State.Position, State.Velocity);
     
+    if (Params.Mass <= 0.0)
+    {
+        return;
+    }
+
     State.Acceleration = A;
     State.Velocity += A * Dt;
     State.Position += State.Velocity * Dt;
@@ -32,12 +37,22 @@ void FOscillatorSimulation::Step(double Dt)
 
 double FOscillatorSimulation::ComputeAcceleration(double Position, double Velocity) const
 {
-    const double SpringForce = -Params.Stiffness * (Position - Params.RestPosition);    
-    const double DampingForce = -Params.Damping * Velocity;
-    const double TotalForce = SpringForce + DampingForce;
-    const double A = TotalForce / Params.Mass;
+    if (Params.Mass <= 0.0)
+    {
+        return 0.0;
+    }
 
-    UE_LOG(LogTemp, Warning, TEXT("ComputeAcceleration called"));
+    const FOscillatorForces Forces = ComputeForces(Position, Velocity);
+    return Forces.NetForce / Params.Mass;
+}
 
-    return A;
+FOscillatorForces FOscillatorSimulation::ComputeForces(double Position, double Velocity) const
+{
+    FOscillatorForces Forces;
+
+    Forces.SpringForce = -Params.Stiffness * (Position - Params.RestPosition);
+    Forces.DampingForce = -Params.Damping * Velocity;
+    Forces.NetForce = Forces.SpringForce + Forces.DampingForce;
+
+    return Forces;
 }

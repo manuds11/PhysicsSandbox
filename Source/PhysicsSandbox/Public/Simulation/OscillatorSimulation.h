@@ -1,6 +1,9 @@
+// OscilatorSimulation.h
+
 #pragma once
 
 #include "Simulation/OscillatorTypes.h"
+#include "Debug/Debug.h"
 
 class FOscillatorSimulation
 {
@@ -15,6 +18,7 @@ public:
 
 private:
     double ComputeAcceleration(double Position, double Velocity) const;
+    FOscillatorForces ComputeForces(double Position, double Velocity) const;
 
 private:
     FOscillatorParams Params;

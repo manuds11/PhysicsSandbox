@@ -33,13 +33,44 @@ void AOscillatorActor::BeginPlay()
 
 // Called every frame
 void AOscillatorActor::Tick(float DeltaTime)
-{	
+{
     Super::Tick(DeltaTime);
 
     Simulation.Step(DeltaTime);
+        
+    SetActorLocation(FVector (Simulation.GetState().Position, 0.0, 100.0) );
 
-    const double X = Simulation.GetState().Position;
+    UpdateTimingStats(DeltaTime);
 
-    SetActorLocation(FVector(X, 0.0, 500.0));
+    if (DebugSettings.bDrawDebug)
+    {
+        FOscillatorDebug::Draw(
+            GetWorld(),
+            GetActorLocation(),
+            Simulation.GetState(),
+            Simulation.GetParams(),
+            DebugSettings.VelocityArrowScale,
+            DebugSettings.AccelerationArrowScale
+        );
+    }
+
+    if (DebugSettings.bPrintInfo)
+    {
+        FOscillatorDebug::PrintInfo(
+            RunningTime,
+            AverageDeltaTime,
+            Simulation.GetState(),
+            Simulation.GetParams()
+        );
+    }
+}
+
+
+void AOscillatorActor::UpdateTimingStats(double DeltaTime) // Al ser variables de Unreal van en el actor. OscillatorSimulation.h para física.
+{
+    RunningTime += DeltaTime;
+    FrameCount++;
+
+    AverageDeltaTime += (DeltaTime - AverageDeltaTime) / static_cast<double>(FrameCount);
 }
 
