@@ -28,16 +28,14 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	FOscillatorSimulation Simulation;
-
-    // =========================
+	// =========================
     // Tick Simulation variables
     // =========================
+    FOscillatorSimulation Simulation;
+        
     double RunningTime = 0.0;
     double AverageDeltaTime = 0.0;
     int32 FrameCount = 0;
-
-    void UpdateTimingStats(double DeltaTime);
 
     // =========================
     // Oscillator editable parameters
@@ -63,10 +61,17 @@ private:
     UPROPERTY(EditAnywhere, Category = "Oscillator|Initial State")
     double InitialVelocity = 0.0;
 
-
     // =========================
     // Debug
     // =========================
     UPROPERTY(EditAnywhere, Category = "Oscillator|Debug")
     FOscillatorDebugSettings DebugSettings;
+    
+    
+    
+    // =========================
+    // Internal methods
+    // =========================
+    void UpdateTimingStats(double DeltaTime);
+
 };

@@ -61,7 +61,8 @@ void AOscillatorActor::Tick(float DeltaTime)
             RunningTime,
             AverageDeltaTime,
             Simulation.GetState(),
-            Simulation.GetParams()
+            Simulation.GetParams(), 
+            Simulation.GetForces()
         );
     }
 }

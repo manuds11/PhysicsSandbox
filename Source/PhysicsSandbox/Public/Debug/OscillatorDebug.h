@@ -40,6 +40,7 @@ struct FOscillatorDebug
         double RunningTime,
         double AverageDeltaTime,
         const FOscillatorState& State,
-        const FOscillatorParams& Params
+        const FOscillatorParams& Params,
+        const FOscillatorForces& Forces
     );
 };

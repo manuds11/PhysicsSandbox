@@ -12,14 +12,16 @@ public:
 
     const FOscillatorParams& GetParams() const;
     const FOscillatorState& GetState() const;
+    const FOscillatorForces& GetForces() const;
 
     void Step(double Dt);
 
 private:
-    double ComputeAcceleration(double Position, double Velocity) const;
-    FOscillatorForces ComputeForces(double Position, double Velocity) const;
+    double ComputeAcceleration(const double NetForce) const;
+    FOscillatorForces ComputeForces(const double Position, const double Velocity) const;
 
 private:
     FOscillatorParams Params;
     FOscillatorState State;
+    FOscillatorForces Forces;
 };

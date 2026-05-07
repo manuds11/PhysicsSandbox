@@ -22,34 +22,43 @@ const FOscillatorState& FOscillatorSimulation::GetState() const
     return State;
 }
 
-void FOscillatorSimulation::Step(double Dt)
+const FOscillatorForces& FOscillatorSimulation::GetForces() const
 {
-    const double A = ComputeAcceleration(State.Position, State.Velocity);
-
-    State.Acceleration = A;
-    State.Velocity += A * Dt;
-    State.Position += State.Velocity * Dt;
-    
+    return Forces;
 }
 
-double FOscillatorSimulation::ComputeAcceleration(double Position, double Velocity) const
+void FOscillatorSimulation::Step(double Dt)
+{
+    FOscillatorState ThisTickState;
+    
+    const FOscillatorForces PrevTickForces = ComputeForces(State.Position, State.Velocity);
+    // Compute Tick_State
+    ThisTickState.Acceleration = ComputeAcceleration(PrevTickForces.NetForce);
+    ThisTickState.Velocity = State.Velocity + ThisTickState.Acceleration * Dt;
+    ThisTickState.Position = State.Position + ThisTickState.Velocity * Dt;
+
+    State = ThisTickState;
+    Forces = PrevTickForces;
+
+}
+
+double FOscillatorSimulation::ComputeAcceleration(const double NetForce) const
 {
     if (Params.Mass <= 0.0)
     {
         return 0.0;
     }
-
-    const FOscillatorForces Forces = ComputeForces(Position, Velocity);
-    return Forces.NetForce / Params.Mass;
+    
+    return NetForce / Params.Mass;
 }
 
-FOscillatorForces FOscillatorSimulation::ComputeForces(double Position, double Velocity) const
+FOscillatorForces FOscillatorSimulation::ComputeForces(const double Position, const double Velocity) const
 {
-    FOscillatorForces Forces;
+    FOscillatorForces ComputedForces;
 
-    Forces.SpringForce = -Params.Stiffness * (Position - Params.RestPosition);
-    Forces.DampingForce = -Params.Damping * Velocity;
-    Forces.NetForce = Forces.SpringForce + Forces.DampingForce;
+    ComputedForces.SpringForce = -Params.Stiffness * (Position - Params.RestPosition);
+    ComputedForces.DampingForce = -Params.Damping * Velocity;
+    ComputedForces.NetForce = ComputedForces.SpringForce + ComputedForces.DampingForce;
 
-    return Forces;
+    return ComputedForces;
 }

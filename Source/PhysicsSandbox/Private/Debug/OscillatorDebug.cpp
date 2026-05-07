@@ -90,7 +90,8 @@ void FOscillatorDebug::PrintInfo(
     double RunningTime,
     double AverageDeltaTime,
     const FOscillatorState& State,
-    const FOscillatorParams& Params
+    const FOscillatorParams& Params,
+    const FOscillatorForces& Forces
 )
 {
     if (!GEngine)
@@ -103,9 +104,18 @@ void FOscillatorDebug::PrintInfo(
         0.0f,
         FColor::Cyan,
         FString::Printf(
-            TEXT("t: %.2f s | avg dt: %.4f s\n"
+            TEXT("Sim time: %.2f s | avg dt: %.4f s\n"
+                "\n"
+                "Spring-Mass params:"
                 "m: %.2f | k: %.2f | c: %.2f | x0: %.2f\n"
-                "x: %.2f | v: %.2f | a: %.2f"),
+                "\n"
+                "State:"
+                "x: %.2f | v: %.2f | a: %.2f"
+                "\n"
+                "Forces:"
+                "F_Net: %.2f\n"
+                "F_Spring : %.2f | F_Damping F: %.2f"
+            ),
             RunningTime,
             AverageDeltaTime,
             Params.Mass,
@@ -114,7 +124,10 @@ void FOscillatorDebug::PrintInfo(
             Params.RestPosition,
             State.Position,
             State.Velocity,
-            State.Acceleration
+            State.Acceleration,
+            Forces.NetForce,
+            Forces.SpringForce,
+            Forces.DampingForce       
         )
     );
 }
