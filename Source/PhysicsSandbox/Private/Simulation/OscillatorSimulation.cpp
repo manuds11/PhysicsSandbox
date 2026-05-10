@@ -9,7 +9,10 @@ void FOscillatorSimulation::SetParams(const FOscillatorParams& InParams)
 
 void FOscillatorSimulation::SetState(const FOscillatorState& InState)
 {
-    State = InState;
+    State.Position = InState.Position;
+    State.Velocity = InState.Velocity;
+
+    UpdateDerivedStateAndComputeForces();
 }
 
 const FOscillatorParams& FOscillatorSimulation::GetParams() const
@@ -27,22 +30,26 @@ const FOscillatorForces& FOscillatorSimulation::GetForces() const
     return Forces;
 }
 
-void FOscillatorSimulation::Step(double Dt)
-{
-    FOscillatorState ThisTickState;
-    
-    const FOscillatorForces PrevTickForces = ComputeForces(State.Position, State.Velocity);
-    // Compute Tick_State
-    ThisTickState.Acceleration = ComputeAcceleration(PrevTickForces.NetForce);
-    ThisTickState.Velocity = State.Velocity + ThisTickState.Acceleration * Dt;
-    ThisTickState.Position = State.Position + ThisTickState.Velocity * Dt;
-
-    State = ThisTickState;
-    Forces = PrevTickForces;
-
+void FOscillatorSimulation::UpdateDerivedStateAndComputeForces()
+{ 
+    Forces = ComputeStateForces(State.Position, State.Velocity);
+    State.Acceleration = ComputeStateAcceleration(Forces.NetForce);
 }
 
-double FOscillatorSimulation::ComputeAcceleration(const double NetForce) const
+void FOscillatorSimulation::Step(double Dt)
+{
+    const FOscillatorState PreviousState = State;
+
+    State.Velocity =
+        PreviousState.Velocity + PreviousState.Acceleration * Dt;
+
+    State.Position =
+        PreviousState.Position + State.Velocity * Dt;
+
+    UpdateDerivedStateAndComputeForces();
+}
+
+double FOscillatorSimulation::ComputeStateAcceleration(const double NetForce) const
 {
     if (Params.Mass <= 0.0)
     {
@@ -52,7 +59,7 @@ double FOscillatorSimulation::ComputeAcceleration(const double NetForce) const
     return NetForce / Params.Mass;
 }
 
-FOscillatorForces FOscillatorSimulation::ComputeForces(const double Position, const double Velocity) const
+FOscillatorForces FOscillatorSimulation::ComputeStateForces(const double Position, const double Velocity) const
 {
     FOscillatorForces ComputedForces;
 

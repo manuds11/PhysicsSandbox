@@ -107,7 +107,7 @@ void FOscillatorDebug::PrintInfo(
             TEXT("Sim time: %.2f s | avg dt: %.4f s\n"
                 "\n"
                 "Spring-Mass params:"
-                "m: %.2f | k: %.2f | c: %.2f | x0: %.2f\n"
+                "m: %.2f | k: %.2f | c: %.2f | L_0: %.2f\n"
                 "\n"
                 "State:"
                 "x: %.2f | v: %.2f | a: %.2f"

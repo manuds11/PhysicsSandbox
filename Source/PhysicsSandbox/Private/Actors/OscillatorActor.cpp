@@ -29,8 +29,12 @@ void AOscillatorActor::BeginPlay()
     State.Velocity = InitialVelocity;
     State.Acceleration = 0.0;
 
+    Simulation.UpdateDerivedStateAndComputeForces();
+
     Simulation.SetParams(Params);
     Simulation.SetState(State);
+
+    UpdateVisualization();
 }
 
 // Called every frame
@@ -40,9 +44,20 @@ void AOscillatorActor::Tick(float DeltaTime)
 
     Simulation.Step(DeltaTime);
         
-    SetActorLocation(FVector (Simulation.GetState().Position, 0.0, 100.0) );
-
     UpdateTimingStats(DeltaTime);
+
+    UpdateVisualization();
+}
+
+void AOscillatorActor::UpdateVisualization()
+{
+    SetActorLocation(
+        FVector(
+            Simulation.GetState().Position,
+            0.0,
+            100.0
+        )
+    );
 
     if (DebugSettings.bDrawDebug)
     {
@@ -61,12 +76,11 @@ void AOscillatorActor::Tick(float DeltaTime)
             RunningTime,
             AverageDeltaTime,
             Simulation.GetState(),
-            Simulation.GetParams(), 
+            Simulation.GetParams(),
             Simulation.GetForces()
         );
     }
 }
-
 
 void AOscillatorActor::UpdateTimingStats(double DeltaTime) // Al ser variables de Unreal van en el actor. OscillatorSimulation.h para física.
 {

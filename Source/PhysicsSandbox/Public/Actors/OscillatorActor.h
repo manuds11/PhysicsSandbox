@@ -67,11 +67,10 @@ private:
     UPROPERTY(EditAnywhere, Category = "Oscillator|Debug")
     FOscillatorDebugSettings DebugSettings;
     
-    
-    
     // =========================
     // Internal methods
     // =========================
     void UpdateTimingStats(double DeltaTime);
+    void UpdateVisualization();
 
 };
