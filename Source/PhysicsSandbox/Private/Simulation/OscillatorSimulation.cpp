@@ -12,7 +12,7 @@ void FOscillatorSimulation::SetState(const FOscillatorState& InState)
     State.Position = InState.Position;
     State.Velocity = InState.Velocity;
 
-    UpdateDerivedStateAndComputeForces();
+    UpdateDerivedStateAndForces();
 }
 
 const FOscillatorParams& FOscillatorSimulation::GetParams() const
@@ -30,7 +30,7 @@ const FOscillatorForces& FOscillatorSimulation::GetForces() const
     return Forces;
 }
 
-void FOscillatorSimulation::UpdateDerivedStateAndComputeForces()
+void FOscillatorSimulation::UpdateDerivedStateAndForces()
 { 
     Forces = ComputeStateForces(State.Position, State.Velocity);
     State.Acceleration = ComputeStateAcceleration(Forces.NetForce);
@@ -46,7 +46,7 @@ void FOscillatorSimulation::Step(double Dt)
     State.Position =
         PreviousState.Position + State.Velocity * Dt;
 
-    UpdateDerivedStateAndComputeForces();
+    UpdateDerivedStateAndForces();
 }
 
 double FOscillatorSimulation::ComputeStateAcceleration(const double NetForce) const

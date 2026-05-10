@@ -24,12 +24,9 @@ void AOscillatorActor::BeginPlay()
     Params.Damping = Damping;
     Params.RestPosition = RestPosition;
 
-    FOscillatorState State;
+    FOscillatorState State; // Condiciones iniciales.
     State.Position = InitialPosition;
     State.Velocity = InitialVelocity;
-    State.Acceleration = 0.0;
-
-    Simulation.UpdateDerivedStateAndComputeForces();
 
     Simulation.SetParams(Params);
     Simulation.SetState(State);

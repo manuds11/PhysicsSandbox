@@ -71,6 +71,5 @@ private:
     // Internal methods
     // =========================
     void UpdateTimingStats(double DeltaTime);
-    void UpdateVisualization();
-
+    void UpdateVisualization()
 };
