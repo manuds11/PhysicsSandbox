@@ -32,6 +32,23 @@ void AOscillatorActor::BeginPlay()
     Simulation.SetState(State);
 
     UpdateVisualization();
+
+    EnableInput(GetWorld()->GetFirstPlayerController());
+
+    if (InputComponent)
+    {
+        InputComponent->BindKey(
+            EKeys::SpaceBar,
+            IE_Pressed,
+            this,
+            &AOscillatorActor::ToggleSimulation
+        );
+    }
+}
+
+void AOscillatorActor::ToggleSimulation()
+{
+    bIsSimulationRunning = !bIsSimulationRunning;
 }
 
 // Called every frame
@@ -39,9 +56,12 @@ void AOscillatorActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    Simulation.Step(DeltaTime);
-        
-    UpdateTimingStats(DeltaTime);
+    if (bIsSimulationRunning)
+    {
+        Simulation.Step(DeltaTime);
+
+        UpdateTimingStats(DeltaTime);
+    }
 
     UpdateVisualization();
 }
@@ -74,7 +94,8 @@ void AOscillatorActor::UpdateVisualization()
             AverageDeltaTime,
             Simulation.GetState(),
             Simulation.GetParams(),
-            Simulation.GetForces()
+            Simulation.GetForces(),
+            bIsSimulationRunning
         );
     }
 }

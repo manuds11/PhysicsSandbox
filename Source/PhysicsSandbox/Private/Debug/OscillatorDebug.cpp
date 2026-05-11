@@ -1,7 +1,9 @@
 // OscillatorDebug.cpp
 
 #include "Debug/OscillatorDebug.h"
+
 #include "DrawDebugHelpers.h"
+#include "Engine/Engine.h"
 #include "Engine/World.h"
 
 void FOscillatorDebug::Draw(
@@ -91,7 +93,8 @@ void FOscillatorDebug::PrintInfo(
     double AverageDeltaTime,
     const FOscillatorState& State,
     const FOscillatorParams& Params,
-    const FOscillatorForces& Forces
+    const FOscillatorForces& Forces,
+    bool bIsSimulationRunning
 )
 {
     if (!GEngine)
@@ -99,23 +102,35 @@ void FOscillatorDebug::PrintInfo(
         return;
     }
 
+    const FString SimulationStatusText =
+        bIsSimulationRunning
+        ? TEXT("HARMONIC OSCILLATOR RUNNING")
+        : TEXT("PRESS SPACE BAR TO START SIMULATION");
+
+    const FColor StatusColor =
+        bIsSimulationRunning
+        ? FColor::Green
+        : FColor::Red;
+
     GEngine->AddOnScreenDebugMessage(
         10,
         0.0f,
-        FColor::Cyan,
+        StatusColor,
         FString::Printf(
-            TEXT("Sim time: %.2f s | avg dt: %.4f s\n"
+            TEXT("%s\n"
                 "\n"
-                "Spring-Mass params:"
+                "Sim time: %.2f s | avg dt: %.4f s\n"
+                "\n"
+                "Spring-Mass params:\n"
                 "m: %.2f | k: %.2f | c: %.2f | L_0: %.2f\n"
                 "\n"
-                "State:"
-                "x: %.2f | v: %.2f | a: %.2f"
+                "State:\n"
+                "x: %.2f | v: %.2f | a: %.2f\n"
                 "\n"
-                "Forces:"
+                "Forces:\n"
                 "F_Net: %.2f\n"
-                "F_Spring : %.2f | F_Damping F: %.2f"
-            ),
+                "F_Spring: %.2f | F_Damping: %.2f"),
+            *SimulationStatusText,
             RunningTime,
             AverageDeltaTime,
             Params.Mass,
@@ -127,7 +142,7 @@ void FOscillatorDebug::PrintInfo(
             State.Acceleration,
             Forces.NetForce,
             Forces.SpringForce,
-            Forces.DampingForce       
+            Forces.DampingForce
         )
     );
 }

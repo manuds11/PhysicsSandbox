@@ -32,6 +32,8 @@ private:
     // Tick Simulation variables
     // =========================
     FOscillatorSimulation Simulation;
+
+    bool bIsSimulationRunning = false;
         
     double RunningTime = 0.0;
     double AverageDeltaTime = 0.0;
@@ -70,6 +72,7 @@ private:
     // =========================
     // Internal methods
     // =========================
+    void ToggleSimulation();
     void UpdateTimingStats(double DeltaTime);
-    void UpdateVisualization()
+    void UpdateVisualization();
 };
