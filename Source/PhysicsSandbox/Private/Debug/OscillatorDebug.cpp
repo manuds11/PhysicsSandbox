@@ -119,17 +119,23 @@ void FOscillatorDebug::PrintInfo(
         FString::Printf(
             TEXT("%s\n"
                 "\n"
-                "Sim time: %.2f s | avg dt: %.4f s\n"
+                "Sim time: %.2f [s] | avg dt: %.4f [s]\n"
                 "\n"
                 "Spring-Mass params:\n"
-                "m: %.2f | k: %.2f | c: %.2f | L_0: %.2f\n"
+                "m: %.2f [kg]\n"
+                "k: %.2f [N/m]\n"
+                "c: %.2f [N*s/m]\n"
+                "L_0: %.2f [m]\n"
                 "\n"
                 "State:\n"
-                "x: %.2f | v: %.2f | a: %.2f\n"
+                "x: %.2f [m]\n"
+                "v: %.2f [m/s]\n"
+                "a: %.2f [m/s^2]\n"
                 "\n"
                 "Forces:\n"
-                "F_Net: %.2f\n"
-                "F_Spring: %.2f | F_Damping: %.2f"),
+                "F_Net: %.2f [N]\n"
+                "F_Spring: %.2f [N]\n"
+                "F_Damping: %.2f [N]"),
             *SimulationStatusText,
             RunningTime,
             AverageDeltaTime,

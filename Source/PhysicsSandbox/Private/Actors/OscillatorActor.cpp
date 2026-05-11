@@ -4,6 +4,7 @@
 
 
 #include "Actors/OscillatorActor.h"
+#include "Math/Units.h"
 
 // Sets default values
 AOscillatorActor::AOscillatorActor()
@@ -70,7 +71,7 @@ void AOscillatorActor::UpdateVisualization()
 {
     SetActorLocation(
         FVector(
-            Simulation.GetState().Position,
+            Simulation.GetState().Position * Units::MToCm,
             0.0,
             100.0
         )

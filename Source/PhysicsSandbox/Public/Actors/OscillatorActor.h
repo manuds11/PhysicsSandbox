@@ -1,4 +1,4 @@
-// OscillatorActor.h
+﻿// OscillatorActor.h
 
 // Fill out your copyright notice in the Description page of Project Settings.
 
@@ -43,25 +43,23 @@ private:
     // Oscillator editable parameters
     // =========================
     UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
-    double Mass = 1.0;
-
+    double Mass = 1.0; 
     UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
-    double Stiffness = 10.0;
-
+    double Stiffness = 10.0;    // [N / m]
     UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
-    double Damping = 0.5;
+    double Damping = 0.5;       // [N⋅s / m]
 
     // =========================
     // State variables
     // =========================
     UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
-    double RestPosition = 0.0;
+    double RestPosition = 0.0;      // m
 
     UPROPERTY(EditAnywhere, Category = "Oscillator|Initial State")
-    double InitialPosition = 100.0;
+    double InitialPosition = 1.0;   // m
 
     UPROPERTY(EditAnywhere, Category = "Oscillator|Initial State")
-    double InitialVelocity = 0.0;
+    double InitialVelocity = 0.0;   // m/s
 
     // =========================
     // Debug
