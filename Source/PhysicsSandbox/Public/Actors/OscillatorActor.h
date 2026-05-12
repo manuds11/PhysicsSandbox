@@ -38,6 +38,20 @@ private:
     double RunningTime = 0.0;
     double AverageDeltaTime = 0.0;
     int32 FrameCount = 0;
+    
+
+    // Fixed Time Step variables
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Timing")
+    double FixedTimeStep = 1.0 / 120.0; // 120 Hz
+
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Timing")
+    int32 MaxSubSteps = 8;
+
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Timing")
+    double MaxFrameDeltaTime = 0.1;
+
+    double SimulationTimeDebt = 0.0;
+    int32 LastSubStepCount = 0;
 
     // =========================
     // Oscillator editable parameters
@@ -71,6 +85,7 @@ private:
     // Internal methods
     // =========================
     void ToggleSimulation();
+    void AdvanceSimulation(double FrameDeltaTime);
     void UpdateTimingStats(double DeltaTime);
     void UpdateVisualization();
 };

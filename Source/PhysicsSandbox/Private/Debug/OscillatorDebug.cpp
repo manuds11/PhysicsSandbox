@@ -91,6 +91,8 @@ void FOscillatorDebug::Draw(
 void FOscillatorDebug::PrintInfo(
     double RunningTime,
     double AverageDeltaTime,
+    double SimulationTimeDebt,
+    int32 LastSubStepCount,
     const FOscillatorState& StateInSIUnits,
     const FOscillatorParams& ParamsInSIUnits,
     const FOscillatorForces& ForcesInSIUnits,
@@ -119,7 +121,11 @@ void FOscillatorDebug::PrintInfo(
         FString::Printf(
             TEXT("%s\n"
                 "\n"
-                "Sim time: %.2f [s] | avg dt: %.4f [s]\n"
+                "Timing:\n"
+                "Sim time: %.2f [s]\n"
+                "avg dt: %.4f [s]\n"
+                "time debt: %.4f [s]\n"
+                "substeps: %d\n"
                 "\n"
                 "Spring-Mass params:\n"
                 "m: %.2f [kg]\n"
@@ -137,15 +143,21 @@ void FOscillatorDebug::PrintInfo(
                 "F_Spring: %.2f [N]\n"
                 "F_Damping: %.2f [N]"),
             *SimulationStatusText,
+
             RunningTime,
             AverageDeltaTime,
+            SimulationTimeDebt,
+            LastSubStepCount,
+
             ParamsInSIUnits.Mass,
             ParamsInSIUnits.Stiffness,
             ParamsInSIUnits.Damping,
             ParamsInSIUnits.RestPosition,
+
             StateInSIUnits.Position,
             StateInSIUnits.Velocity,
             StateInSIUnits.Acceleration,
+
             ForcesInSIUnits.NetForce,
             ForcesInSIUnits.SpringForce,
             ForcesInSIUnits.DampingForce

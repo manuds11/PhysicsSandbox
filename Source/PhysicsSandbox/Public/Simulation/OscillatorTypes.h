@@ -3,7 +3,7 @@
 #pragma once
 
 template<typename DerivedType>
-struct TMathOperators
+struct TSimulationOperators
 {
     DerivedType operator*(double Scalar) const
     {
@@ -12,7 +12,7 @@ struct TMathOperators
         return Result;
     }
 
-    friend DerivedType operator*(double Scalar, const TMathOperators& Value)
+    friend DerivedType operator*(double Scalar, const TSimulationOperators& Value)
     {
         return static_cast<const DerivedType&>(Value) * Scalar;
     }
@@ -26,7 +26,7 @@ struct FOscillatorParams
     double RestPosition = 0.0;
 };
 
-struct FOscillatorState : public TMathOperators<FOscillatorState>
+struct FOscillatorState : public TSimulationOperators<FOscillatorState>
 {
     double Position = 0.0;
     double Velocity = 0.0;
@@ -40,7 +40,7 @@ struct FOscillatorState : public TMathOperators<FOscillatorState>
     }
 };
 
-struct FOscillatorForces : public TMathOperators<FOscillatorForces>
+struct FOscillatorForces : public TSimulationOperators<FOscillatorForces>
 {
     double SpringForce = 0.0;
     double DampingForce = 0.0;
