@@ -34,7 +34,10 @@ void AOscillatorActor::BeginPlay()
 
     UpdateVisualization();
 
-    EnableInput(GetWorld()->GetFirstPlayerController());
+    if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+    {
+        EnableInput(PC);
+    }
 
     if (InputComponent)
     {
@@ -79,11 +82,13 @@ void AOscillatorActor::UpdateVisualization()
 
     if (DebugSettings.bDrawDebug)
     {
+        FOscillatorState StateInUnrealUnits = Simulation.GetState() * Units::MToCm;
+
         FOscillatorDebug::Draw(
             GetWorld(),
-            GetActorLocation(),
-            Simulation.GetState(),
-            Simulation.GetParams(),
+            GetActorLocation(),     // cm
+            StateInUnrealUnits,     // cm
+            Simulation.GetParams().RestPosition * Units::MToCm, // SI (m)
             DebugSettings
         );
     }

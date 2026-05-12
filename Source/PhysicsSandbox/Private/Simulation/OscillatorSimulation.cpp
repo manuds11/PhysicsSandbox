@@ -40,9 +40,11 @@ void FOscillatorSimulation::Step(double Dt)
 {
     const FOscillatorState PreviousState = State;
 
+    // Semi-implicit Euler integration
+    // v_{ n + 1 } = v_n + a_n dt
+    // x_{ n + 1 } = x_n + v_{ n + 1 } dt
     State.Velocity =
         PreviousState.Velocity + PreviousState.Acceleration * Dt;
-
     State.Position =
         PreviousState.Position + State.Velocity * Dt;
 

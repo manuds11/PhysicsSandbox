@@ -12,9 +12,20 @@ struct FOscillatorParams
 
 struct FOscillatorState
 {
-    double Position = 100.0;
+    double Position = 0.0;
     double Velocity = 0.0;
     double Acceleration = 0.0;
+
+    FOscillatorState operator*(double Scalar) const
+    {
+        FOscillatorState Result = *this;
+
+        Result.Position *= Scalar;
+        Result.Velocity *= Scalar;
+        Result.Acceleration *= Scalar;
+
+        return Result;
+    }
 };
 
 struct FOscillatorForces

@@ -1,6 +1,7 @@
 // OscillatorDebug.cpp
 
 #include "Debug/OscillatorDebug.h"
+#include "Math/Units.h"
 
 #include "DrawDebugHelpers.h"
 #include "Engine/Engine.h"
@@ -9,8 +10,8 @@
 void FOscillatorDebug::Draw(
     UWorld* World,
     const FVector& MassWorldPosition,
-    const FOscillatorState& State,
-    const FOscillatorParams& Params,
+    const FOscillatorState& StateInUEUnits,
+    const double RestPositionInUEUnits,
     const FOscillatorDebugSettings& Settings
 )
 {
@@ -20,7 +21,7 @@ void FOscillatorDebug::Draw(
     }
 
     const FVector RestWorldPosition(
-        Params.RestPosition,
+        RestPositionInUEUnits,
         MassWorldPosition.Y,
         MassWorldPosition.Z
     );
@@ -28,7 +29,7 @@ void FOscillatorDebug::Draw(
     // x0 marker
     DrawDebugLine(
         World,
-        RestWorldPosition + FVector(0.0, 0.0, -50.0),
+        RestWorldPosition + FVector(0.0, 0.0, -50.0), // All in centimeters
         RestWorldPosition + FVector(0.0, 0.0, 50.0),
         FColor::Green,
         false,
@@ -50,10 +51,10 @@ void FOscillatorDebug::Draw(
     );
 
     // velocity vector
-    if (!FMath::IsNearlyZero(State.Velocity))
+    if (!FMath::IsNearlyZero(StateInUEUnits.Velocity))
     {
         const FVector VelocityEnd =
-            MassWorldPosition + FVector(State.Velocity * Settings.VelocityArrowScale, 0.0, 0.0);
+            MassWorldPosition + FVector(StateInUEUnits.Velocity * Settings.VelocityArrowScale, 0.0, 0.0);
 
         DrawDebugDirectionalArrow(
             World,
@@ -69,10 +70,10 @@ void FOscillatorDebug::Draw(
     }
 
     // acceleration vector
-    if (!FMath::IsNearlyZero(State.Acceleration))
+    if (!FMath::IsNearlyZero(StateInUEUnits.Acceleration))
     {
         const FVector AccelerationEnd =
-            MassWorldPosition + FVector(State.Acceleration * Settings.AccelerationArrowScale, 0.0, 0.0);
+            MassWorldPosition + FVector(StateInUEUnits.Acceleration * Settings.AccelerationArrowScale, 0.0, 0.0);
 
         DrawDebugDirectionalArrow(
             World,
@@ -91,9 +92,9 @@ void FOscillatorDebug::Draw(
 void FOscillatorDebug::PrintInfo(
     double RunningTime,
     double AverageDeltaTime,
-    const FOscillatorState& State,
-    const FOscillatorParams& Params,
-    const FOscillatorForces& Forces,
+    const FOscillatorState& StateInSIUnits,
+    const FOscillatorParams& ParamsInSIUnits,
+    const FOscillatorForces& ForcesInSIUnits,
     bool bIsSimulationRunning
 )
 {
@@ -139,16 +140,16 @@ void FOscillatorDebug::PrintInfo(
             *SimulationStatusText,
             RunningTime,
             AverageDeltaTime,
-            Params.Mass,
-            Params.Stiffness,
-            Params.Damping,
-            Params.RestPosition,
-            State.Position,
-            State.Velocity,
-            State.Acceleration,
-            Forces.NetForce,
-            Forces.SpringForce,
-            Forces.DampingForce
+            ParamsInSIUnits.Mass,
+            ParamsInSIUnits.Stiffness,
+            ParamsInSIUnits.Damping,
+            ParamsInSIUnits.RestPosition,
+            StateInSIUnits.Position,
+            StateInSIUnits.Velocity,
+            StateInSIUnits.Acceleration,
+            ForcesInSIUnits.NetForce,
+            ForcesInSIUnits.SpringForce,
+            ForcesInSIUnits.DampingForce
         )
     );
 }

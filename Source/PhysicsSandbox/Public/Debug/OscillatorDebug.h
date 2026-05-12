@@ -31,17 +31,17 @@ struct FOscillatorDebug
     static void Draw(
         UWorld* World,
         const FVector& MassWorldPosition,
-        const FOscillatorState& State,
-        const FOscillatorParams& Params,
+        const FOscillatorState& StateInUEUnits,
+        const double RestPositionInUEUnits,
         const FOscillatorDebugSettings& Settings
     );
 
     static void PrintInfo(
         double RunningTime,
         double AverageDeltaTime,
-        const FOscillatorState& State,
-        const FOscillatorParams& Params,
-        const FOscillatorForces& Forces,
-        bool bIsSimulationRunning
+        const FOscillatorState& StateInSIUnits,
+        const FOscillatorParams& ParamsInSIUnits,
+        const FOscillatorForces& ForcesInSiUnits,
+        bool bIsSimulationRunningelm
     );
 };
