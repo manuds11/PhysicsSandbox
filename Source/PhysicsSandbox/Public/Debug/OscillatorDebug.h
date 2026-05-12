@@ -42,6 +42,6 @@ struct FOscillatorDebug
         const FOscillatorState& StateInSIUnits,
         const FOscillatorParams& ParamsInSIUnits,
         const FOscillatorForces& ForcesInSiUnits,
-        bool bIsSimulationRunningelm
+        bool bIsSimulationRunning
     );
 };

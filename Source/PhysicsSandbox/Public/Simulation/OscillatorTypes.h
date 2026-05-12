@@ -24,7 +24,12 @@ struct FOscillatorState
         Result.Velocity *= Scalar;
         Result.Acceleration *= Scalar;
 
-        return Result;
+        return Result;     
+    }
+
+    friend FOscillatorState operator*(double Scalar, const FOscillatorState& State)
+    {
+        return State * Scalar;
     }
 };
 

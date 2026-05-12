@@ -87,8 +87,8 @@ void AOscillatorActor::UpdateVisualization()
         FOscillatorDebug::Draw(
             GetWorld(),
             GetActorLocation(),     // cm
-            StateInUnrealUnits,     // cm
-            Simulation.GetParams().RestPosition * Units::MToCm, // SI (m)
+            StateInUnrealUnits,
+            Simulation.GetParams().RestPosition * Units::MToCm,
             DebugSettings
         );
     }
