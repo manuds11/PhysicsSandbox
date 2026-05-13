@@ -14,6 +14,7 @@ public:
     const FOscillatorState& GetState() const;
     const FOscillatorForces& GetForces() const;
     const FOscillatorEnergy& GetEnergy() const;
+    const FOscillatorMetrics& GetMetrics() const;
     
     void Step(double Dt);
 
@@ -22,10 +23,12 @@ private:
     double ComputeStateAcceleration(const double NetForce) const;
     FOscillatorForces ComputeStateForces(const double Position, const double Velocity) const;
     FOscillatorEnergy ComputeStateEnergy(double Position, double Velocity) const;
+    FOscillatorMetrics ComputeMetrics() const;
 
 private:
     FOscillatorParams Params;
     FOscillatorState State;
     FOscillatorForces Forces;
     FOscillatorEnergy Energy;
+    FOscillatorMetrics Metrics;
 };

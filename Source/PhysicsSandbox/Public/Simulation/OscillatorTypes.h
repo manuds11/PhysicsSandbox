@@ -67,3 +67,17 @@ struct FOscillatorEnergy : public TSimulationOperators<FOscillatorEnergy>
         TotalEnergy *= Scalar;
     }
 };
+
+struct FOscillatorMetrics
+{
+    double NaturalFrequency = 0.0;        // omega_n [rad/s]
+    double NaturalFrequencyHz = 0.0;      // f_n [Hz]
+    double NaturalPeriod = 0.0;           // T_n [s]
+
+    double CriticalDamping = 0.0;         // c_crit [N*s/m]
+    double DampingRatio = 0.0;            // zeta [-]
+
+    double DampedFrequency = 0.0;         // omega_d [rad/s]
+    double DampedFrequencyHz = 0.0;       // f_d [Hz]
+    double DampedPeriod = 0.0;            // T_d [s]
+};

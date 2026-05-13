@@ -1,6 +1,7 @@
 // OscillatorSimulation.cpp
 
 #include "Simulation/OscillatorSimulation.h"
+#include "Math/UnrealMathUtility.h"
 
 void FOscillatorSimulation::SetParams(const FOscillatorParams& InParams)
 {
@@ -12,6 +13,7 @@ void FOscillatorSimulation::SetState(const FOscillatorState& InState)
     State.Position = InState.Position;
     State.Velocity = InState.Velocity;
 
+    Metrics = ComputeMetrics();
     UpdateStateDerivedMagnitudes();
 }
 
@@ -102,4 +104,50 @@ double FOscillatorSimulation::ComputeStateAcceleration(const double NetForce) co
     }
 
     return NetForce / Params.Mass;
+}
+
+FOscillatorMetrics FOscillatorSimulation::ComputeMetrics() const
+{
+    FOscillatorMetrics ComputedMetrics;
+
+    if (Params.Mass <= 0.0 || Params.Stiffness <= 0.0)
+    {
+        return ComputedMetrics;
+    }
+
+    ComputedMetrics.NaturalFrequency =
+        FMath::Sqrt(Params.Stiffness / Params.Mass);
+
+    ComputedMetrics.NaturalFrequencyHz =
+        ComputedMetrics.NaturalFrequency / (2.0 * PI);
+
+    ComputedMetrics.NaturalPeriod =
+        1.0 / ComputedMetrics.NaturalFrequencyHz;
+
+    ComputedMetrics.CriticalDamping =
+        2.0 * FMath::Sqrt(Params.Stiffness * Params.Mass);
+
+    if (ComputedMetrics.CriticalDamping > 0.0)
+    {
+        ComputedMetrics.DampingRatio =
+            Params.Damping / ComputedMetrics.CriticalDamping;
+    }
+
+    if (ComputedMetrics.DampingRatio < 1.0)
+    {
+        ComputedMetrics.DampedFrequency =
+            ComputedMetrics.NaturalFrequency *
+            FMath::Sqrt(1.0 - ComputedMetrics.DampingRatio * ComputedMetrics.DampingRatio);
+
+        ComputedMetrics.DampedFrequencyHz =
+            ComputedMetrics.DampedFrequency / (2.0 * PI);
+
+        if (ComputedMetrics.DampedFrequencyHz > 0.0)
+        {
+            ComputedMetrics.DampedPeriod =
+                1.0 / ComputedMetrics.DampedFrequencyHz;
+        }
+    }
+
+    return ComputedMetrics;
 }
