@@ -63,7 +63,6 @@ void AOscillatorActor::Tick(float DeltaTime)
     if (bIsSimulationRunning)
     {
         AdvanceSimulation(DeltaTime);
-        UpdateTimingStats(DeltaTime);
     }
 
     UpdateVisualization();
@@ -75,7 +74,13 @@ void AOscillatorActor::AdvanceSimulation(double FrameDeltaTime)
     {
         return;
     }
-    
+
+    RealRunningTime += FrameDeltaTime;
+    FrameCount++;
+
+    AverageDeltaTime +=
+        (FrameDeltaTime - AverageDeltaTime) / static_cast<double>(FrameCount);
+
     const double ClampedFrameDeltaTime =
         FMath::Min(FrameDeltaTime, MaxFrameDeltaTime);
 
@@ -87,15 +92,19 @@ void AOscillatorActor::AdvanceSimulation(double FrameDeltaTime)
     {
         Simulation.Step(FixedTimeStep);
 
+        SimulatedRunningTime += FixedTimeStep;
         SimulationTimeDebt -= FixedTimeStep;
         SubStepCount++;
-        LastSubStepCount = SubStepCount;
     }
-    // Limitación a la deuda máxima acumulable en caso de llegar al máximo de substeps.
+
+    LastSubStepCount = SubStepCount;
+
     if (SubStepCount >= MaxSubSteps)
     {
         SimulationTimeDebt = FMath::Min(SimulationTimeDebt, FixedTimeStep);
     }
+
+    SimulationDelay = RealRunningTime - SimulatedRunningTime;
 }
 
 void AOscillatorActor::UpdateVisualization()
@@ -124,10 +133,9 @@ void AOscillatorActor::UpdateVisualization()
     if (DebugSettings.bPrintInfo)
     {
         FOscillatorDebug::PrintInfo(
-            RunningTime,
+            RealRunningTime,
             AverageDeltaTime,
-            SimulationTimeDebt,
-            LastSubStepCount,
+            SimulationDelay,
             Simulation.GetState(),
             Simulation.GetParams(),
             Simulation.GetForces(),
@@ -136,11 +144,5 @@ void AOscillatorActor::UpdateVisualization()
     }
 }
 
-void AOscillatorActor::UpdateTimingStats(double DeltaTime) // Al ser variables de Unreal van en el actor. OscillatorSimulation.h para física.
-{
-    RunningTime += DeltaTime;
-    FrameCount++;
 
-    AverageDeltaTime += (DeltaTime - AverageDeltaTime) / static_cast<double>(FrameCount);
-}
 

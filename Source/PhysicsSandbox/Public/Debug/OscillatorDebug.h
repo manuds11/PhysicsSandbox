@@ -37,13 +37,12 @@ struct FOscillatorDebug
     );
 
     static void PrintInfo(
-        double RunningTime,
+        double RealRunningTime,
         double AverageDeltaTime,
-        double SimulationTimeDebt,
-        int32 LastSubStepCount,
+        double SimulationDelay,
         const FOscillatorState& StateInSIUnits,
         const FOscillatorParams& ParamsInSIUnits,
-        const FOscillatorForces& ForcesInSiUnits,
+        const FOscillatorForces& ForcesInSIUnits,
         bool bIsSimulationRunning
     );
 };
