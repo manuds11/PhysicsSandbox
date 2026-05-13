@@ -53,3 +53,17 @@ struct FOscillatorForces : public TSimulationOperators<FOscillatorForces>
         NetForce *= Scalar;
     }
 };
+
+struct FOscillatorEnergy : public TSimulationOperators<FOscillatorEnergy>
+{
+    double KineticEnergy = 0.0;
+    double PotentialEnergy = 0.0;
+    double TotalEnergy = 0.0;
+
+    void Scale(double Scalar)
+    {
+        KineticEnergy *= Scalar;
+        PotentialEnergy *= Scalar;
+        TotalEnergy *= Scalar;
+    }
+};

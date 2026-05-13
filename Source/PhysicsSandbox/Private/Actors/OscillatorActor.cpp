@@ -139,6 +139,7 @@ void AOscillatorActor::UpdateVisualization()
             Simulation.GetState(),
             Simulation.GetParams(),
             Simulation.GetForces(),
+            Simulation.GetEnergy(),
             bIsSimulationRunning
         );
     }

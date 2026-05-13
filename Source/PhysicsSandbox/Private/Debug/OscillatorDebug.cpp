@@ -95,6 +95,7 @@ void FOscillatorDebug::PrintInfo(
     const FOscillatorState& StateInSIUnits,
     const FOscillatorParams& ParamsInSIUnits,
     const FOscillatorForces& ForcesInSIUnits,
+    const FOscillatorEnergy& EnergyInSIUnits,
     bool bIsSimulationRunning
 )
 {
@@ -139,7 +140,13 @@ void FOscillatorDebug::PrintInfo(
                 "Forces:\n"
                 "F_Net: %.2f [N]\n"
                 "F_Spring: %.2f [N]\n"
-                "F_Damping: %.2f [N]"),
+                "F_Damping: %.2f [N]"
+                "\n"
+                "Energy:\n"
+                "Kinetic: %.4f [J]\n"
+                "Potential: %.4f [J]\n"
+                "Total: %.4f [J]"
+            ),
             *SimulationStatusText,
 
             RealRunningTime,
@@ -157,7 +164,11 @@ void FOscillatorDebug::PrintInfo(
 
             ForcesInSIUnits.NetForce,
             ForcesInSIUnits.SpringForce,
-            ForcesInSIUnits.DampingForce
+            ForcesInSIUnits.DampingForce,
+
+            EnergyInSIUnits.KineticEnergy,
+            EnergyInSIUnits.PotentialEnergy,
+            EnergyInSIUnits.TotalEnergy
         )
     );
 }
