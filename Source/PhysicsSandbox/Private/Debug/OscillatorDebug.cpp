@@ -92,6 +92,7 @@ void FOscillatorDebug::PrintInfo(
     double RealRunningTime,
     double AverageDeltaTime,
     double SimulationDelay,
+    double SimFixedTimeStep,
     const FOscillatorState& StateInSIUnits,
     const FOscillatorParams& ParamsInSIUnits,
     const FOscillatorForces& ForcesInSIUnits,
@@ -122,9 +123,10 @@ void FOscillatorDebug::PrintInfo(
             TEXT("%s\n"
                 "\n"
                 "Timing:\n"
-                "Real Sim time: %.2f [s]\n"
+                "Real sim time: %.2f [s]\n"
                 "Simulation delay: %.4f [s]\n"
                 "avg dt: %.4f [s]\n"
+                "Simulation fixedStep dt: %.4f [s]\n"
                 "\n"
                 "Spring-Mass params:\n"
                 "m: %.2f [kg]\n"
@@ -140,18 +142,21 @@ void FOscillatorDebug::PrintInfo(
                 "Forces:\n"
                 "F_Net: %.2f [N]\n"
                 "F_Spring: %.2f [N]\n"
-                "F_Damping: %.2f [N]"
+                "F_Damping: %.2f [N]\n"
                 "\n"
                 "Energy:\n"
-                "Kinetic: %.4f [J]\n"
-                "Potential: %.4f [J]\n"
-                "Total: %.4f [J]"
+                "Mechanical: %.4f [J]\n"
+                "Dissipated: %.4f [J]\n"
+                "Total w/ losses: %.4f [J]\n"
+                "Sim error: %.6f [J]\n"
+                "Relative sim error: %.4f [%%]"
             ),
             *SimulationStatusText,
 
             RealRunningTime,
-            AverageDeltaTime,
             SimulationDelay,
+            AverageDeltaTime,
+            SimFixedTimeStep,
 
             ParamsInSIUnits.Mass,
             ParamsInSIUnits.Stiffness,
@@ -166,9 +171,11 @@ void FOscillatorDebug::PrintInfo(
             ForcesInSIUnits.SpringForce,
             ForcesInSIUnits.DampingForce,
 
-            EnergyInSIUnits.KineticEnergy,
-            EnergyInSIUnits.PotentialEnergy,
-            EnergyInSIUnits.TotalEnergyWithLosses
+            EnergyInSIUnits.MechanicalEnergy,
+            EnergyInSIUnits.DissipatedEnergy,
+            EnergyInSIUnits.TotalEnergyWithLosses,
+            EnergyInSIUnits.SimEnergyError,
+            EnergyInSIUnits.RelativeSimEnergyError * 100.0
         )
     );
 }

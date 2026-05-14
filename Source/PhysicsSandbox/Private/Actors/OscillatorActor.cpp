@@ -136,6 +136,7 @@ void AOscillatorActor::UpdateVisualization()
             RealRunningTime,
             AverageDeltaTime,
             SimulationDelay,
+            FixedTimeStep,
             Simulation.GetState(),
             Simulation.GetParams(),
             Simulation.GetForces(),

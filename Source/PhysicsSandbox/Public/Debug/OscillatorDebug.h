@@ -40,6 +40,7 @@ struct FOscillatorDebug
         double RealRunningTime,
         double AverageDeltaTime,
         double SimulationDelay,
+        const double SimFixedTimeStep,
         const FOscillatorState& StateInSIUnits,
         const FOscillatorParams& ParamsInSIUnits,
         const FOscillatorForces& ForcesInSIUnits,
