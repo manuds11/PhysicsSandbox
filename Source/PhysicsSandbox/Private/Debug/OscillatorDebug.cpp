@@ -168,7 +168,7 @@ void FOscillatorDebug::PrintInfo(
 
             EnergyInSIUnits.KineticEnergy,
             EnergyInSIUnits.PotentialEnergy,
-            EnergyInSIUnits.TotalEnergy
+            EnergyInSIUnits.TotalEnergyWithLosses
         )
     );
 }

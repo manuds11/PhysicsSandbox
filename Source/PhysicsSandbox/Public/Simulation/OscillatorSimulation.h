@@ -8,7 +8,7 @@ class FOscillatorSimulation
 {
 public:
     void SetParams(const FOscillatorParams& InParams);
-    void SetState(const FOscillatorState& InState);
+    void SetInitialConditions(const FOscillatorState& InState);
 
     const FOscillatorParams& GetParams() const;
     const FOscillatorState& GetState() const;
@@ -21,8 +21,10 @@ public:
 private:
     void UpdateStateDerivedMagnitudes();
     double ComputeStateAcceleration(const double NetForce) const;
-    FOscillatorForces ComputeStateForces(const double Position, const double Velocity) const;
-    FOscillatorEnergy ComputeStateEnergy(double Position, double Velocity) const;
+    FOscillatorForces ComputeStateForces(const double Displacement, const double Velocity) const;
+    void UpdateStateMechanicalEnergy();
+    double ComputeStepDissipatedEnergy(double Velocity, double Dt) const;
+    void UpdateEnergyBalance();
     FOscillatorMetrics ComputeMetrics() const;
 
 private:

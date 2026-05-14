@@ -30,7 +30,7 @@ void AOscillatorActor::BeginPlay()
     State.Velocity = InitialVelocity;
 
     Simulation.SetParams(Params);
-    Simulation.SetState(State);
+    Simulation.SetInitialConditions(State);
 
     UpdateVisualization();
 
