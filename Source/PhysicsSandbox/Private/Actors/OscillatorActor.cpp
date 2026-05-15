@@ -92,6 +92,11 @@ void AOscillatorActor::AdvanceSimulation(double FrameDeltaTime)
     {
         Simulation.Step(FixedTimeStep);
 
+        if (bEnableCsvLogging)
+        {
+            LogCurrentSample();
+        }
+
         SimulatedRunningTime += FixedTimeStep;
         SimulationTimeDebt -= FixedTimeStep;
         SubStepCount++;
@@ -146,5 +151,11 @@ void AOscillatorActor::UpdateVisualization()
     }
 }
 
+void AOscillatorActor::LogCurrentSample()
+{
+}
 
+void AOscillatorActor::FlushCsvLog()
+{
+}
 

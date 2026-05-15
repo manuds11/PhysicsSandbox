@@ -47,16 +47,6 @@ const FOscillatorEnergy& FOscillatorSimulation::GetEnergy() const
     return Energy;
 }
 
-void FOscillatorSimulation::UpdateStateDerivedMagnitudes()
-{   
-    Forces = ComputeStateForces(State.Displacement, State.Velocity);
-    State.Acceleration = ComputeStateAcceleration(Forces.NetForce);
-
-    UpdateStateMechanicalEnergy();
-    UpdateEnergyBalance();
-
-}
-
 void FOscillatorSimulation::Step(double Dt)
 {
     const FOscillatorState PreviousState = State;
@@ -74,6 +64,16 @@ void FOscillatorSimulation::Step(double Dt)
     Energy.DissipatedEnergy += ComputeStepDissipatedEnergy(State.Velocity, Dt);
 
     UpdateStateDerivedMagnitudes();
+}
+
+void FOscillatorSimulation::UpdateStateDerivedMagnitudes()
+{
+    Forces = ComputeStateForces(State.Displacement, State.Velocity);
+    State.Acceleration = ComputeStateAcceleration(Forces.NetForce);
+
+    UpdateStateMechanicalEnergy();
+    UpdateEnergyBalance();
+
 }
 
 FOscillatorForces FOscillatorSimulation::ComputeStateForces(

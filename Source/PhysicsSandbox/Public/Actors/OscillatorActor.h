@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "Simulation/OscillatorSimulation.h"
 #include "Debug/OscillatorDebug.h"
+#include "Logging/OscillatorCsvLogger.h"
 #include "OscillatorActor.generated.h"
 
 UCLASS()
@@ -82,11 +83,27 @@ private:
     // =========================
     UPROPERTY(EditAnywhere, Category = "Oscillator|Debug")
     FOscillatorDebugSettings DebugSettings;
+
+    // =========================
+    // Logger
+    // =========================
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Logging")
+    bool bEnableCsvLogging = false;
+
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Logging")
+    FString CsvFileName = TEXT("OscillatorLog.csv");
+
+    FOscillatorCsvLogger CsvLogger;
+
     
     // =========================
     // Internal methods
     // =========================
+private:
     void ToggleSimulation();
     void AdvanceSimulation(double FrameDeltaTime);
     void UpdateVisualization();
+
+    void LogCurrentSample();
+    void FlushCsvLog();
 };
