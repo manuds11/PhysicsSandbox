@@ -23,6 +23,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:	
 	// Called every frame
@@ -88,7 +89,7 @@ private:
     // Logger
     // =========================
     UPROPERTY(EditAnywhere, Category = "Oscillator|Logging")
-    bool bEnableCsvLogging = false;
+    bool bEnableCsvLogging = true;
 
     UPROPERTY(EditAnywhere, Category = "Oscillator|Logging")
     FString CsvFileName = TEXT("OscillatorLog.csv");

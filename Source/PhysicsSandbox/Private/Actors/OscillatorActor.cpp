@@ -5,6 +5,8 @@
 
 #include "Actors/OscillatorActor.h"
 #include "Math/Units.h"
+#include "Misc/Paths.h"
+#include "HAL/FileManager.h"
 
 // Sets default values
 AOscillatorActor::AOscillatorActor()
@@ -50,9 +52,31 @@ void AOscillatorActor::BeginPlay()
     }
 }
 
+void AOscillatorActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    if (bEnableCsvLogging)
+    {
+        FlushCsvLog();
+    }
+
+    Super::EndPlay(EndPlayReason);
+}
+
 void AOscillatorActor::ToggleSimulation()
 {
     bIsSimulationRunning = !bIsSimulationRunning;
+
+    if (bEnableCsvLogging)
+    {
+        if (bIsSimulationRunning)
+        {
+            CsvLogger.Reset();
+        }
+        else
+        {
+            FlushCsvLog();
+        }
+    }
 }
 
 // Called every frame
@@ -153,9 +177,43 @@ void AOscillatorActor::UpdateVisualization()
 
 void AOscillatorActor::LogCurrentSample()
 {
+    FOscillatorSample Sample;
+
+    const FOscillatorState& State = Simulation.GetState();
+    const FOscillatorForces& Forces = Simulation.GetForces();
+    const FOscillatorEnergy& Energy = Simulation.GetEnergy();
+
+    Sample.Time = SimulatedRunningTime;
+
+    Sample.Position = State.Position;
+    Sample.Displacement = State.Displacement;
+    Sample.Velocity = State.Velocity;
+    Sample.Acceleration = State.Acceleration;
+
+    Sample.SpringForce = Forces.SpringForce;
+    Sample.DampingForce = Forces.DampingForce;
+    Sample.NetForce = Forces.NetForce;
+
+    Sample.MechanicalEnergy = Energy.MechanicalEnergy;
+    Sample.DissipatedEnergy = Energy.DissipatedEnergy;
+    Sample.TotalEnergyWithLosses = Energy.TotalEnergyWithLosses;
+    Sample.SimEnergyError = Energy.SimEnergyError;
+    Sample.RelativeSimEnergyError = Energy.RelativeSimEnergyError;
+
+    CsvLogger.AddSample(Sample);
 }
 
 void AOscillatorActor::FlushCsvLog()
 {
-}
+    const FString LogDirectory =
+        FPaths::ProjectSavedDir() / TEXT("SimulationLogs");
 
+    IFileManager::Get().MakeDirectory(*LogDirectory, true);
+
+    const FString FilePath =
+        LogDirectory / CsvFileName;
+
+    CsvLogger.WriteToFile(FilePath);
+
+    UE_LOG(LogTemp, Warning, TEXT("CSV path: %s"), *FilePath);
+}

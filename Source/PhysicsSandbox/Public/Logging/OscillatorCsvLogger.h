@@ -1,3 +1,7 @@
+#pragma once
+
+#include "CoreMinimal.h"
+
 struct FOscillatorSample
 {
     double Time = 0.0;
@@ -27,4 +31,5 @@ public:
 
 private:
     TArray<FOscillatorSample> Samples;
+    
 };
