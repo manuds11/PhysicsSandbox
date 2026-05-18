@@ -4,7 +4,7 @@
 
 struct FOscillatorSample
 {
-    double Time = 0.0;
+    double SimulationTime = 0.0;
 
     double Position = 0.0;
     double Displacement = 0.0;
@@ -31,5 +31,4 @@ public:
 
 private:
     TArray<FOscillatorSample> Samples;
-    
 };

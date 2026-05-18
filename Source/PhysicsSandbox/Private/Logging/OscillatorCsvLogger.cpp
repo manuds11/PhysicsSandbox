@@ -18,7 +18,7 @@ bool FOscillatorCsvLogger::WriteToFile(const FString& FilePath) const
 {
     FString CsvContent;
 
-    CsvContent += TEXT("time,position,displacement,velocity,acceleration,");
+    CsvContent += TEXT("simulation_time,position,displacement,velocity,acceleration,");
     CsvContent += TEXT("spring_force,damping_force,net_force,");
     CsvContent += TEXT("mechanical_energy,dissipated_energy,total_energy_with_losses,");
     CsvContent += TEXT("sim_energy_error,relative_sim_energy_error\n");
@@ -30,7 +30,7 @@ bool FOscillatorCsvLogger::WriteToFile(const FString& FilePath) const
                 "%.8f,%.8f,%.8f,"
                 "%.8f,%.8f,%.8f,"
                 "%.8f,%.8f\n"),
-            Sample.Time,
+            Sample.SimulationTime,
             Sample.Position,
             Sample.Displacement,
             Sample.Velocity,

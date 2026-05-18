@@ -73,7 +73,6 @@ void FOscillatorSimulation::UpdateStateDerivedMagnitudes()
 
     UpdateStateMechanicalEnergy();
     UpdateEnergyBalance();
-
 }
 
 FOscillatorForces FOscillatorSimulation::ComputeStateForces(

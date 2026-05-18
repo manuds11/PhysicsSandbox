@@ -71,6 +71,8 @@ void AOscillatorActor::ToggleSimulation()
         if (bIsSimulationRunning)
         {
             CsvLogger.Reset();
+
+            LogCurrentSample();
         }
         else
         {
@@ -79,7 +81,6 @@ void AOscillatorActor::ToggleSimulation()
     }
 }
 
-// Called every frame
 void AOscillatorActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
@@ -116,14 +117,14 @@ void AOscillatorActor::AdvanceSimulation(double FrameDeltaTime)
     {
         Simulation.Step(FixedTimeStep);
 
+        SimulatedRunningTime += FixedTimeStep;
+        SimulationTimeDebt -= FixedTimeStep;
+        SubStepCount++;
+
         if (bEnableCsvLogging)
         {
             LogCurrentSample();
         }
-
-        SimulatedRunningTime += FixedTimeStep;
-        SimulationTimeDebt -= FixedTimeStep;
-        SubStepCount++;
     }
 
     LastSubStepCount = SubStepCount;
@@ -183,7 +184,7 @@ void AOscillatorActor::LogCurrentSample()
     const FOscillatorForces& Forces = Simulation.GetForces();
     const FOscillatorEnergy& Energy = Simulation.GetEnergy();
 
-    Sample.Time = SimulatedRunningTime;
+    Sample.SimulationTime = SimulatedRunningTime;
 
     Sample.Position = State.Position;
     Sample.Displacement = State.Displacement;
@@ -211,9 +212,7 @@ void AOscillatorActor::FlushCsvLog()
     IFileManager::Get().MakeDirectory(*LogDirectory, true);
 
     const FString FilePath =
-        LogDirectory / CsvFileName;
+        LogDirectory / CsvFileName; // '/' Es un operador sobrecargado para rutas de archivos.
 
     CsvLogger.WriteToFile(FilePath);
-
-    UE_LOG(LogTemp, Warning, TEXT("CSV path: %s"), *FilePath);
 }
