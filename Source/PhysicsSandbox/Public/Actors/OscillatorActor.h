@@ -88,14 +88,16 @@ private:
     // =========================
     // Logger
     // =========================
+    FOscillatorCsvLogger CsvLogger;
+    
     UPROPERTY(EditAnywhere, Category = "Oscillator|Logging")
     bool bEnableCsvLogging = true;
 
     UPROPERTY(EditAnywhere, Category = "Oscillator|Logging")
     FString CsvFileName = TEXT("OscillatorLog.csv");
 
-    FOscillatorCsvLogger CsvLogger;
-
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Python")
+    bool bAutoRunPythonPlots = true;
     
     // =========================
     // Internal methods
@@ -107,4 +109,5 @@ private:
 
     void LogCurrentSample();
     void FlushCsvLog();
+    void LaunchPythonPlotScript(const FString& CsvFilePath);
 };

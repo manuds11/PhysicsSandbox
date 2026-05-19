@@ -7,6 +7,7 @@
 #include "Math/Units.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
+#include "HAL/PlatformProcess.h"
 
 // Sets default values
 AOscillatorActor::AOscillatorActor()
@@ -214,5 +215,57 @@ void AOscillatorActor::FlushCsvLog()
     const FString FilePath =
         LogDirectory / CsvFileName; // '/' Es un operador sobrecargado para rutas de archivos.
 
-    CsvLogger.WriteToFile(FilePath);
+    const bool bWriteSuccess =
+        CsvLogger.WriteToFile(FilePath);
+
+    if (bWriteSuccess && bAutoRunPythonPlots)
+    {
+        LaunchPythonPlotScript(FilePath);
+    }
+}
+
+void AOscillatorActor::LaunchPythonPlotScript(const FString& CsvFilePath)
+{
+    FString PythonRelativePath = TEXT("Tools/Python/.venv/Scripts/python.exe");
+    const FString PythonPath =
+        FPaths::ProjectDir() / PythonRelativePath;
+
+    FString PlotScriptRelativePath = TEXT("Tools/Python/plot_oscillator_log.py");
+    const FString ScriptPath =
+        FPaths::ProjectDir() / PlotScriptRelativePath;
+
+    if (!FPaths::FileExists(PythonPath))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Python executable not found: %s"), *PythonPath);
+        return;
+    }
+
+    if (!FPaths::FileExists(ScriptPath))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Python plot script not found: %s"), *ScriptPath);
+        return;
+    }
+
+    const FString Args =
+        FString::Printf(TEXT("\"%s\" \"%s\""), *ScriptPath, *CsvFilePath);
+
+    FProcHandle ProcHandle = FPlatformProcess::CreateProc(
+        *PythonPath,
+        *Args,
+        true,
+        false,
+        false,
+        nullptr,
+        0,
+        nullptr,
+        nullptr
+    );
+
+    if (!ProcHandle.IsValid())
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to launch Python plot script."));
+        return;
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("Python plot script launched."));
 }
