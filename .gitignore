@@ -3,6 +3,9 @@ Build/
 DerivedDataCache/
 Intermediate/
 Saved/
+Tools/Python/.venv/
+__pycache__/
+*.pyc
 .vs/
 .vscode/
 .idea/
