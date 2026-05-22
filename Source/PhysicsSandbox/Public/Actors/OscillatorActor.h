@@ -96,7 +96,7 @@ private:
     UPROPERTY(EditAnywhere, Category = "Oscillator|Logging")
     FString CsvFileName = TEXT("OscillatorLog.csv");
 
-    UPROPERTY(EditAnywhere, Category = "Oscillator|Python")
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Logging")
     bool bAutoRunPythonPlots = true;
     
     // =========================

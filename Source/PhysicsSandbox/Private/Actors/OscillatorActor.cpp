@@ -252,9 +252,9 @@ void AOscillatorActor::LaunchPythonPlotScript(const FString& CsvFilePath)
     FProcHandle ProcHandle = FPlatformProcess::CreateProc(
         *PythonPath,
         *Args,
-        true,
-        false,
-        false,
+        true, // bLaunchDetached
+        false, // bLaunchHidden
+        false, // bLaunchReallyHidden
         nullptr,
         0,
         nullptr,
