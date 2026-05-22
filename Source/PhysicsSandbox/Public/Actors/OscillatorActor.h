@@ -11,6 +11,13 @@
 #include "Logging/OscillatorCsvLogger.h"
 #include "OscillatorActor.generated.h"
 
+UENUM(BlueprintType)
+enum class EOscillatorIntegratorType : uint8
+{
+    ExplicitEuler UMETA(DisplayName = "Explicit Euler"),
+    SemiImplicitEuler UMETA(DisplayName = "Semi-Implicit Euler")
+};
+
 UCLASS()
 class AOscillatorActor : public AActor
 {
@@ -58,6 +65,13 @@ private:
     double MaxFrameDeltaTime = 0.1;
 
     // =========================
+    // Oscillator integrator
+    // =========================
+    UPROPERTY(EditAnywhere, Category = "Oscillator|Integration")
+    EOscillatorIntegratorType IntegratorType =
+        EOscillatorIntegratorType::SemiImplicitEuler;
+
+    // =========================
     // Oscillator editable parameters
     // =========================
     UPROPERTY(EditAnywhere, Category = "Oscillator|Parameters")
@@ -103,6 +117,7 @@ private:
     // Internal methods
     // =========================
 private:
+    void SelectIntegrator();
     void ToggleSimulation();
     void AdvanceSimulation(double FrameDeltaTime);
     void UpdateVisualization();

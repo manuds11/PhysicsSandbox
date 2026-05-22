@@ -3,6 +3,11 @@
 #include "Simulation/OscillatorSimulation.h"
 #include "Math/UnrealMathUtility.h"
 
+FOscillatorSimulation::FOscillatorSimulation()
+{
+    Integrator = MakeUnique<FSemiImplicitEulerIntegrator>();
+}
+
 void FOscillatorSimulation::SetParams(const FOscillatorParams& InParams)
 {
     Params = InParams;
@@ -27,6 +32,13 @@ void FOscillatorSimulation::SetInitialConditions(const FOscillatorState& InState
     Metrics = ComputeMetrics();
 }
 
+void FOscillatorSimulation::SetIntegrator(
+    TUniquePtr<FOscillatorIntegrator> InIntegrator
+)
+{
+    Integrator = MoveTemp(InIntegrator);
+}
+
 const FOscillatorParams& FOscillatorSimulation::GetParams() const
 {
     return Params;
@@ -49,19 +61,15 @@ const FOscillatorEnergy& FOscillatorSimulation::GetEnergy() const
 
 void FOscillatorSimulation::Step(double Dt)
 {
-    const FOscillatorState PreviousState = State;
+    check(Integrator);
 
-    // Semi-implicit Euler integration
-    // v_{ n + 1 } = v_n + a_n dt
-    // x_{ n + 1 } = x_n + v_{ n + 1 } dt
-    State.Velocity =
-        PreviousState.Velocity + PreviousState.Acceleration * Dt;
-    State.Position =
-        PreviousState.Position + State.Velocity * Dt;
+    State = Integrator->Integrate(State, Dt);
+
     State.Displacement =
         State.Position - Params.RestPosition;
 
-    Energy.DissipatedEnergy += ComputeStepDissipatedEnergy(State.Velocity, Dt);
+    Energy.DissipatedEnergy +=
+        ComputeStepDissipatedEnergy(State.Velocity, Dt);
 
     UpdateStateDerivedMagnitudes();
 }

@@ -4,6 +4,7 @@
 
 
 #include "Actors/OscillatorActor.h"
+#include "Simulation/OscillatorIntegrator.h"
 #include "Math/Units.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
@@ -33,6 +34,9 @@ void AOscillatorActor::BeginPlay()
     State.Velocity = InitialVelocity;
 
     Simulation.SetParams(Params);
+
+    SelectIntegrator();
+
     Simulation.SetInitialConditions(State);
 
     UpdateVisualization();
@@ -50,6 +54,25 @@ void AOscillatorActor::BeginPlay()
             this,
             &AOscillatorActor::ToggleSimulation
         );
+    }
+}
+
+void AOscillatorActor::SelectIntegrator()
+{
+    switch (IntegratorType)
+    {
+    case EOscillatorIntegratorType::ExplicitEuler:
+        Simulation.SetIntegrator(
+            MakeUnique<FExplicitEulerIntegrator>()
+        );
+        break;
+
+    case EOscillatorIntegratorType::SemiImplicitEuler:
+    default:
+        Simulation.SetIntegrator(
+            MakeUnique<FSemiImplicitEulerIntegrator>()
+        );
+        break;
     }
 }
 
