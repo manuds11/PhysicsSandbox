@@ -5,6 +5,7 @@ Intermediate/
 Saved/
 Tools/Python/.venv/
 __pycache__/
+*.sln
 *.pyc
 .vs/
 .vscode/
