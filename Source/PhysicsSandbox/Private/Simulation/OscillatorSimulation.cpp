@@ -13,23 +13,23 @@ void FOscillatorSimulation::SetParams(const FOscillatorParams& InParams)
     Params = InParams;
 }
 
-void FOscillatorSimulation::SetInitialConditions(const FOscillatorState& InState)
+void FOscillatorSimulation::SetInitialConditions(const FOscillatorCoreState& InCoreState)
 {
-    State.Position = InState.Position;
-    State.Velocity = InState.Velocity;
-    State.Displacement =
-        State.Position - Params.RestPosition;
+    CoreState = InCoreState;
+    
 
-    Energy = FOscillatorEnergy();
+	Energy = FOscillatorEnergy();  // Set to 0 as default, including DissipatedEnergy
 
-    UpdateStateMechanicalEnergy();
+    UpdateStateDerivedMagnitudes();
+
+    UpdateStateMechanicalEnergy();  
 
     Energy.InitialSystemEnergy =
         Energy.MechanicalEnergy;
 
-    UpdateStateDerivedMagnitudes();
+    UpdateEnergyDiagnostic();
 
-    Metrics = ComputeMetrics();
+    DynamicProperties = ComputeDynamicProperties();
 }
 
 void FOscillatorSimulation::SetIntegrator(
@@ -44,9 +44,14 @@ const FOscillatorParams& FOscillatorSimulation::GetParams() const
     return Params;
 }
 
-const FOscillatorState& FOscillatorSimulation::GetState() const
+const FOscillatorCoreState& FOscillatorSimulation::GetCoreState() const
 {
-    return State;
+    return CoreState;
+}
+
+const FOscillatorDerivedState& FOscillatorSimulation::GetDerivedState() const
+{
+    return DerivedState;
 }
 
 const FOscillatorForces& FOscillatorSimulation::GetForces() const
@@ -63,24 +68,24 @@ void FOscillatorSimulation::Step(double Dt)
 {
     check(Integrator);
 
-    State = Integrator->Integrate(State, Dt);
-
-    State.Displacement =
-        State.Position - Params.RestPosition;
-
-    Energy.DissipatedEnergy +=
-        ComputeStepDissipatedEnergy(State.Velocity, Dt);
+    CoreState = Integrator->Integrate(CoreState, DerivedState.Acceleration, Dt);
 
     UpdateStateDerivedMagnitudes();
+
+    UpdateStateMechanicalEnergy();
+
+    Energy.DissipatedEnergy +=
+        ComputeStepDissipatedEnergy(CoreState.Velocity, Dt);
+    
+    UpdateEnergyDiagnostic();
 }
 
 void FOscillatorSimulation::UpdateStateDerivedMagnitudes()
 {
-    Forces = ComputeStateForces(State.Displacement, State.Velocity);
-    State.Acceleration = ComputeStateAcceleration(Forces.NetForce);
-
-    UpdateStateMechanicalEnergy();
-    UpdateEnergyBalance();
+    DerivedState.Displacement =
+        CoreState.Position - Params.RestPosition;
+    Forces = ComputeStateForces(DerivedState.Displacement, CoreState.Velocity);
+    DerivedState.Acceleration = ComputeStateAcceleration(Forces.NetForce);
 }
 
 FOscillatorForces FOscillatorSimulation::ComputeStateForces(
@@ -97,18 +102,6 @@ FOscillatorForces FOscillatorSimulation::ComputeStateForces(
     return ComputedForces;
 }
 
-void FOscillatorSimulation::UpdateStateMechanicalEnergy()
-{
-    Energy.KineticEnergy =
-        0.5 * Params.Mass * State.Velocity * State.Velocity;
-
-    Energy.PotentialEnergy =
-        0.5 * Params.Stiffness * State.Displacement * State.Displacement;
-
-    Energy.MechanicalEnergy =
-        Energy.KineticEnergy + Energy.PotentialEnergy;
-}
-
 double FOscillatorSimulation::ComputeStateAcceleration(const double NetForce) const
 {
     if (Params.Mass <= 0.0)
@@ -117,6 +110,18 @@ double FOscillatorSimulation::ComputeStateAcceleration(const double NetForce) co
     }
 
     return NetForce / Params.Mass;
+}
+
+void FOscillatorSimulation::UpdateStateMechanicalEnergy()
+{
+    Energy.KineticEnergy =
+        0.5 * Params.Mass * CoreState.Velocity * CoreState.Velocity;
+
+    Energy.PotentialEnergy =
+        0.5 * Params.Stiffness * DerivedState.Displacement * DerivedState.Displacement;
+
+    Energy.MechanicalEnergy =
+        Energy.KineticEnergy + Energy.PotentialEnergy;
 }
 
 double FOscillatorSimulation::ComputeStepDissipatedEnergy(double Velocity, double Dt) const
@@ -135,13 +140,13 @@ double FOscillatorSimulation::ComputeStepDissipatedEnergy(double Velocity, doubl
     return StepDissipatedEnergy;
 }
 
-void FOscillatorSimulation::UpdateEnergyBalance()
+void FOscillatorSimulation::UpdateEnergyDiagnostic()
 {
-    Energy.TotalEnergyWithLosses =
+    Energy.TotalEnergyIncludingLosses =
         Energy.MechanicalEnergy + Energy.DissipatedEnergy;
 
     Energy.SimEnergyError =
-        Energy.TotalEnergyWithLosses - Energy.InitialSystemEnergy;
+        Energy.TotalEnergyIncludingLosses - Energy.InitialSystemEnergy;
 
     if (Energy.InitialSystemEnergy > 0.0)
     {
@@ -154,9 +159,9 @@ void FOscillatorSimulation::UpdateEnergyBalance()
     }
 }
 
-FOscillatorMetrics FOscillatorSimulation::ComputeMetrics() const
+FOscillatorDynamicProperties FOscillatorSimulation::ComputeDynamicProperties() const
 {
-    FOscillatorMetrics ComputedMetrics;
+    FOscillatorDynamicProperties ComputedMetrics;
 
     if (Params.Mass <= 0.0 || Params.Stiffness <= 0.0)
     {

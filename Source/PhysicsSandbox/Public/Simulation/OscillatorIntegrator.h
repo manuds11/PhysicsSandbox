@@ -9,8 +9,9 @@ class FOscillatorIntegrator
 public:
     virtual ~FOscillatorIntegrator() = default;
 
-    virtual FOscillatorState Integrate(
-        const FOscillatorState& PreviousState,
+    virtual FOscillatorCoreState Integrate(
+        const FOscillatorCoreState& PreviousState,
+		double PreviousAcceleration,
         double Dt
     ) const = 0;
 };
@@ -18,8 +19,9 @@ public:
 class FExplicitEulerIntegrator : public FOscillatorIntegrator
 {
 public:
-    virtual FOscillatorState Integrate(
-        const FOscillatorState& PreviousState,
+    virtual FOscillatorCoreState Integrate(
+        const FOscillatorCoreState& PreviousState,
+        double PreviousAcceleration,
         double Dt
     ) const override;
 };
@@ -27,8 +29,9 @@ public:
 class FSemiImplicitEulerIntegrator : public FOscillatorIntegrator
 {
 public:
-    virtual FOscillatorState Integrate(
-        const FOscillatorState& PreviousState,
+    virtual FOscillatorCoreState Integrate(
+        const FOscillatorCoreState& PreviousState,
+        double PreviousAcceleration,
         double Dt
     ) const override;
 };

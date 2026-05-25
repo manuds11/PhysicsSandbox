@@ -9,7 +9,8 @@
 void FOscillatorDebug::Draw(
     UWorld* World,
     const FVector& MassWorldPosition,
-    const FOscillatorState& StateInUEUnits,
+    const FOscillatorCoreState& CoreStateInUEUnits,
+    const FOscillatorDerivedState& DerivedStateInUEUnits,
     const double RestPositionInUEUnits,
     const FOscillatorDebugSettings& Settings
 )
@@ -50,10 +51,10 @@ void FOscillatorDebug::Draw(
     );
 
     // velocity vector
-    if (!FMath::IsNearlyZero(StateInUEUnits.Velocity))
+    if (!FMath::IsNearlyZero(CoreStateInUEUnits.Velocity))
     {
         const FVector VelocityEnd =
-            MassWorldPosition + FVector(StateInUEUnits.Velocity * Settings.VelocityArrowScale, 0.0, 0.0);
+            MassWorldPosition + FVector(CoreStateInUEUnits.Velocity * Settings.VelocityArrowScale, 0.0, 0.0);
 
         DrawDebugDirectionalArrow(
             World,
@@ -69,10 +70,10 @@ void FOscillatorDebug::Draw(
     }
 
     // acceleration vector
-    if (!FMath::IsNearlyZero(StateInUEUnits.Acceleration))
+    if (!FMath::IsNearlyZero(DerivedStateInUEUnits.Acceleration))
     {
         const FVector AccelerationEnd =
-            MassWorldPosition + FVector(StateInUEUnits.Acceleration * Settings.AccelerationArrowScale, 0.0, 0.0);
+            MassWorldPosition + FVector(DerivedStateInUEUnits.Acceleration * Settings.AccelerationArrowScale, 0.0, 0.0);
 
         DrawDebugDirectionalArrow(
             World,
@@ -93,7 +94,8 @@ void FOscillatorDebug::PrintInfo(
     double AverageDeltaTime,
     double SimulationDelay,
     double SimFixedTimeStep,
-    const FOscillatorState& StateInSIUnits,
+    const FOscillatorCoreState& CoreStateInSIUnits,
+    const FOscillatorDerivedState& DerivedStateInSIUnits,
     const FOscillatorParams& ParamsInSIUnits,
     const FOscillatorForces& ForcesInSIUnits,
     const FOscillatorEnergy& EnergyInSIUnits,
@@ -163,9 +165,9 @@ void FOscillatorDebug::PrintInfo(
             ParamsInSIUnits.Damping,
             ParamsInSIUnits.RestPosition,
 
-            StateInSIUnits.Position,
-            StateInSIUnits.Velocity,
-            StateInSIUnits.Acceleration,
+            CoreStateInSIUnits.Position,
+            CoreStateInSIUnits.Velocity,
+            DerivedStateInSIUnits.Acceleration,
 
             ForcesInSIUnits.NetForce,
             ForcesInSIUnits.SpringForce,
@@ -173,7 +175,7 @@ void FOscillatorDebug::PrintInfo(
 
             EnergyInSIUnits.MechanicalEnergy,
             EnergyInSIUnits.DissipatedEnergy,
-            EnergyInSIUnits.TotalEnergyWithLosses,
+            EnergyInSIUnits.TotalEnergyIncludingLosses,
             EnergyInSIUnits.SimEnergyError,
             EnergyInSIUnits.RelativeSimEnergyError * 100.0
         )

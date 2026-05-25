@@ -26,18 +26,26 @@ struct FOscillatorParams
     double RestPosition = 0.0;
 };
 
-struct FOscillatorState : public TSimulationOperators<FOscillatorState>
+struct FOscillatorCoreState : public TSimulationOperators<FOscillatorCoreState>
 {
     double Position = 0.0;
-    double Displacement = 0.0;
     double Velocity = 0.0;
-    double Acceleration = 0.0;
 
     void Scale(double Scalar)
     {
         Position *= Scalar;
-        Displacement *= Scalar;
         Velocity *= Scalar;
+    }
+};
+
+struct FOscillatorDerivedState : public TSimulationOperators<FOscillatorDerivedState>
+{
+    double Displacement = 0.0;
+    double Acceleration = 0.0;
+
+    void Scale(double Scalar)
+    {
+        Displacement *= Scalar;
         Acceleration *= Scalar;
     }
 };
@@ -62,14 +70,14 @@ struct FOscillatorEnergy
     double PotentialEnergy = 0.0;
     double DissipatedEnergy = 0.0;
     double MechanicalEnergy = 0.0;
-    double TotalEnergyWithLosses = 0.0;
+    double TotalEnergyIncludingLosses = 0.0;
     
     double InitialSystemEnergy = 0.0;
     double SimEnergyError = 0.0;
     double RelativeSimEnergyError = 0.0;
 };
 
-struct FOscillatorMetrics
+struct FOscillatorDynamicProperties
 {
     double NaturalFrequency = 0.0;        // omega_n [rad/s]
     double NaturalFrequencyHz = 0.0;      // f_n [Hz]

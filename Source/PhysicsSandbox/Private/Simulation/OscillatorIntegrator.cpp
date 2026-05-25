@@ -2,12 +2,13 @@
 
 #include "Simulation/OscillatorIntegrator.h"
 
-FOscillatorState FExplicitEulerIntegrator::Integrate(
-    const FOscillatorState& PreviousState,
+FOscillatorCoreState FExplicitEulerIntegrator::Integrate(
+    const FOscillatorCoreState& PreviousState,
+    double PreviousAcceleration,
     double Dt
 ) const
 {
-    FOscillatorState NewState = PreviousState;
+    FOscillatorCoreState NewState = PreviousState;
     
     // Explicit Euler integration
     // x_{ n + 1 } = x_n + v_n dt
@@ -16,23 +17,24 @@ FOscillatorState FExplicitEulerIntegrator::Integrate(
         PreviousState.Position + PreviousState.Velocity * Dt;
 
     NewState.Velocity =
-        PreviousState.Velocity + PreviousState.Acceleration * Dt;
+        PreviousState.Velocity + PreviousAcceleration * Dt;
 
     return NewState;
 }
 
-FOscillatorState FSemiImplicitEulerIntegrator::Integrate(
-    const FOscillatorState& PreviousState,
+FOscillatorCoreState FSemiImplicitEulerIntegrator::Integrate(
+    const FOscillatorCoreState& PreviousState,
+    double PreviousAcceleration,
     double Dt
 ) const
 {
-    FOscillatorState NewState = PreviousState;
+    FOscillatorCoreState NewState = PreviousState;
 
     // Semi-implicit Euler integration
     // v_{ n + 1 } = v_n + a_n dt
     // x_{ n + 1 } = x_n + v_{ n + 1 } dt
     NewState.Velocity =
-        PreviousState.Velocity + PreviousState.Acceleration * Dt;
+        PreviousState.Velocity + PreviousAcceleration * Dt;
 
     NewState.Position =
         PreviousState.Position + NewState.Velocity * Dt;

@@ -11,23 +11,27 @@ public:
     FOscillatorSimulation();
 
     void SetParams(const FOscillatorParams& InParams);
-    void SetInitialConditions(const FOscillatorState& InState);
+    void SetInitialConditions(const FOscillatorCoreState& InCoreState);
     void SetIntegrator(TUniquePtr<FOscillatorIntegrator> InIntegrator);
 
     const FOscillatorParams& GetParams() const;
-    const FOscillatorState& GetState() const;
+    const FOscillatorCoreState& GetCoreState() const;
+    const FOscillatorDerivedState& GetDerivedState() const;
     const FOscillatorForces& GetForces() const;
     const FOscillatorEnergy& GetEnergy() const;
-    const FOscillatorMetrics& GetMetrics() const;
+    const FOscillatorDynamicProperties& GetMetrics() const;
     
     void Step(double Dt);
 
 private:
     FOscillatorParams Params;
-    FOscillatorState State;
+
+    FOscillatorCoreState CoreState;
+    FOscillatorDerivedState DerivedState;
+
     FOscillatorForces Forces;
     FOscillatorEnergy Energy;
-    FOscillatorMetrics Metrics;
+    FOscillatorDynamicProperties DynamicProperties;
 
     TUniquePtr<FOscillatorIntegrator> Integrator;
 
@@ -37,6 +41,6 @@ private:
     FOscillatorForces ComputeStateForces(const double Displacement, const double Velocity) const;
     void UpdateStateMechanicalEnergy();
     double ComputeStepDissipatedEnergy(double Velocity, double Dt) const;
-    void UpdateEnergyBalance();
-    FOscillatorMetrics ComputeMetrics() const;
+    void UpdateEnergyDiagnostic();
+    FOscillatorDynamicProperties ComputeDynamicProperties() const;
 };

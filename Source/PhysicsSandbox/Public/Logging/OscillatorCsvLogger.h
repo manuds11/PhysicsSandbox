@@ -17,7 +17,7 @@ struct FOscillatorSample
 
     double MechanicalEnergy = 0.0;
     double DissipatedEnergy = 0.0;
-    double TotalEnergyWithLosses = 0.0;
+    double TotalEnergyIncludingLosses = 0.0;
     double SimEnergyError = 0.0;
     double RelativeSimEnergyError = 0.0;
 };

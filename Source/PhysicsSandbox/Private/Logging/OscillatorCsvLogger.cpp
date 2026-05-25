@@ -42,7 +42,7 @@ bool FOscillatorCsvLogger::WriteToFile(const FString& FilePath) const
 
             Sample.MechanicalEnergy,
             Sample.DissipatedEnergy,
-            Sample.TotalEnergyWithLosses,
+            Sample.TotalEnergyIncludingLosses,
 
             Sample.SimEnergyError,
             Sample.RelativeSimEnergyError

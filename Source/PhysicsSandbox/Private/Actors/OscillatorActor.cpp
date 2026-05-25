@@ -29,15 +29,15 @@ void AOscillatorActor::BeginPlay()
     Params.Damping = Damping;
     Params.RestPosition = RestPosition;
 
-    FOscillatorState State; // Condiciones iniciales.
-    State.Position = InitialPosition;
-    State.Velocity = InitialVelocity;
+    FOscillatorCoreState CoreState; // Condiciones iniciales.
+    CoreState.Position = InitialPosition;
+    CoreState.Velocity = InitialVelocity;
 
     Simulation.SetParams(Params);
 
     SelectIntegrator();
 
-    Simulation.SetInitialConditions(State);
+    Simulation.SetInitialConditions(CoreState);
 
     UpdateVisualization();
 
@@ -165,7 +165,7 @@ void AOscillatorActor::UpdateVisualization()
 {
     SetActorLocation(
         FVector(
-            Simulation.GetState().Position * Units::MToCm,
+            Simulation.GetCoreState().Position * Units::MToCm,
             0.0,
             100.0
         )
@@ -173,12 +173,14 @@ void AOscillatorActor::UpdateVisualization()
 
     if (DebugSettings.bDrawDebug)
     {
-        FOscillatorState StateInUnrealUnits = Simulation.GetState() * Units::MToCm;
+        FOscillatorCoreState CoreStateInUnrealUnits = Simulation.GetCoreState() * Units::MToCm;
+        FOscillatorDerivedState DerivedStateInUnrealUnits = Simulation.GetDerivedState() * Units::MToCm;
 
         FOscillatorDebug::Draw(
             GetWorld(),
             GetActorLocation(),     // cm
-            StateInUnrealUnits,
+            CoreStateInUnrealUnits,
+            DerivedStateInUnrealUnits,
             Simulation.GetParams().RestPosition * Units::MToCm,
             DebugSettings
         );
@@ -191,7 +193,8 @@ void AOscillatorActor::UpdateVisualization()
             AverageDeltaTime,
             SimulationDelay,
             FixedTimeStep,
-            Simulation.GetState(),
+            Simulation.GetCoreState(),
+            Simulation.GetDerivedState(),
             Simulation.GetParams(),
             Simulation.GetForces(),
             Simulation.GetEnergy(),
@@ -204,16 +207,17 @@ void AOscillatorActor::LogCurrentSample()
 {
     FOscillatorSample Sample;
 
-    const FOscillatorState& State = Simulation.GetState();
+    const FOscillatorCoreState& CoreState = Simulation.GetCoreState();
+    const FOscillatorDerivedState& DerivedState = Simulation.GetDerivedState();
     const FOscillatorForces& Forces = Simulation.GetForces();
     const FOscillatorEnergy& Energy = Simulation.GetEnergy();
 
     Sample.SimulationTime = SimulatedRunningTime;
 
-    Sample.Position = State.Position;
-    Sample.Displacement = State.Displacement;
-    Sample.Velocity = State.Velocity;
-    Sample.Acceleration = State.Acceleration;
+    Sample.Position = CoreState.Position;
+    Sample.Displacement = DerivedState.Displacement;
+    Sample.Velocity = CoreState.Velocity;
+    Sample.Acceleration = DerivedState.Acceleration;
 
     Sample.SpringForce = Forces.SpringForce;
     Sample.DampingForce = Forces.DampingForce;
@@ -221,7 +225,7 @@ void AOscillatorActor::LogCurrentSample()
 
     Sample.MechanicalEnergy = Energy.MechanicalEnergy;
     Sample.DissipatedEnergy = Energy.DissipatedEnergy;
-    Sample.TotalEnergyWithLosses = Energy.TotalEnergyWithLosses;
+    Sample.TotalEnergyIncludingLosses = Energy.TotalEnergyIncludingLosses;
     Sample.SimEnergyError = Energy.SimEnergyError;
     Sample.RelativeSimEnergyError = Energy.RelativeSimEnergyError;
 

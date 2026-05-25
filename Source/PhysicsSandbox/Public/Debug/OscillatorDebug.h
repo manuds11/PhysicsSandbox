@@ -31,7 +31,8 @@ struct FOscillatorDebug
     static void Draw(
         UWorld* World,
         const FVector& MassWorldPosition,
-        const FOscillatorState& StateInUEUnits,
+        const FOscillatorCoreState& CoreStateInUEUnits,
+        const FOscillatorDerivedState& DerivedStateInUEUnits,
         const double RestPositionInUEUnits,
         const FOscillatorDebugSettings& Settings
     );
@@ -41,7 +42,8 @@ struct FOscillatorDebug
         double AverageDeltaTime,
         double SimulationDelay,
         const double SimFixedTimeStep,
-        const FOscillatorState& StateInSIUnits,
+        const FOscillatorCoreState& CoreStateInSIUnits,
+        const FOscillatorDerivedState& DerivedStateInSIUnits,
         const FOscillatorParams& ParamsInSIUnits,
         const FOscillatorForces& ForcesInSIUnits,
         const FOscillatorEnergy& EnergyInSIUnits,
