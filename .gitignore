@@ -1,9 +1,16 @@
 Binaries/
 Build/
+Content/__ExternalActors__/
+Content/__ExternalObjects__/
 DerivedDataCache/
 Intermediate/
 Saved/
+Tools/Python/.venv/
+__pycache__/
+*.sln
+*.pyc
 .vs/
 .vscode/
 .idea/
+enc_temp_folder/
 .VC.db

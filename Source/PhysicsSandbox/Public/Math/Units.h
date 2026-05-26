@@ -2,6 +2,6 @@
 
 namespace Units
 {
-    inline constexpr float CmToM = 0.01f;
-    inline constexpr float MToCm = 100.0f;
+    inline constexpr double CmToM = 0.01;
+    inline constexpr double MToCm = 100.0;
 }
