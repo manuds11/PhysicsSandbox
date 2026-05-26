@@ -4,11 +4,13 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "Simulation/OscillatorSimulation.h"
 #include "Debug/OscillatorDebug.h"
 #include "Logging/OscillatorCsvLogger.h"
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+
 #include "OscillatorActor.generated.h"
 
 UENUM(BlueprintType)

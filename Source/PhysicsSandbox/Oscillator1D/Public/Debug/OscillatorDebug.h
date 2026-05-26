@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Simulation/OscillatorTypes.h"
+
+#include "CoreMinimal.h"
+
 #include "OscillatorDebug.generated.h"
 
 class UWorld;

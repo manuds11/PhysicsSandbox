@@ -1,6 +1,7 @@
 // OscillatorSimulation.cpp
 
 #include "Simulation/OscillatorSimulation.h"
+
 #include "Math/UnrealMathUtility.h"
 
 FOscillatorSimulation::FOscillatorSimulation()

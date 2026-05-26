@@ -2,6 +2,7 @@
 
 #include "DebugProbeActor.h"
 #include "DebugProbeControlWidget.h"
+#include "Math/Units.h"
 
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
@@ -13,7 +14,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Math/Units.h"
 
 
 ADebugProbeActor::ADebugProbeActor()
