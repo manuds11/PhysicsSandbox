@@ -124,5 +124,7 @@ private:
 
     void LogCurrentSample();
     void FlushCsvLog();
+#if WITH_EDITOR
     void LaunchPythonPlotScript(const FString& CsvFilePath);
+#endif
 };

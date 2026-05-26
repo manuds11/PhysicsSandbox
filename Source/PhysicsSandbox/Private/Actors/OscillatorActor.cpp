@@ -244,13 +244,16 @@ void AOscillatorActor::FlushCsvLog()
 
     const bool bWriteSuccess =
         CsvLogger.WriteToFile(FilePath);
-
+    
+#if WITH_EDITOR
     if (bWriteSuccess && bAutoRunPythonPlots)
     {
         LaunchPythonPlotScript(FilePath);
     }
+#endif
 }
 
+#if WITH_EDITOR
 void AOscillatorActor::LaunchPythonPlotScript(const FString& CsvFilePath)
 {
     FString PythonRelativePath = TEXT("Tools/Python/.venv/Scripts/python.exe");
@@ -296,3 +299,4 @@ void AOscillatorActor::LaunchPythonPlotScript(const FString& CsvFilePath)
 
     UE_LOG(LogTemp, Warning, TEXT("Python plot script launched."));
 }
+#endif
