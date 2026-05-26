@@ -19,7 +19,7 @@ public:
     const FOscillatorDerivedState& GetDerivedState() const;
     const FOscillatorForces& GetForces() const;
     const FOscillatorEnergy& GetEnergy() const;
-    const FOscillatorDynamicProperties& GetMetrics() const;
+    const FOscillatorDynamicProperties& GetDynamicProperties() const;
     
     void Step(double Dt);
 
@@ -41,6 +41,6 @@ private:
     FOscillatorForces ComputeStateForces(const double Displacement, const double Velocity) const;
     void UpdateStateMechanicalEnergy();
     double ComputeStepDissipatedEnergy(double Velocity, double Dt) const;
-    void UpdateEnergyDiagnostic();
+    void UpdateEnergyDiagnostics();
     FOscillatorDynamicProperties ComputeDynamicProperties() const;
 };

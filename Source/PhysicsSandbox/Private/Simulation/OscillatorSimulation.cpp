@@ -17,17 +17,15 @@ void FOscillatorSimulation::SetInitialConditions(const FOscillatorCoreState& InC
 {
     CoreState = InCoreState;
     
-
 	Energy = FOscillatorEnergy();  // Set to 0 as default, including DissipatedEnergy
 
     UpdateStateDerivedMagnitudes();
 
     UpdateStateMechanicalEnergy();  
 
-    Energy.InitialSystemEnergy =
-        Energy.MechanicalEnergy;
+    Energy.InitialSystemEnergy = Energy.MechanicalEnergy;
 
-    UpdateEnergyDiagnostic();
+    UpdateEnergyDiagnostics();
 
     DynamicProperties = ComputeDynamicProperties();
 }
@@ -64,6 +62,11 @@ const FOscillatorEnergy& FOscillatorSimulation::GetEnergy() const
     return Energy;
 }
 
+const FOscillatorDynamicProperties& FOscillatorSimulation::GetDynamicProperties() const
+{
+    return DynamicProperties;
+}
+
 void FOscillatorSimulation::Step(double Dt)
 {
     check(Integrator);
@@ -77,7 +80,7 @@ void FOscillatorSimulation::Step(double Dt)
     Energy.DissipatedEnergy +=
         ComputeStepDissipatedEnergy(CoreState.Velocity, Dt);
     
-    UpdateEnergyDiagnostic();
+    UpdateEnergyDiagnostics();
 }
 
 void FOscillatorSimulation::UpdateStateDerivedMagnitudes()
@@ -140,7 +143,7 @@ double FOscillatorSimulation::ComputeStepDissipatedEnergy(double Velocity, doubl
     return StepDissipatedEnergy;
 }
 
-void FOscillatorSimulation::UpdateEnergyDiagnostic()
+void FOscillatorSimulation::UpdateEnergyDiagnostics()
 {
     Energy.TotalEnergyIncludingLosses =
         Energy.MechanicalEnergy + Energy.DissipatedEnergy;
