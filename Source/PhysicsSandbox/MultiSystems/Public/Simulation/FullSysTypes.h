@@ -4,13 +4,13 @@
 
 struct FBody
 {
-	FVector2D Position = FVector2D::ZeroVector;
-	FVector2D Velocity = FVector2D::ZeroVector;
+	FVector2D Position = FVector2D::ZeroVector;		// in m	
+	FVector2D Velocity = FVector2D::ZeroVector;		// in m/s
 
-	FVector2D Acceleration = FVector2D::ZeroVector;
-	FVector2D NetForce = FVector2D::ZeroVector;
+	FVector2D Acceleration = FVector2D::ZeroVector;	// in m/s^2
+	FVector2D NetForce = FVector2D::ZeroVector;		// in N
 
-	double Mass = 1.0;
+	double Mass = 1.0;								// in kg
 
 	bool bXFixed = false;
 	bool bYFixed = false;

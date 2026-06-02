@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Actors/MultiSystemsActor.h"
+#include "Math/Units.h"
 
 #include "Elements/SpringDamper.h"
 #include "DrawDebugHelpers.h"
@@ -38,13 +39,13 @@ void AMultiSystemsActor::BuildDemoSystem()
 	Wall.bYFixed = true;
 
 	FBody Mass1;
-	Mass1.Position = FVector2D(200.0, 0.0);
+	Mass1.Position = FVector2D(2.0, 0.0);
 	Mass1.Velocity = FVector2D(0.0, 0.0);
 	Mass1.Mass = 1.0;
 	Mass1.bYFixed = true;
 
 	FBody Mass2;
-	Mass2.Position = FVector2D(450.0, 0.0);
+	Mass2.Position = FVector2D(2.5, 0.0);
 	Mass2.Velocity = FVector2D(0.0, 0.0);
 	Mass2.Mass = 1.0;
 	Mass2.bYFixed = true;
@@ -58,21 +59,27 @@ void AMultiSystemsActor::BuildDemoSystem()
 		Mass1Index,
 		20.0,
 		1.0,
-		200.0
+		1.5
 	));
 
 	FullSys.AddElement(MakeUnique<FSpringDamper>(
 		Mass1Index,
 		Mass2Index,
-		20.0,
+		20.0,   
 		1.0,
-		200.0
+		1.5
 	));
 }
 
-static FVector ToWorld(const FVector2D& P)
+FVector AMultiSystemsActor::ToWorld(const FVector2D& P) const
 {
-	return FVector(P.X, 0.0, P.Y);
+	return GetActorLocation()
+		+ VisualizationOffset
+		+ FVector(
+			Units::MToCm * P.X,
+			0.0,
+			Units::MToCm * P.Y
+		);
 }
 
 void AMultiSystemsActor::DrawSystem() const

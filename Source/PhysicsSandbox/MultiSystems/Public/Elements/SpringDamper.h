@@ -20,7 +20,7 @@ private:
 	int32 BodyA = INDEX_NONE;
 	int32 BodyB = INDEX_NONE;
 
-	double Stiffness = 100.0;
-	double Damping = 1.0;
-	double RestLength = 100.0;
+	double Stiffness = 20.0;	// N/m
+	double Damping = 1.0;		// N*s/m
+	double RestLength = 1.0;	// m
 };

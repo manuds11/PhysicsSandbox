@@ -28,6 +28,10 @@ public:
 private:
 	FFullSys FullSys;
 
+	UPROPERTY(EditAnywhere, Category = "Visualization")
+	FVector VisualizationOffset = FVector(-100.0, 0.0, 200.0); // in cm
+
+	FVector ToWorld(const FVector2D& P) const;
 	void BuildDemoSystem();
 	void DrawSystem() const;
 };
