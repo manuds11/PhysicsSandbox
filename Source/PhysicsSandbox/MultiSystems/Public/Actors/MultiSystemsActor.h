@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Simulation/FullSys.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "MultiSystemsActor.generated.h"
@@ -23,4 +25,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+private:
+	FFullSys FullSys;
+
+	void BuildDemoSystem();
+	void DrawSystem() const;
 };
