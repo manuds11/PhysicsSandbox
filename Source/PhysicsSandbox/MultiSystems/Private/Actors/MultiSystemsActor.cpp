@@ -20,6 +20,40 @@ void AMultiSystemsActor::BeginPlay()
 	Super::BeginPlay();
 	
 	BuildDemoSystem();
+
+	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+	{
+		EnableInput(PC);
+	}
+
+	if (InputComponent)
+	{
+		InputComponent->BindKey(
+			EKeys::SpaceBar,
+			IE_Pressed,
+			this,
+			&AMultiSystemsActor::ToggleSimulation
+		);
+	}
+}
+
+void AMultiSystemsActor::ToggleSimulation()
+{
+	bIsSimulationRunning = !bIsSimulationRunning;
+
+	/*if (bEnableCsvLogging)
+	{
+		if (bIsSimulationRunning)
+		{
+			CsvLogger.Reset();
+
+			LogCurrentSample();
+		}
+		else
+		{
+			FlushCsvLog();
+		}
+	}*/
 }
 
 // Called every frame
@@ -27,8 +61,13 @@ void AMultiSystemsActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	RunSimFixedSteps(DeltaTime);
+	if (bIsSimulationRunning)
+	{
+		RunSimFixedSteps(DeltaTime);
+	}
+
 	DrawSystem();
+	PrintInfo();
 }
 
 void AMultiSystemsActor::BuildDemoSystem()
@@ -152,4 +191,48 @@ void AMultiSystemsActor::DrawSystem() const
 		DrawDebugLine(GetWorld(), ToWorld(Bodies[0].Position), ToWorld(Bodies[1].Position), FColor::Yellow, false, 0.0f, 0, 2.0f);
 		DrawDebugLine(GetWorld(), ToWorld(Bodies[1].Position), ToWorld(Bodies[2].Position), FColor::Yellow, false, 0.0f, 0, 2.0f);
 	}
+}
+
+void AMultiSystemsActor::PrintInfo() const
+{
+	if (!GEngine)
+	{
+		return;
+	}
+
+	const FColor TitleColor =
+		bIsSimulationRunning
+		? FColor::Green
+		: FColor::Red;
+
+	const FColor InfoColor =
+		bIsSimulationRunning
+		? FColor::Cyan
+		: FColor::Silver;
+
+	GEngine->AddOnScreenDebugMessage(
+		0,
+		0.0f,
+		TitleColor,
+		TEXT("MULTI SYSTEMS")
+	);
+
+	GEngine->AddOnScreenDebugMessage(
+		1,
+		0.0f,
+		InfoColor,
+		FString::Printf(
+			TEXT(
+				"SPACE Start/Stop | "
+				"Real: %.2f s | "
+				"Delay: %.5f s | "
+				"AvgDt: %.5f s | "
+				"FixedDt: %.5f s"
+			),
+			RealRunningTime,
+			SimulationDelay,
+			AverageDeltaTime,
+			FixedTimeStep
+		)
+	);
 }

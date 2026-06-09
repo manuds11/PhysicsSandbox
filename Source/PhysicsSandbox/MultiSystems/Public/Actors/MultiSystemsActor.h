@@ -29,6 +29,12 @@ private:
 	FFullSys FullSys;
 
 	// =========================
+	// Simulation control
+	// =========================
+	UPROPERTY(EditAnywhere, Category = "Simulation")
+	bool bIsSimulationRunning = false;
+	
+	// =========================
 	// Tick Simulation variables
 	// =========================
 	UPROPERTY(EditAnywhere, Category = "Simulation|Timing")
@@ -56,8 +62,10 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Visualization")
 	FVector VisualizationOffset = FVector(-100.0, 0.0, 200.0); // in cm
 
+	void ToggleSimulation();
 	void RunSimFixedSteps(double FrameDeltaTime);
 	FVector ToWorld(const FVector2D& P) const;
 	void BuildDemoSystem();
 	void DrawSystem() const;
+	void PrintInfo() const;
 };
