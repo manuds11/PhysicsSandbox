@@ -28,9 +28,35 @@ public:
 private:
 	FFullSys FullSys;
 
+	// =========================
+	// Tick Simulation variables
+	// =========================
+	UPROPERTY(EditAnywhere, Category = "Simulation|Timing")
+	double FixedTimeStep = 1.0 / 120.0;
+
+	UPROPERTY(EditAnywhere, Category = "Simulation|Timing")
+	int32 MaxSubSteps = 8;
+
+	UPROPERTY(EditAnywhere, Category = "Simulation|Timing")
+	double MaxFrameDeltaTime = 0.1;
+	
+	double SimulationTimeDebt = 0.0;
+	double SimulationDelay = 0.0;
+
+	double RealRunningTime = 0.0;
+	double SimulatedRunningTime = 0.0;
+	double AverageDeltaTime = 0.0;
+
+	int64 FrameCount = 0;
+	int32 LastSubStepCount = 0;
+
+	// =========================
+	// Visualization
+	// =========================
 	UPROPERTY(EditAnywhere, Category = "Visualization")
 	FVector VisualizationOffset = FVector(-100.0, 0.0, 200.0); // in cm
 
+	void RunSimFixedSteps(double FrameDeltaTime);
 	FVector ToWorld(const FVector2D& P) const;
 	void BuildDemoSystem();
 	void DrawSystem() const;

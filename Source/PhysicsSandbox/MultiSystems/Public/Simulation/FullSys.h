@@ -19,7 +19,7 @@ private:
 	TArray<TUniquePtr<ISysElement>> Elements;
 
 	void ClearForces();
-	void ApplyElements();
+	void ApplyElementInteractions();
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();

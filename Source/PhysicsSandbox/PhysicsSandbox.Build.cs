@@ -17,7 +17,6 @@ public class PhysicsSandbox : ModuleRules
             "PhysicsSandbox/Core/Public",
             "PhysicsSandbox/DebugProbe/Public",
             "PhysicsSandbox/Oscillator1D/Public",
-            "PhysicsSandbox/Oscillator1D/Public",
             "PhysicsSandbox/MultiSystems/Public"
         });
 

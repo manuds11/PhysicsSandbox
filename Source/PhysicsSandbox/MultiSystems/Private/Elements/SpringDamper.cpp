@@ -26,18 +26,18 @@ void FSpringDamper::ApplyForces(TArray<FBody>& Bodies) const
 	FBody& B = Bodies[BodyB];
 
 	const FVector2D Delta = B.Position - A.Position;
-	const double Length = Delta.Size();
+	const double Length = Delta.Size();				// Módulo de Delta
 
 	if (Length <= UE_SMALL_NUMBER)
 	{
 		return;
 	}
 
-	const FVector2D Direction = Delta / Length;
+	const FVector2D Direction = Delta / Length;		// La dirección es el vector unitario que apunta de A a B
 	const double Extension = Length - RestLength;
 
 	const FVector2D RelativeVelocity = B.Velocity - A.Velocity;
-	const double RelativeSpeed = FVector2D::DotProduct(RelativeVelocity, Direction);
+	const double RelativeSpeed = FVector2D::DotProduct(RelativeVelocity, Direction); // Proyección de la velocidad sobre la dirección del muelle
 
 	const double TotalForce =
 		Stiffness * Extension + Damping * RelativeSpeed;

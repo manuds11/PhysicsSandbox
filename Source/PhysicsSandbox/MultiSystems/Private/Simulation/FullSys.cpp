@@ -16,7 +16,7 @@ void FFullSys::AddElement(TUniquePtr<ISysElement> Element)
 void FFullSys::Step(double Dt)
 {
 	ClearForces();
-	ApplyElements();
+	ApplyElementInteractions();
 	ComputeAccelerations();
 	Integrate(Dt);
 	ApplyFixedAxes();
@@ -35,7 +35,7 @@ void FFullSys::ClearForces()
 	}
 }
 
-void FFullSys::ApplyElements()
+void FFullSys::ApplyElementInteractions()
 {
 	for (const TUniquePtr<ISysElement>& Element : Elements)
 	{
@@ -84,7 +84,7 @@ void FFullSys::Integrate(double Dt)
 	}
 }
 
-void FFullSys::ApplyFixedAxes()
+void FFullSys::ApplyFixedAxes()		// Faltan reacciones 
 {
 	for (FBody& Body : Bodies)
 	{

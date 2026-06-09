@@ -27,7 +27,7 @@ void AMultiSystemsActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FullSys.Step(DeltaTime);
+	RunSimFixedSteps(DeltaTime);
 	DrawSystem();
 }
 
@@ -69,6 +69,54 @@ void AMultiSystemsActor::BuildDemoSystem()
 		1.0,
 		1.5
 	));
+}
+
+void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
+{
+	if (FixedTimeStep <= 0.0 || FrameDeltaTime <= 0.0)
+	{
+		return;
+	}
+
+	RealRunningTime += FrameDeltaTime;
+	FrameCount++;
+
+	AverageDeltaTime +=
+		(FrameDeltaTime - AverageDeltaTime)
+		/ static_cast<double>(FrameCount);
+
+	const double ClampedFrameDeltaTime =
+		FMath::Min(FrameDeltaTime, MaxFrameDeltaTime);
+
+	SimulationTimeDebt += ClampedFrameDeltaTime;
+
+	int32 SubStepCount = 0;
+
+	while (
+		SimulationTimeDebt >= FixedTimeStep
+		&& SubStepCount < MaxSubSteps)
+	{
+		FullSys.Step(FixedTimeStep);
+
+		SimulatedRunningTime += FixedTimeStep;
+		SimulationTimeDebt -= FixedTimeStep;
+
+		SubStepCount++;
+
+		/*if (benablecsvlogging)
+		{
+			logcurrentsample();
+		}*/
+	}
+
+	LastSubStepCount = SubStepCount;
+
+	if (SubStepCount >= MaxSubSteps)
+	{
+		SimulationTimeDebt = FMath::Min(SimulationTimeDebt, FixedTimeStep);
+	}
+
+	SimulationDelay = RealRunningTime - SimulatedRunningTime;
 }
 
 FVector AMultiSystemsActor::ToWorld(const FVector2D& P) const
