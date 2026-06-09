@@ -1,14 +1,20 @@
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Simulation/FullSysTypes.h"
+#include "Simulation/SysIntegrator.h"
+
+#include "CoreMinimal.h"
 
 class FFullSys
 {
 public:
+	FFullSys();
+
 	int32 AddBody(const FBody& Body);
 
 	void AddElement(TUniquePtr<ISysElement> Element);
+
+	void SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator);
 
 	void Step(double Dt);
 
@@ -17,6 +23,8 @@ public:
 private:
 	TArray<FBody> Bodies;
 	TArray<TUniquePtr<ISysElement>> Elements;
+
+	TUniquePtr<ISysIntegrator> Integrator;
 
 	void ClearForces();
 	void ApplyElementInteractions();

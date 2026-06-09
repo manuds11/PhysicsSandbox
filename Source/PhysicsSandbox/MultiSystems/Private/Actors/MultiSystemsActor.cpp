@@ -21,6 +21,23 @@ void AMultiSystemsActor::BeginPlay()
 	
 	BuildDemoSystem();
 
+	switch (IntegratorType)
+	{
+	case EIntegratorType::ExplicitEuler:
+
+		FullSys.SetIntegrator(
+			MakeUnique<FExplicitEulerSysIntegrator>());
+
+		break;
+
+	case EIntegratorType::SemiImplicitEuler:
+
+		FullSys.SetIntegrator(
+			MakeUnique<FSemiImplicitEulerSysIntegrator>());
+
+		break;
+	}
+
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
 		EnableInput(PC);

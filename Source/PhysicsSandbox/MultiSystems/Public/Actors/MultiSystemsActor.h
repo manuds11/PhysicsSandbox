@@ -8,6 +8,13 @@
 #include "GameFramework/Actor.h"
 #include "MultiSystemsActor.generated.h"
 
+UENUM(BlueprintType)
+enum class EIntegratorType : uint8
+{
+	ExplicitEuler,
+	SemiImplicitEuler
+};
+
 UCLASS()
 class PHYSICSSANDBOX_API AMultiSystemsActor : public AActor
 {
@@ -31,6 +38,10 @@ private:
 	// =========================
 	// Simulation control
 	// =========================
+	UPROPERTY(EditAnywhere, Category = "Simulation")
+	EIntegratorType IntegratorType =
+		EIntegratorType::SemiImplicitEuler;
+
 	UPROPERTY(EditAnywhere, Category = "Simulation")
 	bool bIsSimulationRunning = false;
 	

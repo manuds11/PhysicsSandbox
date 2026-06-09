@@ -1,5 +1,10 @@
 #include "Simulation/FullSys.h"
 
+FFullSys::FFullSys()
+{
+	Integrator = MakeUnique<FExplicitEulerSysIntegrator>();
+}
+
 int32 FFullSys::AddBody(const FBody& Body)
 {
 	return Bodies.Add(Body);
@@ -10,6 +15,14 @@ void FFullSys::AddElement(TUniquePtr<ISysElement> Element)
 	if (Element)
 	{
 		Elements.Add(MoveTemp(Element));
+	}
+}
+
+void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
+{
+	if (InIntegrator)
+	{
+		Integrator = MoveTemp(InIntegrator);
 	}
 }
 
@@ -68,18 +81,31 @@ void FFullSys::ComputeAccelerations()
 
 void FFullSys::Integrate(double Dt)
 {
+	if (!Integrator)
+	{
+		return;
+	}
+
 	for (FBody& Body : Bodies)
 	{
 		if (!Body.bXFixed)
 		{
-			Body.Velocity.X += Body.Acceleration.X * Dt;
-			Body.Position.X += Body.Velocity.X * Dt;
+			Integrator->IntegrateScalar(
+				Body.Position.X,
+				Body.Velocity.X,
+				Body.Acceleration.X,
+				Dt
+			);
 		}
 
 		if (!Body.bYFixed)
 		{
-			Body.Velocity.Y += Body.Acceleration.Y * Dt;
-			Body.Position.Y += Body.Velocity.Y * Dt;
+			Integrator->IntegrateScalar(
+				Body.Position.Y,
+				Body.Velocity.Y,
+				Body.Acceleration.Y,
+				Dt
+			);
 		}
 	}
 }
