@@ -11,7 +11,6 @@ AMultiSystemsActor::AMultiSystemsActor()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 }
 
 // Called when the game starts or when spawned
@@ -89,6 +88,11 @@ void AMultiSystemsActor::Tick(float DeltaTime)
 
 void AMultiSystemsActor::BuildDemoSystem()
 {
+	
+	
+	FSubSys& DoubleSpring =
+		FullSys.CreateSubSys(TEXT("DoubleSpring"));
+
 	FBody Wall;
 	Wall.Position = FVector2D(0.0, 0.0);
 	Wall.bXFixed = true;
@@ -107,24 +111,46 @@ void AMultiSystemsActor::BuildDemoSystem()
 	Mass2.bYFixed = true;
 
 	const int32 WallIndex = FullSys.AddBody(Wall);
+	DoubleSpring.Bodies.Add({ TEXT("Wall"), WallIndex });
+
 	const int32 Mass1Index = FullSys.AddBody(Mass1);
+	DoubleSpring.Bodies.Add({ TEXT("Mass1"), Mass1Index });
+
 	const int32 Mass2Index = FullSys.AddBody(Mass2);
+	DoubleSpring.Bodies.Add({ TEXT("Mass2"), Mass2Index });
 
-	FullSys.AddElement(MakeUnique<FSpringDamper>(
-		WallIndex,
-		Mass1Index,
-		20.0,
-		1.0,
-		1.5
-	));
+	const int32 Spring1Index =
+		FullSys.AddElement(MakeUnique<FSpringDamper>(
+			WallIndex,
+			Mass1Index,
+			20.0,
+			1.0,
+			1.5
+		));
 
-	FullSys.AddElement(MakeUnique<FSpringDamper>(
-		Mass1Index,
-		Mass2Index,
-		20.0,   
-		1.0,
-		1.5
-	));
+	DoubleSpring.Elements.Add({
+		TEXT("Spring1"),
+		Spring1Index
+		});
+
+	const int32 Spring2Index =
+		FullSys.AddElement(MakeUnique<FSpringDamper>(
+			Mass1Index,
+			Mass2Index,
+			20.0,
+			1.0,
+			1.5
+		));
+
+	DoubleSpring.Elements.Add({
+		TEXT("Spring2"),
+		Spring2Index
+		});
+
+	DoubleSpring.Ports.Add({
+		TEXT("End"),
+		Mass2Index
+		});
 }
 
 void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)

@@ -15,6 +15,15 @@ FSpringDamper::FSpringDamper(
 {
 }
 
+void FSpringDamper::GetConnectedBodies(
+	int32& OutBodyA,
+	int32& OutBodyB
+) const
+{
+	OutBodyA = BodyA;
+	OutBodyB = BodyB;
+}
+
 void FSpringDamper::ApplyForces(TArray<FBody>& Bodies) const
 {
 	if (!Bodies.IsValidIndex(BodyA) || !Bodies.IsValidIndex(BodyB))

@@ -14,6 +14,11 @@ public:
 		double InRestLength
 	);
 
+	virtual void GetConnectedBodies(
+		int32& OutBodyA,
+		int32& OutBodyB
+	) const override;
+
 	virtual void ApplyForces(TArray<FBody>& Bodies) const override;
 
 private:

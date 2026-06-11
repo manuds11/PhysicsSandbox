@@ -10,12 +10,29 @@ int32 FFullSys::AddBody(const FBody& Body)
 	return Bodies.Add(Body);
 }
 
-void FFullSys::AddElement(TUniquePtr<ISysElement> Element)
+int32 FFullSys::AddElement(TUniquePtr<ISysElement> Element)
 {
-	if (Element)
+	if (!Element)
 	{
-		Elements.Add(MoveTemp(Element));
+		return INDEX_NONE;
 	}
+
+	return Elements.Add(MoveTemp(Element));
+}
+
+FSubSys& FFullSys::CreateSubSys(FName Name)
+{
+	FSubSys NewSubSys;
+	NewSubSys.Name = Name;
+
+	const int32 SubSysIndex = SubSystems.Add(NewSubSys);
+
+	return SubSystems[SubSysIndex];
+}
+
+const TArray<FSubSys>& FFullSys::GetSubSystems() const
+{
+	return SubSystems;
 }
 
 void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)

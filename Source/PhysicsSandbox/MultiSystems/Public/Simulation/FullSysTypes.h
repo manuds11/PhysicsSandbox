@@ -16,17 +16,15 @@ struct FBody
 	bool bYFixed = false;
 };
 
-struct FPort
-{
-	FName Name;
-	int32 BodyIndex = INDEX_NONE;
-	FVector2D LocalOffset = FVector2D::ZeroVector;
-};
-
 class ISysElement
 {
 public:
 	virtual ~ISysElement() = default;
+
+	virtual void GetConnectedBodies(
+		int32& OutBodyA,
+		int32& OutBodyB
+	) const = 0;
 
 	virtual void ApplyForces(TArray<FBody>& Bodies) const = 0;
 };
