@@ -21,6 +21,7 @@ public:
 	void Step(double Dt);
 
 	const TArray<FBody>& GetBodies() const;
+	const TArray<TUniquePtr<ISysElement>>& GetElements() const;
 
 private:
 	TArray<FSubSys> SubSystems;

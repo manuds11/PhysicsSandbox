@@ -15,13 +15,15 @@ FSpringDamper::FSpringDamper(
 {
 }
 
-void FSpringDamper::GetConnectedBodies(
+bool FSpringDamper::GetConnectedBodies(
 	int32& OutBodyA,
 	int32& OutBodyB
 ) const
 {
 	OutBodyA = BodyA;
 	OutBodyB = BodyB;
+
+	return true;
 }
 
 void FSpringDamper::ApplyForces(TArray<FBody>& Bodies) const

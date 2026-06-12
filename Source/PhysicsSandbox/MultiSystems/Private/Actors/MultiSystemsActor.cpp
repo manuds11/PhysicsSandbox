@@ -88,32 +88,38 @@ void AMultiSystemsActor::Tick(float DeltaTime)
 
 void AMultiSystemsActor::BuildDemoSystem()
 {
-	// Subsystem 1: Two masses connected by two springs to a fixed wall
-	
+	// Subsystem 1: Two masses connected by two springs to a fixed wall. Subystem is declared.
 	FSubSys& DoubleSpring =
 		FullSys.CreateSubSys(TEXT("DoubleSpring"));
 
-	FBody Wall;
-	Wall.Position = FVector2D(0.0, 0.0);
-	Wall.bXFixed = true;
-	Wall.bYFixed = true;
+	// Declare the bodies of the subsystem with required parameters to define them and
+	// store them in an array in FullSys Class. The body index in the array identifies
+	// each body and is saved. The bodies index allow us define interactions between
+	// bodies.
+	const int32 WallIndex = FullSys.AddBody(
+			FBody::Fixed( FVector2D(0.0, 0.0)
+			)
+		);
 
-	FBody Mass1;
-	Mass1.Position = FVector2D(2.0, 0.0);
-	Mass1.Velocity = FVector2D(0.0, 0.0);
-	Mass1.Mass = 1.0;
-	Mass1.bYFixed = true;
+	const int32 Mass1Index =
+		FullSys.AddBody(
+			FBody::SlidingMassX(
+				FVector2D(2.0, 0.0),
+				1.0
+			)
+		);
 
-	FBody Mass2;
-	Mass2.Position = FVector2D(2.5, 0.0);
-	Mass2.Velocity = FVector2D(0.0, 0.0);
-	Mass2.Mass = 1.0;
-	Mass2.bYFixed = true;
+	const int32 Mass2Index =
+		FullSys.AddBody(
+			FBody::SlidingMassX(
+				FVector2D(2.5, 0.0),
+				1.0
+			)
+		);
 
-	const int32 WallIndex = FullSys.AddBody(Wall);
-	const int32 Mass1Index = FullSys.AddBody(Mass1);
-	const int32 Mass2Index = FullSys.AddBody(Mass2);
-
+	// Declare elements with its connections and parameters and store them in an
+	// array in FullSys Class. The element index in the array identifies each element 
+	// and is saved. The element index allow us define interactions between bodies.
 	const int32 Spring1Index =
 		FullSys.AddElement(MakeUnique<FSpringDamper>(
 			WallIndex,
@@ -132,12 +138,16 @@ void AMultiSystemsActor::BuildDemoSystem()
 			1.5
 		));
 	
-	DoubleSpring.Bodies.Add({ TEXT("Wall"), WallIndex });
-	DoubleSpring.Bodies.Add({ TEXT("Mass1"), Mass1Index });
-	DoubleSpring.Bodies.Add({ TEXT("Mass2"), Mass2Index });
-	DoubleSpring.Elements.Add({ TEXT("Spring1"), Spring1Index });
-	DoubleSpring.Elements.Add({ TEXT("Spring2"), Spring2Index });
-	DoubleSpring.Ports.Add({ TEXT("End"), Mass2Index });
+	// We associate the bodies and elements to the subsystem by their indexes. 
+	// We attach an identification tag.
+	DoubleSpring.AddBody(TEXT("Wall"), WallIndex);
+	DoubleSpring.AddBody(TEXT("Mass1"), Mass1Index);
+	DoubleSpring.AddBody(TEXT("Mass2"), Mass2Index);
+
+	DoubleSpring.AddElement(TEXT("Spring1"), Spring1Index);
+	DoubleSpring.AddElement(TEXT("Spring2"), Spring2Index);
+
+	DoubleSpring.AddPort(TEXT("End"), Mass2Index);
 }
 
 void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)

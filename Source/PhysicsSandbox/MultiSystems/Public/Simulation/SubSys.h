@@ -28,5 +28,9 @@ struct FSubSys
     TArray<FElementRef> Elements;
     TArray<FPort> Ports;
 
+    void AddBody(FName BodyName, int32 BodyIndex);
+    void AddElement(FName BodyName, int32 ElementIndex);
+    void AddPort(FName BodyName, int32 BodyIndex);
+
     FName FindBodyNameByIndex(int32 BodyIndex) const;
 };

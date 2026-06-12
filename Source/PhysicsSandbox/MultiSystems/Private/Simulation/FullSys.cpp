@@ -57,6 +57,11 @@ const TArray<FBody>& FFullSys::GetBodies() const
 	return Bodies;
 }
 
+const TArray<TUniquePtr<ISysElement>>& FFullSys::GetElements() const
+{
+	return Elements;
+}
+
 void FFullSys::ClearForces()
 {
 	for (FBody& Body : Bodies)

@@ -14,7 +14,7 @@ public:
 		double InRestLength
 	);
 
-	virtual void GetConnectedBodies(
+	virtual bool GetConnectedBodies(
 		int32& OutBodyA,
 		int32& OutBodyB
 	) const override;
