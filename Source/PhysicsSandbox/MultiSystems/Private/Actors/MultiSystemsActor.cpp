@@ -88,7 +88,7 @@ void AMultiSystemsActor::Tick(float DeltaTime)
 
 void AMultiSystemsActor::BuildDemoSystem()
 {
-	
+	// Subsystem 1: Two masses connected by two springs to a fixed wall
 	
 	FSubSys& DoubleSpring =
 		FullSys.CreateSubSys(TEXT("DoubleSpring"));
@@ -111,13 +111,8 @@ void AMultiSystemsActor::BuildDemoSystem()
 	Mass2.bYFixed = true;
 
 	const int32 WallIndex = FullSys.AddBody(Wall);
-	DoubleSpring.Bodies.Add({ TEXT("Wall"), WallIndex });
-
 	const int32 Mass1Index = FullSys.AddBody(Mass1);
-	DoubleSpring.Bodies.Add({ TEXT("Mass1"), Mass1Index });
-
 	const int32 Mass2Index = FullSys.AddBody(Mass2);
-	DoubleSpring.Bodies.Add({ TEXT("Mass2"), Mass2Index });
 
 	const int32 Spring1Index =
 		FullSys.AddElement(MakeUnique<FSpringDamper>(
@@ -128,11 +123,6 @@ void AMultiSystemsActor::BuildDemoSystem()
 			1.5
 		));
 
-	DoubleSpring.Elements.Add({
-		TEXT("Spring1"),
-		Spring1Index
-		});
-
 	const int32 Spring2Index =
 		FullSys.AddElement(MakeUnique<FSpringDamper>(
 			Mass1Index,
@@ -141,16 +131,13 @@ void AMultiSystemsActor::BuildDemoSystem()
 			1.0,
 			1.5
 		));
-
-	DoubleSpring.Elements.Add({
-		TEXT("Spring2"),
-		Spring2Index
-		});
-
-	DoubleSpring.Ports.Add({
-		TEXT("End"),
-		Mass2Index
-		});
+	
+	DoubleSpring.Bodies.Add({ TEXT("Wall"), WallIndex });
+	DoubleSpring.Bodies.Add({ TEXT("Mass1"), Mass1Index });
+	DoubleSpring.Bodies.Add({ TEXT("Mass2"), Mass2Index });
+	DoubleSpring.Elements.Add({ TEXT("Spring1"), Spring1Index });
+	DoubleSpring.Elements.Add({ TEXT("Spring2"), Spring2Index });
+	DoubleSpring.Ports.Add({ TEXT("End"), Mass2Index });
 }
 
 void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
