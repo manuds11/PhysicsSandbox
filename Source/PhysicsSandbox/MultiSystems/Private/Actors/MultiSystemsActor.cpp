@@ -226,10 +226,58 @@ void AMultiSystemsActor::DrawSystem() const
 		);
 	}
 
-	if (Bodies.Num() >= 3)
+	const TArray<TUniquePtr<ISysElement>>& Elements =
+		FullSys.GetElements();
+
+	for (const TUniquePtr<ISysElement>& Element : Elements)
 	{
-		DrawDebugLine(GetWorld(), ToWorld(Bodies[0].Position), ToWorld(Bodies[1].Position), FColor::Yellow, false, 0.0f, 0, 2.0f);
-		DrawDebugLine(GetWorld(), ToWorld(Bodies[1].Position), ToWorld(Bodies[2].Position), FColor::Yellow, false, 0.0f, 0, 2.0f);
+		if (!Element)
+		{
+			continue;
+		}
+
+		int32 BodyAIndex = INDEX_NONE;
+		int32 BodyBIndex = INDEX_NONE;
+
+		if (!Element->GetConnectedBodies(BodyAIndex, BodyBIndex))
+		{
+			continue;
+		}
+
+		if (!Bodies.IsValidIndex(BodyAIndex) || !Bodies.IsValidIndex(BodyBIndex))
+		{
+			continue;
+		}
+
+		DrawDebugLine(
+			GetWorld(),
+			ToWorld(Bodies[BodyAIndex].Position),
+			ToWorld(Bodies[BodyBIndex].Position),
+			FColor::Yellow,
+			false,
+			0.0f,
+			0,
+			2.0f
+		);
+
+		FVector2D EquilibriumPoint;
+
+		if (Element->GetEquilibriumPoint(Bodies, EquilibriumPoint))
+		{
+			const FVector WorldPosition =
+				ToWorld(EquilibriumPoint);
+
+			DrawDebugLine(
+				GetWorld(),
+				WorldPosition + FVector(0.0, 0.0, -50.0),
+				WorldPosition + FVector(0.0, 0.0, 50.0),
+				FColor::Blue,
+				false,
+				0.0f,
+				0,
+				2.0f
+			);
+		}
 	}
 }
 

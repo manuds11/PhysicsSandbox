@@ -58,3 +58,31 @@ void FSpringDamper::ApplyForces(TArray<FBody>& Bodies) const
 	A.NetForce += Force;
 	B.NetForce -= Force;
 }
+
+bool FSpringDamper::GetEquilibriumPoint(
+	const TArray<FBody>& Bodies,
+	FVector2D& OutPosition
+) const
+{
+	if (!Bodies.IsValidIndex(BodyA) || !Bodies.IsValidIndex(BodyB))
+	{
+		return false;
+	}
+
+	const FBody& A = Bodies[BodyA];
+	const FBody& B = Bodies[BodyB];
+
+	const FVector2D Delta = B.Position - A.Position;
+	const double Length = Delta.Size();
+
+	if (Length <= UE_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	const FVector2D Direction = Delta / Length;
+
+	OutPosition = A.Position + RestLength * Direction;
+
+	return true;
+}
