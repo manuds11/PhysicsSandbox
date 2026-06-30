@@ -260,24 +260,25 @@ void AMultiSystemsActor::DrawSystem() const
 			2.0f
 		);
 
-		FVector2D EquilibriumPoint;
+		const FSpringDamper* Spring =
+			static_cast<const FSpringDamper*>(Element.Get());
 
-		if (Element->GetEquilibriumPoint(Bodies, EquilibriumPoint))
-		{
-			const FVector WorldPosition =
-				ToWorld(EquilibriumPoint);
+		const FVector2D EquilibriumPoint =
+			Spring->GetEquilibriumPoint(Bodies);
 
-			DrawDebugLine(
-				GetWorld(),
-				WorldPosition + FVector(0.0, 0.0, -50.0),
-				WorldPosition + FVector(0.0, 0.0, 50.0),
-				FColor::Blue,
-				false,
-				0.0f,
-				0,
-				2.0f
-			);
-		}
+		const FVector WorldPosition =
+			ToWorld(EquilibriumPoint);
+
+		DrawDebugLine(
+			GetWorld(),
+			WorldPosition + FVector(0.0, 0.0, -50.0),
+			WorldPosition + FVector(0.0, 0.0, 50.0),
+			FColor::Blue,
+			false,
+			0.0f,
+			0,
+			2.0f
+		);
 	}
 }
 

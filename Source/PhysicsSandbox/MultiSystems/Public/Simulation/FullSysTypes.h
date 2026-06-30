@@ -71,13 +71,5 @@ public:
 		return false;
 	}
 
-	virtual bool GetEquilibriumPoint(
-		const TArray<FBody>& Bodies,
-		FVector2D& OutPosition
-	) const
-	{
-		return false;
-	}
-
 	virtual void ApplyForces(TArray<FBody>& Bodies) const = 0;
 };
