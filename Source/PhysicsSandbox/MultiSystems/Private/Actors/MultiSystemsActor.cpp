@@ -9,8 +9,8 @@
 // Sets default values
 AMultiSystemsActor::AMultiSystemsActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+ 	// Set this actor to call Tick() every frame. You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;	
 }
 
 // Called when the game starts or when spawned
@@ -266,13 +266,10 @@ void AMultiSystemsActor::DrawSystem() const
 		const FVector2D EquilibriumPoint =
 			Spring->GetEquilibriumPoint(Bodies);
 
-		const FVector WorldPosition =
-			ToWorld(EquilibriumPoint);
-
 		DrawDebugLine(
 			GetWorld(),
-			WorldPosition + FVector(0.0, 0.0, -50.0),
-			WorldPosition + FVector(0.0, 0.0, 50.0),
+			ToWorld(EquilibriumPoint) + FVector(0.0, 0.0, -50.0),
+			ToWorld(EquilibriumPoint) + FVector(0.0, 0.0, 50.0),
 			FColor::Blue,
 			false,
 			0.0f,
