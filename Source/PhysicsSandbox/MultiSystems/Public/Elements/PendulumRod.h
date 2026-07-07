@@ -31,7 +31,7 @@ private:
 	FPolarBase ComputePolarBase(
 		const FBody& Pivot,
 		const FBody& Bob,
-		double& OutCurrentLengthMod
+		double& CurrentLength
 	) const;
 
 	FVector2D ComputeRelativeVelocity(

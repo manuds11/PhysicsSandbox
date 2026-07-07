@@ -113,7 +113,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 Mass2Index =
 		FullSys.AddBody(
 			FBody::SlidingMassX(
-				FVector2D(2.5, 0.0),
+				FVector2D(4.0, 0.0),
 				1.0
 			)
 		);
@@ -121,7 +121,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 BobIndex =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(2.5, -1.0),
+				FVector2D(4.0, -1.0),
 				1.0
 			)
 		);
@@ -129,12 +129,13 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// Declare elements with its connections and parameters and store them in an
 	// array in FullSys Class. The element index in the array identifies each element 
 	// and is saved. The element index allow us define interactions between bodies.
+
 	const int32 Spring1Index =
 		FullSys.AddElement(MakeUnique<FSpringDamper>(
 			WallIndex,
 			Mass1Index,
 			20.0,
-			1.0,
+			0.2,
 			1.5
 		));
 
@@ -143,7 +144,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 			Mass1Index,
 			Mass2Index,
 			20.0,
-			1.0,
+			0.2,
 			1.5
 		));
 
@@ -278,22 +279,21 @@ void AMultiSystemsActor::DrawSystem() const
 			2.0f
 		);
 
-		const FSpringDamper* Spring =
-			static_cast<const FSpringDamper*>(Element.Get());
+		FVector2D EquilibriumPoint;
 
-		const FVector2D EquilibriumPoint =
-			Spring->GetEquilibriumPoint(Bodies);
-
-		DrawDebugLine(
-			GetWorld(),
-			ToWorld(EquilibriumPoint) + FVector(0.0, 0.0, -50.0),
-			ToWorld(EquilibriumPoint) + FVector(0.0, 0.0, 50.0),
-			FColor::Blue,
-			false,
-			0.0f,
-			0,
-			2.0f
-		);
+		if (Element->GetEquilibriumPoint(Bodies, EquilibriumPoint))
+		{
+			DrawDebugLine(
+				GetWorld(),
+				ToWorld(EquilibriumPoint) + FVector(0.0, 0.0, -50.0),
+				ToWorld(EquilibriumPoint) + FVector(0.0, 0.0, 50.0),
+				FColor::Blue,
+				false,
+				0.0f,
+				0,
+				2.0f
+			);
+		}
 	}
 }
 

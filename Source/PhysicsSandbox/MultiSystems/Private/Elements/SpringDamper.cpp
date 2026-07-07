@@ -48,7 +48,7 @@ void FSpringDamper::ApplyForces(TArray<FBody>& Bodies) const
 	const double Extension = Length - RestLength;
 
 	const FVector2D RelativeVelocity = B.Velocity - A.Velocity;
-	const double RelativeSpeed = FVector2D::DotProduct(RelativeVelocity, Direction); // Proyección de la velocidad sobre la dirección del muelle
+	const double RelativeSpeed = FVector2D::DotProduct(RelativeVelocity, Direction ); // Proyección de la velocidad sobre la dirección del muelle
 
 	const double TotalForce =
 		Stiffness * Extension + Damping * RelativeSpeed;
@@ -59,13 +59,15 @@ void FSpringDamper::ApplyForces(TArray<FBody>& Bodies) const
 	B.NetForce -= Force;
 }
 
-FVector2D FSpringDamper::GetEquilibriumPoint(
-	const TArray<FBody>& Bodies
+bool FSpringDamper::GetEquilibriumPoint(
+	const TArray<FBody>& Bodies,
+	FVector2D& OutPoint
 ) const
 {
 	if (!Bodies.IsValidIndex(BodyA) || !Bodies.IsValidIndex(BodyB))
 	{
-		return FVector2D::ZeroVector;
+		OutPoint = FVector2D::ZeroVector;
+		return false;
 	}
 
 	const FBody& A = Bodies[BodyA];
@@ -76,10 +78,13 @@ FVector2D FSpringDamper::GetEquilibriumPoint(
 
 	if (Length <= UE_SMALL_NUMBER)
 	{
-		return A.Position;
+		OutPoint = A.Position;
+		return true;
 	}
 
 	const FVector2D Direction = Delta / Length;
 
-	return A.Position + RestLength * Direction;
+	OutPoint = A.Position + RestLength * Direction;
+
+	return true;
 }

@@ -21,9 +21,10 @@ public:
 
 	virtual void ApplyForces(TArray<FBody>& Bodies) const override;
 
-	FVector2D GetEquilibriumPoint(
-		const TArray<FBody>& Bodies
-	) const;
+	virtual bool GetEquilibriumPoint(
+		const TArray<FBody>& Bodies,
+		FVector2D& OutPoint
+	) const override;
 
 private:
 	int32 BodyA = INDEX_NONE;

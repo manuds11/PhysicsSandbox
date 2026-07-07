@@ -82,7 +82,7 @@ void FPendulumRod::ApplyForces(
 FPolarBase FPendulumRod::ComputePolarBase(
 	const FBody& Pivot,
 	const FBody& Bob,
-	double& OutCurrentLengthMod
+	double& CurrentLength
 ) const
 {
 	FPolarBase PolarBase;
@@ -90,16 +90,16 @@ FPolarBase FPendulumRod::ComputePolarBase(
 	const FVector2D RelativePosition =
 		Bob.Position - Pivot.Position;
 
-	OutCurrentLengthMod =
+	CurrentLength =
 		RelativePosition.Size();
 
-	if (OutCurrentLengthMod <= UE_SMALL_NUMBER)
+	if (CurrentLength <= UE_SMALL_NUMBER)
 	{
 		return PolarBase;
 	}
 
 	PolarBase.e_Radial =
-		RelativePosition / OutCurrentLengthMod;
+		RelativePosition / CurrentLength;
 
 	// e_Theta is e_Radial rotated 90 degrees counter-clockwise.
 	PolarBase.e_Theta = FVector2D(
