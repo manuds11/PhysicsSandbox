@@ -106,7 +106,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 		FullSys.AddBody(
 			FBody::SlidingMassX(
 				FVector2D(2.0, 0.0),
-				1.0
+				1.0						// mass kg
 			)
 		);
 

@@ -3,11 +3,11 @@
 FPendulumRod::FPendulumRod(
 	int32 InPivotBody,
 	int32 InBobBody,
-	double InLength
+	double InTheoreticalLength
 )
 	: PivotBody(InPivotBody)
 	, BobBody(InBobBody)
-	, Length(InLength)
+	, TheoreticalLength(InTheoreticalLength)
 {
 }
 
@@ -34,42 +34,18 @@ void FPendulumRod::ApplyForces(
 	FBody& Pivot = Bodies[PivotBody];
 	FBody& Bob = Bodies[BobBody];
 
-	double CurrentLengthMod = 0.0;
+	UpdatePendulumKinematics(Pivot, Bob);
 
-	const FPolarBase PolarBase =
-		ComputePolarBase(
-			Pivot,
-			Bob,
-			CurrentLengthMod
-		);
-
-	if (CurrentLengthMod <= UE_SMALL_NUMBER)
+	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
 	{
 		return;
 	}
-
-	const FVector2D RelativeVelocity =
-		ComputeRelativeVelocity(
-			Pivot,
-			Bob
-		);
-
-	const double TangentialSpeed =
-		ComputeTangentialSpeed(
-			RelativeVelocity,
-			PolarBase
-		);
-
-	const double TangentialSpeedModSquared =
-		TangentialSpeed * TangentialSpeed;
 
 	const double Tension =
 		ComputeTension(
 			Pivot,
 			Bob,
-			PolarBase,
-			CurrentLengthMod,
-			TangentialSpeedModSquared
+			PolarBase
 		);
 
 	const FVector2D ConstraintForce =
@@ -79,68 +55,120 @@ void FPendulumRod::ApplyForces(
 	Bob.NetForce -= ConstraintForce;
 }
 
-FPolarBase FPendulumRod::ComputePolarBase(
-	const FBody& Pivot,
-	const FBody& Bob,
-	double& CurrentLength
-) const
-{
-	FPolarBase PolarBase;
-
-	const FVector2D RelativePosition =
-		Bob.Position - Pivot.Position;
-
-	CurrentLength =
-		RelativePosition.Size();
-
-	if (CurrentLength <= UE_SMALL_NUMBER)
-	{
-		return PolarBase;
-	}
-
-	PolarBase.e_Radial =
-		RelativePosition / CurrentLength;
-
-	// e_Theta is e_Radial rotated 90 degrees counter-clockwise.
-	PolarBase.e_Theta = FVector2D(
-		-PolarBase.e_Radial.Y,
-		PolarBase.e_Radial.X
-	);
-
-	return PolarBase;
-}
-
-FVector2D FPendulumRod::ComputeRelativeVelocity(
+void FPendulumRod::UpdatePendulumKinematics(
 	const FBody& Pivot,
 	const FBody& Bob
 ) const
 {
-	return Bob.Velocity - Pivot.Velocity;
+	PendulumPos.Bob2Pivot =
+		Bob.Position - Pivot.Position;
+
+	PendulumPos.ComputedLength =
+		PendulumPos.Bob2Pivot.Size();
+
+	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
+	{
+		PolarBase = FPolarBase();
+		PendulumVel = FPendulumVelocities();
+		return;
+	}
+
+	PolarBase = ComputePolarBase();
+
+	PendulumVel.Bob2Pivot =
+		Bob.Velocity - Pivot.Velocity;
+
+	PendulumVel.Bob2PivotTangential =
+		FVector2D::DotProduct(
+			PendulumVel.Bob2Pivot,
+			PolarBase.e_Theta
+		);
+
+	PendulumVel.Bob2PivotRadial =
+		FVector2D::DotProduct(
+			PendulumVel.Bob2Pivot,
+			PolarBase.e_Radial
+		);
 }
 
-double FPendulumRod::ComputeTangentialSpeed(
-	const FVector2D& RelativeVelocity,
-	const FPolarBase& PolarBase
+FPolarBase FPendulumRod::ComputePolarBase() const
+{
+	FPolarBase ComputedPolarBase;
+
+	ComputedPolarBase.e_Radial =
+		PendulumPos.Bob2Pivot / PendulumPos.ComputedLength;
+
+	// e_Theta is e_Radial rotated 90 degrees counter-clockwise.
+	ComputedPolarBase.e_Theta = FVector2D(
+		-ComputedPolarBase.e_Radial.Y,
+		ComputedPolarBase.e_Radial.X
+	);
+
+	return ComputedPolarBase;
+}
+
+FVector2D FPendulumRod::ComputeFreeAcceleration(
+	const FBody& Body
 ) const
 {
-	return FVector2D::DotProduct(
-		RelativeVelocity,
-		PolarBase.e_Theta
-	);
+	if (Body.Mass <= UE_SMALL_NUMBER)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	FVector2D FreeAcceleration =
+		Body.NetForce / Body.Mass;
+
+	if (Body.bXFixed)
+	{
+		FreeAcceleration.X = 0.0;
+	}
+
+	if (Body.bYFixed)
+	{
+		FreeAcceleration.Y = 0.0;
+	}
+
+	return FreeAcceleration;
+}
+
+double FPendulumRod::ComputeEffectiveInverseMass(
+	const FBody& Body,
+	const FVector2D& e_Radial
+) const
+{
+	if (Body.Mass <= UE_SMALL_NUMBER)
+	{
+		return 0.0;
+	}
+
+	double EffectiveInverseMass = 0.0;
+
+	if (!Body.bXFixed)
+	{
+		EffectiveInverseMass +=
+			e_Radial.X * e_Radial.X / Body.Mass;
+	}
+
+	if (!Body.bYFixed)
+	{
+		EffectiveInverseMass +=
+			e_Radial.Y * e_Radial.Y / Body.Mass;
+	}
+
+	return EffectiveInverseMass;
 }
 
 double FPendulumRod::ComputeTension(
 	const FBody& Pivot,
 	const FBody& Bob,
-	const FPolarBase& PolarBase,
-	double CurrentLengthMod,
-	double TangentialSpeedModSquared
+	const FPolarBase& InPolarBase
 ) const
 {
 	if (
 		Pivot.Mass <= UE_SMALL_NUMBER ||
 		Bob.Mass <= UE_SMALL_NUMBER ||
-		CurrentLengthMod <= UE_SMALL_NUMBER
+		PendulumPos.ComputedLength <= UE_SMALL_NUMBER
 		)
 	{
 		return 0.0;
@@ -155,36 +183,50 @@ double FPendulumRod::ComputeTension(
 	// Acceleration-level constraint:
 	// Dot(a_B - a_P, e_Radial) = -v_t^2 / L
 	//
-	// Newton:
-	// a_P = (F_P + T e_Radial) / m_P
-	// a_B = (F_B - T e_Radial) / m_B
+	// Newton with fixed axes:
+	// a_P = movable components of (F_P + T e_Radial) / m_P
+	// a_B = movable components of (F_B - T e_Radial) / m_B
 	//
 	// Tension:
 	// T =
-	// [ Dot((F_B / m_B) - (F_P / m_P), e_Radial)
+	// [ Dot(a_B_external - a_P_external, e_Radial)
 	//   + (v_t^2 / L) ]
-	// / [ (1 / m_P) + (1 / m_B) ]
+	// / EffectiveInverseMassSum
+
+	const double TangentialSpeedSquared =
+		PendulumVel.Bob2PivotTangential
+		* PendulumVel.Bob2PivotTangential;
 
 	const FVector2D ExternalAccelerationDifference =
-		(Bob.NetForce / Bob.Mass)
-		- (Pivot.NetForce / Pivot.Mass);
+		ComputeFreeAcceleration(Bob)
+		- ComputeFreeAcceleration(Pivot);
 
 	const double ExternalRadialAcceleration =
 		FVector2D::DotProduct(
 			ExternalAccelerationDifference,
-			PolarBase.e_Radial
+			InPolarBase.e_Radial
 		);
 
-	const double InverseMassSum =
-		(1.0 / Pivot.Mass)
-		+ (1.0 / Bob.Mass);
+	const double EffectiveInverseMassSum =
+		ComputeEffectiveInverseMass(Pivot, InPolarBase.e_Radial)
+		+ ComputeEffectiveInverseMass(Bob, InPolarBase.e_Radial);
+
+	if (EffectiveInverseMassSum <= UE_SMALL_NUMBER)
+	{
+		return 0.0;
+	}
+
+	const double ConstraintLength =
+		TheoreticalLength > UE_SMALL_NUMBER
+		? TheoreticalLength
+		: PendulumPos.ComputedLength;
 
 	const double Tension =
 		(
 			ExternalRadialAcceleration
-			+ TangentialSpeedModSquared / CurrentLengthMod
+			+ TangentialSpeedSquared / ConstraintLength
 			)
-		/ InverseMassSum;
+		/ EffectiveInverseMassSum;
 
 	return Tension;
 }

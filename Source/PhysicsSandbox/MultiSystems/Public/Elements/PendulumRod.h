@@ -9,13 +9,26 @@ struct FPolarBase
 	FVector2D e_Theta = FVector2D::ZeroVector;
 };
 
+struct FPendulumVelocities
+{
+	FVector2D Bob2Pivot = FVector2D::ZeroVector;
+	double Bob2PivotTangential = 0.0;
+	double Bob2PivotRadial = 0.0;
+};
+
+struct FPendulumPositions
+{
+	FVector2D Bob2Pivot = FVector2D::ZeroVector;
+	double ComputedLength = 0.0;
+};
+
 class FPendulumRod : public ISysElement
 {
 public:
 	FPendulumRod(
 		int32 InPivotBody,
 		int32 InBobBody,
-		double InLength
+		double InTheoreticalLength
 	);
 
 	virtual bool GetConnectedBodies(
@@ -28,33 +41,35 @@ public:
 	) const override;
 
 private:
-	FPolarBase ComputePolarBase(
-		const FBody& Pivot,
-		const FBody& Bob,
-		double& CurrentLength
-	) const;
-
-	FVector2D ComputeRelativeVelocity(
+	void UpdatePendulumKinematics(
 		const FBody& Pivot,
 		const FBody& Bob
 	) const;
 
-	double ComputeTangentialSpeed(
-		const FVector2D& RelativeVelocity,
-		const FPolarBase& PolarBase
+	FPolarBase ComputePolarBase() const;
+
+	FVector2D ComputeFreeAcceleration(
+		const FBody& Body
+	) const;
+
+	double ComputeEffectiveInverseMass(
+		const FBody& Body,
+		const FVector2D& e_Radial
 	) const;
 
 	double ComputeTension(
 		const FBody& Pivot,
 		const FBody& Bob,
-		const FPolarBase& PolarBase,
-		double CurrentLengthMod,
-		double TangentialSpeedModSquared
+		const FPolarBase& InPolarBase
 	) const;
 
 private:
 	int32 PivotBody = INDEX_NONE;
 	int32 BobBody = INDEX_NONE;
 
-	double Length = 1.0;
+	double TheoreticalLength = 1.0;
+
+	mutable FPendulumPositions PendulumPos;
+	mutable FPendulumVelocities PendulumVel;
+	mutable FPolarBase PolarBase;
 };
