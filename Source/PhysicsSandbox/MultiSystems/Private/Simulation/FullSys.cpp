@@ -1,4 +1,5 @@
 #include "Simulation/FullSys.h"
+#include "Math/Units.h"
 
 FFullSys::FFullSys()
 {
@@ -75,6 +76,21 @@ void FFullSys::ApplyElementInteractions()
 	for (const TUniquePtr<ISysElement>& Element : Elements)
 	{
 		Element->ApplyForces(Bodies);
+	}
+}
+
+void FFullSys::ApplyGravity()
+{
+	const FVector2D Gravity(0.0, PhysicsConsts::Gravity);
+
+	for (FBody& Body : Bodies)
+	{
+		if (Body.Mass <= UE_SMALL_NUMBER)
+		{
+			continue;
+		}
+
+		Body.NetForce += Body.Mass * Gravity;
 	}
 }
 

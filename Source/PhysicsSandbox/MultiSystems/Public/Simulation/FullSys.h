@@ -32,6 +32,7 @@ private:
 
 	void ClearForces();
 	void ApplyElementInteractions();
+	void ApplyGravity();
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();

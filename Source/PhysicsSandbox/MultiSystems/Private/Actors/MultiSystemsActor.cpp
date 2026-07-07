@@ -1,7 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+  // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Actors/MultiSystemsActor.h"
 #include "Math/Units.h"
+#include "Elements/PendulumRod.h"
 
 #include "Elements/SpringDamper.h"
 #include "DrawDebugHelpers.h"
@@ -117,6 +118,14 @@ void AMultiSystemsActor::BuildDemoSystem()
 			)
 		);
 
+	const int32 BobIndex =
+		FullSys.AddBody(
+			FBody::Free(
+				FVector2D(2.5, -1.0),
+				1.0
+			)
+		);
+
 	// Declare elements with its connections and parameters and store them in an
 	// array in FullSys Class. The element index in the array identifies each element 
 	// and is saved. The element index allow us define interactions between bodies.
@@ -137,15 +146,24 @@ void AMultiSystemsActor::BuildDemoSystem()
 			1.0,
 			1.5
 		));
+
+	const int32 PendulumRodIndex =
+		FullSys.AddElement(MakeUnique<FPendulumRod>(
+			Mass2Index,
+			BobIndex,
+			1.0
+		));
 	
 	// We associate the bodies and elements to the subsystem by their indexes. 
-	// We attach an identification tag.
+	// We attach an identification tag. 
 	DoubleSpring.AddBody(TEXT("Wall"), WallIndex);
 	DoubleSpring.AddBody(TEXT("Mass1"), Mass1Index);
 	DoubleSpring.AddBody(TEXT("Mass2"), Mass2Index);
+	DoubleSpring.AddBody(TEXT("Bob"), BobIndex);
 
 	DoubleSpring.AddElement(TEXT("Spring1"), Spring1Index);
 	DoubleSpring.AddElement(TEXT("Spring2"), Spring2Index);
+	DoubleSpring.AddElement(TEXT("PendulumRod"), PendulumRodIndex);
 
 	DoubleSpring.AddPort(TEXT("End"), Mass2Index);
 }
