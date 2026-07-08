@@ -2,11 +2,18 @@
 
 #include "CoreMinimal.h"
 #include "Simulation/FullSysTypes.h"
+#include "Math/Units.h"
 
 struct FPolarBase
 {
 	FVector2D e_Radial = FVector2D::ZeroVector;
 	FVector2D e_Theta = FVector2D::ZeroVector;
+
+	FVector2D e_RadialX = FVector2D::ZeroVector;
+	FVector2D e_RadialY = FVector2D::ZeroVector;
+
+	FVector2D e_ThetaX = FVector2D::ZeroVector;
+	FVector2D e_ThetaY = FVector2D::ZeroVector;	// Projection into cartesian base
 };
 
 struct FPendulumVelocities

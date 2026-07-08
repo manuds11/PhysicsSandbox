@@ -47,8 +47,9 @@ void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
 void FFullSys::Step(double Dt)
 {
 	ClearForces();
+	ApplyGravity();
 	ApplyElementInteractions();
-	ComputeAccelerations();
+	ComputeAccelerations(); 
 	Integrate(Dt);
 	ApplyFixedAxes();
 }
@@ -71,17 +72,9 @@ void FFullSys::ClearForces()
 	}
 }
 
-void FFullSys::ApplyElementInteractions()
-{
-	for (const TUniquePtr<ISysElement>& Element : Elements)
-	{
-		Element->ApplyForces(Bodies);
-	}
-}
-
 void FFullSys::ApplyGravity()
 {
-	const FVector2D Gravity(0.0, PhysicsConsts::Gravity);
+	const FVector2D Gravity(0.0, -PhysicsConsts::Gravity);
 
 	for (FBody& Body : Bodies)
 	{
@@ -91,6 +84,14 @@ void FFullSys::ApplyGravity()
 		}
 
 		Body.NetForce += Body.Mass * Gravity;
+	}
+}
+
+void FFullSys::ApplyElementInteractions()
+{
+	for (const TUniquePtr<ISysElement>& Element : Elements)
+	{
+		Element->ApplyForces(Bodies);
 	}
 }
 

@@ -165,15 +165,6 @@ double FPendulumRod::ComputeTension(
 	const FPolarBase& InPolarBase
 ) const
 {
-	if (
-		Pivot.Mass <= UE_SMALL_NUMBER ||
-		Bob.Mass <= UE_SMALL_NUMBER ||
-		PendulumPos.ComputedLength <= UE_SMALL_NUMBER
-		)
-	{
-		return 0.0;
-	}
-
 	// Constraint:
 	// |x_B - x_P| = L
 	//
@@ -193,13 +184,52 @@ double FPendulumRod::ComputeTension(
 	//   + (v_t^2 / L) ]
 	// / EffectiveInverseMassSum
 
+	if (
+		Pivot.Mass <= UE_SMALL_NUMBER ||
+		Bob.Mass <= UE_SMALL_NUMBER ||
+		PendulumPos.ComputedLength <= UE_SMALL_NUMBER
+		)
+	{
+		return 0.0;
+	}
+
 	const double TangentialSpeedSquared =
 		PendulumVel.Bob2PivotTangential
 		* PendulumVel.Bob2PivotTangential;
 
+	const double ConstraintLength =
+		TheoreticalLength > UE_SMALL_NUMBER
+		? TheoreticalLength
+		: PendulumPos.ComputedLength;
+
+	FVector2D PivotExternalAcceleration =
+		Pivot.NetForce / Pivot.Mass;
+
+	if (Pivot.bXFixed)
+	{
+		PivotExternalAcceleration.X = 0.0;
+	}
+
+	if (Pivot.bYFixed)
+	{
+		PivotExternalAcceleration.Y = 0.0;
+	}
+
+	FVector2D BobExternalAcceleration =
+		Bob.NetForce / Bob.Mass;
+
+	if (Bob.bXFixed)
+	{
+		BobExternalAcceleration.X = 0.0;
+	}
+
+	if (Bob.bYFixed)
+	{
+		BobExternalAcceleration.Y = 0.0;
+	}
+
 	const FVector2D ExternalAccelerationDifference =
-		ComputeFreeAcceleration(Bob)
-		- ComputeFreeAcceleration(Pivot);
+		BobExternalAcceleration - PivotExternalAcceleration;
 
 	const double ExternalRadialAcceleration =
 		FVector2D::DotProduct(
@@ -207,26 +237,73 @@ double FPendulumRod::ComputeTension(
 			InPolarBase.e_Radial
 		);
 
-	const double EffectiveInverseMassSum =
-		ComputeEffectiveInverseMass(Pivot, InPolarBase.e_Radial)
-		+ ComputeEffectiveInverseMass(Bob, InPolarBase.e_Radial);
+	double PivotEffectiveInverseMass = 0.0;
 
-	if (EffectiveInverseMassSum <= UE_SMALL_NUMBER)
+	if (!Pivot.bXFixed)
+	{
+		const double ProjectionOnX =
+			FVector2D::DotProduct(
+				InPolarBase.e_Radial,
+				CartesianBase::e_X
+			);
+
+		PivotEffectiveInverseMass +=
+			ProjectionOnX * ProjectionOnX / Pivot.Mass;
+	}
+
+	if (!Pivot.bYFixed)
+	{
+		const double ProjectionOnY =
+			FVector2D::DotProduct(
+				InPolarBase.e_Radial,
+				CartesianBase::e_Y
+			);
+
+		PivotEffectiveInverseMass +=
+			ProjectionOnY * ProjectionOnY / Pivot.Mass;
+	}
+
+	double BobEffectiveInverseMass = 0.0;
+
+	if (!Bob.bXFixed)
+	{
+		const double ProjectionOnX =
+			FVector2D::DotProduct(
+				InPolarBase.e_Radial,
+				CartesianBase::e_X
+			);
+
+		BobEffectiveInverseMass +=
+			ProjectionOnX * ProjectionOnX / Bob.Mass;
+	}
+
+	if (!Bob.bYFixed)
+	{
+		const double ProjectionOnY =
+			FVector2D::DotProduct(
+				InPolarBase.e_Radial,
+				CartesianBase::e_Y
+			);
+
+		BobEffectiveInverseMass +=
+			ProjectionOnY * ProjectionOnY / Bob.Mass;
+	}
+
+	const double ConstraintCoefficientA =
+		PivotEffectiveInverseMass
+		+ BobEffectiveInverseMass;
+
+	if (ConstraintCoefficientA <= UE_SMALL_NUMBER)
 	{
 		return 0.0;
 	}
 
-	const double ConstraintLength =
-		TheoreticalLength > UE_SMALL_NUMBER
-		? TheoreticalLength
-		: PendulumPos.ComputedLength;
+	const double ConstraintRhsB =
+		ExternalRadialAcceleration
+		+ TangentialSpeedSquared / ConstraintLength;
 
 	const double Tension =
-		(
-			ExternalRadialAcceleration
-			+ TangentialSpeedSquared / ConstraintLength
-			)
-		/ EffectiveInverseMassSum;
+		ConstraintRhsB / ConstraintCoefficientA;
 
 	return Tension;
 }

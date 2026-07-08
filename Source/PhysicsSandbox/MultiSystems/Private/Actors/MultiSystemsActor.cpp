@@ -113,7 +113,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 Mass2Index =
 		FullSys.AddBody(
 			FBody::SlidingMassX(
-				FVector2D(4.0, 0.0),
+				FVector2D(3.5, 0.0),
 				1.0
 			)
 		);
@@ -135,7 +135,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 			WallIndex,
 			Mass1Index,
 			20.0,
-			0.2,
+			0.5,
 			1.5
 		));
 
@@ -144,7 +144,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 			Mass1Index,
 			Mass2Index,
 			20.0,
-			0.2,
+			0.5,
 			1.5
 		));
 
