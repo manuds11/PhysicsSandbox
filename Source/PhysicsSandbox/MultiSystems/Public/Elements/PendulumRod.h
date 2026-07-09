@@ -8,12 +8,6 @@ struct FPolarBase
 {
 	FVector2D e_Radial = FVector2D::ZeroVector;
 	FVector2D e_Theta = FVector2D::ZeroVector;
-
-	FVector2D e_RadialX = FVector2D::ZeroVector;
-	FVector2D e_RadialY = FVector2D::ZeroVector;
-
-	FVector2D e_ThetaX = FVector2D::ZeroVector;
-	FVector2D e_ThetaY = FVector2D::ZeroVector;	// Projection into cartesian base
 };
 
 struct FPendulumVelocities
@@ -26,7 +20,13 @@ struct FPendulumVelocities
 struct FPendulumPositions
 {
 	FVector2D Bob2Pivot = FVector2D::ZeroVector;
+
+	bool bLengthInitialized = false;
+	double InitialLength = 1.0;
 	double ComputedLength = 0.0;
+
+	double LengthAbsError = 0.0;
+	double LengthRelError = 0.0;
 };
 
 class FPendulumRod : public ISysElement
@@ -34,8 +34,7 @@ class FPendulumRod : public ISysElement
 public:
 	FPendulumRod(
 		int32 InPivotBody,
-		int32 InBobBody,
-		double InTheoreticalLength
+		int32 InBobBody
 	);
 
 	virtual bool GetConnectedBodies(
@@ -45,15 +44,19 @@ public:
 
 	virtual void ApplyForces(
 		TArray<FBody>& Bodies
-	) const override;
+	) override;
 
 private:
+	void InitializePendulumLength();
+	
 	void UpdatePendulumKinematics(
 		const FBody& Pivot,
 		const FBody& Bob
-	) const;
+	);
 
 	FPolarBase ComputePolarBase() const;
+
+	void UpdateLengthErrors();
 
 	FVector2D ComputeFreeAcceleration(
 		const FBody& Body
@@ -74,9 +77,7 @@ private:
 	int32 PivotBody = INDEX_NONE;
 	int32 BobBody = INDEX_NONE;
 
-	double TheoreticalLength = 1.0;
-
-	mutable FPendulumPositions PendulumPos;
-	mutable FPendulumVelocities PendulumVel;
-	mutable FPolarBase PolarBase;
+	FPendulumPositions PendulumPos;
+	FPendulumVelocities PendulumVel;
+	FPolarBase PolarBase;
 };

@@ -2,12 +2,10 @@
 
 FPendulumRod::FPendulumRod(
 	int32 InPivotBody,
-	int32 InBobBody,
-	double InTheoreticalLength
+	int32 InBobBody
 )
 	: PivotBody(InPivotBody)
 	, BobBody(InBobBody)
-	, TheoreticalLength(InTheoreticalLength)
 {
 }
 
@@ -22,9 +20,20 @@ bool FPendulumRod::GetConnectedBodies(
 	return true;
 }
 
+void FPendulumRod::InitializePendulumLength()
+{
+	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	PendulumPos.InitialLength = PendulumPos.ComputedLength;
+	PendulumPos.bLengthInitialized = true;
+}
+
 void FPendulumRod::ApplyForces(
 	TArray<FBody>& Bodies
-) const
+)
 {
 	if (!Bodies.IsValidIndex(PivotBody) || !Bodies.IsValidIndex(BobBody))
 	{
@@ -58,13 +67,18 @@ void FPendulumRod::ApplyForces(
 void FPendulumRod::UpdatePendulumKinematics(
 	const FBody& Pivot,
 	const FBody& Bob
-) const
+)
 {
 	PendulumPos.Bob2Pivot =
 		Bob.Position - Pivot.Position;
 
 	PendulumPos.ComputedLength =
 		PendulumPos.Bob2Pivot.Size();
+
+	if (!PendulumPos.bLengthInitialized)
+	{
+		InitializePendulumLength();
+	}
 
 	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
 	{
@@ -74,6 +88,8 @@ void FPendulumRod::UpdatePendulumKinematics(
 	}
 
 	PolarBase = ComputePolarBase();
+
+	UpdateLengthErrors();
 
 	PendulumVel.Bob2Pivot =
 		Bob.Velocity - Pivot.Velocity;
@@ -89,6 +105,23 @@ void FPendulumRod::UpdatePendulumKinematics(
 			PendulumVel.Bob2Pivot,
 			PolarBase.e_Radial
 		);
+
+}
+
+void FPendulumRod::UpdateLengthErrors()
+{
+	if (PendulumPos.InitialLength <= UE_SMALL_NUMBER)
+	{
+		PendulumPos.LengthAbsError = 0.0;
+		PendulumPos.LengthRelError = 0.0;
+		return;
+	}
+	
+	PendulumPos.LengthAbsError =
+		PendulumPos.ComputedLength - PendulumPos.InitialLength;
+
+	PendulumPos.LengthRelError =
+		PendulumPos.LengthAbsError / PendulumPos.InitialLength;
 }
 
 FPolarBase FPendulumRod::ComputePolarBase() const
@@ -134,7 +167,7 @@ FVector2D FPendulumRod::ComputeFreeAcceleration(
 
 double FPendulumRod::ComputeEffectiveInverseMass(
 	const FBody& Body,
-	const FVector2D& e_Radial
+	const FVector2D& In_e_Radial
 ) const
 {
 	if (Body.Mass <= UE_SMALL_NUMBER)
@@ -147,13 +180,13 @@ double FPendulumRod::ComputeEffectiveInverseMass(
 	if (!Body.bXFixed)
 	{
 		EffectiveInverseMass +=
-			e_Radial.X * e_Radial.X / Body.Mass;
+			In_e_Radial.X * In_e_Radial.X / Body.Mass;
 	}
 
 	if (!Body.bYFixed)
 	{
 		EffectiveInverseMass +=
-			e_Radial.Y * e_Radial.Y / Body.Mass;
+			In_e_Radial.Y * In_e_Radial.Y / Body.Mass;
 	}
 
 	return EffectiveInverseMass;
@@ -197,97 +230,30 @@ double FPendulumRod::ComputeTension(
 		PendulumVel.Bob2PivotTangential
 		* PendulumVel.Bob2PivotTangential;
 
-	const double ConstraintLength =
-		TheoreticalLength > UE_SMALL_NUMBER
-		? TheoreticalLength
-		: PendulumPos.ComputedLength;
+	const double ConstraintLength = PendulumPos.InitialLength;
 
-	FVector2D PivotExternalAcceleration =
-		Pivot.NetForce / Pivot.Mass;
+	FVector2D PivotExternalAcceleration = ComputeFreeAcceleration(Pivot); // Checks restricted axes and set to zero acceleration components if so.
 
-	if (Pivot.bXFixed)
-	{
-		PivotExternalAcceleration.X = 0.0;
-	}
+	FVector2D BobExternalAcceleration = ComputeFreeAcceleration(Bob);
 
-	if (Pivot.bYFixed)
-	{
-		PivotExternalAcceleration.Y = 0.0;
-	}
-
-	FVector2D BobExternalAcceleration =
-		Bob.NetForce / Bob.Mass;
-
-	if (Bob.bXFixed)
-	{
-		BobExternalAcceleration.X = 0.0;
-	}
-
-	if (Bob.bYFixed)
-	{
-		BobExternalAcceleration.Y = 0.0;
-	}
-
-	const FVector2D ExternalAccelerationDifference =
+	const FVector2D Accel_Bob2Pivot =
 		BobExternalAcceleration - PivotExternalAcceleration;
 
-	const double ExternalRadialAcceleration =
+	const double ExtAccel_Radial_Bob2Pivot = // Calcula la aceleracion debida a las fuerzas externas sobre el Body sin contar la tension, las que recibe de otros elementos.
 		FVector2D::DotProduct(
-			ExternalAccelerationDifference,
+			Accel_Bob2Pivot,
 			InPolarBase.e_Radial
 		);
 
-	double PivotEffectiveInverseMass = 0.0;
+	double PivotEffectiveInverseMass = ComputeEffectiveInverseMass(
+		Pivot,
+		InPolarBase.e_Radial
+	);
 
-	if (!Pivot.bXFixed)
-	{
-		const double ProjectionOnX =
-			FVector2D::DotProduct(
-				InPolarBase.e_Radial,
-				CartesianBase::e_X
-			);
-
-		PivotEffectiveInverseMass +=
-			ProjectionOnX * ProjectionOnX / Pivot.Mass;
-	}
-
-	if (!Pivot.bYFixed)
-	{
-		const double ProjectionOnY =
-			FVector2D::DotProduct(
-				InPolarBase.e_Radial,
-				CartesianBase::e_Y
-			);
-
-		PivotEffectiveInverseMass +=
-			ProjectionOnY * ProjectionOnY / Pivot.Mass;
-	}
-
-	double BobEffectiveInverseMass = 0.0;
-
-	if (!Bob.bXFixed)
-	{
-		const double ProjectionOnX =
-			FVector2D::DotProduct(
-				InPolarBase.e_Radial,
-				CartesianBase::e_X
-			);
-
-		BobEffectiveInverseMass +=
-			ProjectionOnX * ProjectionOnX / Bob.Mass;
-	}
-
-	if (!Bob.bYFixed)
-	{
-		const double ProjectionOnY =
-			FVector2D::DotProduct(
-				InPolarBase.e_Radial,
-				CartesianBase::e_Y
-			);
-
-		BobEffectiveInverseMass +=
-			ProjectionOnY * ProjectionOnY / Bob.Mass;
-	}
+	double BobEffectiveInverseMass = ComputeEffectiveInverseMass(
+		Bob,
+		InPolarBase.e_Radial
+	);
 
 	const double ConstraintCoefficientA =
 		PivotEffectiveInverseMass
@@ -299,7 +265,7 @@ double FPendulumRod::ComputeTension(
 	}
 
 	const double ConstraintRhsB =
-		ExternalRadialAcceleration
+		ExtAccel_Radial_Bob2Pivot
 		+ TangentialSpeedSquared / ConstraintLength;
 
 	const double Tension =

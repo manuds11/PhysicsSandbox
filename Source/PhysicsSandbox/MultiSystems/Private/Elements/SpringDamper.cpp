@@ -26,7 +26,7 @@ bool FSpringDamper::GetConnectedBodies(
 	return true;
 }
 
-void FSpringDamper::ApplyForces(TArray<FBody>& Bodies) const
+void FSpringDamper::ApplyForces(TArray<FBody>& Bodies)
 {
 	if (!Bodies.IsValidIndex(BodyA) || !Bodies.IsValidIndex(BodyB))
 	{

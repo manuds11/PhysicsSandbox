@@ -151,8 +151,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 PendulumRodIndex =
 		FullSys.AddElement(MakeUnique<FPendulumRod>(
 			Mass2Index,
-			BobIndex,
-			1.0
+			BobIndex
 		));
 	
 	// We associate the bodies and elements to the subsystem by their indexes. 

@@ -79,5 +79,5 @@ public:
 		return false;
 	}
 
-	virtual void ApplyForces(TArray<FBody>& Bodies) const = 0;
+	virtual void ApplyForces(TArray<FBody>& Bodies) = 0;
 };

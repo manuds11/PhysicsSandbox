@@ -19,7 +19,7 @@ public:
 		int32& OutBodyB
 	) const override;
 
-	virtual void ApplyForces(TArray<FBody>& Bodies) const override;
+	virtual void ApplyForces(TArray<FBody>& Bodies) override;
 
 	virtual bool GetEquilibriumPoint(
 		const TArray<FBody>& Bodies,
