@@ -67,6 +67,10 @@ private:
 	int64 FrameCount = 0;
 	int32 LastSubStepCount = 0;
 
+
+	// AUX - Remove after debugging
+	int32 PendulumIndexForDebug = INDEX_NONE;
+
 	// =========================
 	// Visualization
 	// =========================

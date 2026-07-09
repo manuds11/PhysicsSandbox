@@ -60,8 +60,11 @@ void FPendulumRod::ApplyForces(
 	const FVector2D ConstraintForce =
 		Tension * PolarBase.e_Radial;
 
+	LastComputedTension = Tension;
+
 	Pivot.NetForce += ConstraintForce;
 	Bob.NetForce -= ConstraintForce;
+
 }
 
 void FPendulumRod::UpdatePendulumKinematics(

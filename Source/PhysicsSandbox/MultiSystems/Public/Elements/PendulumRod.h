@@ -37,6 +37,10 @@ public:
 		int32 InBobBody
 	);
 
+	const FPendulumPositions& GetPendulumPositions() const { return PendulumPos; }
+	const FPendulumVelocities& GetPendulumVelocities() const { return PendulumVel; }
+	double GetLastComputedTension() const { return LastComputedTension; }
+
 	virtual bool GetConnectedBodies(
 		int32& OutBodyA,
 		int32& OutBodyB
@@ -77,6 +81,7 @@ private:
 	int32 PivotBody = INDEX_NONE;
 	int32 BobBody = INDEX_NONE;
 
+	double LastComputedTension = 0.0; // N
 	FPendulumPositions PendulumPos;
 	FPendulumVelocities PendulumVel;
 	FPolarBase PolarBase;

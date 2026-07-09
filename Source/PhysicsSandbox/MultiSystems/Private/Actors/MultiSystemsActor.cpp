@@ -121,7 +121,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 BobIndex =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(4.0, -1.0),
+				FVector2D(3.8, -1.0),
 				1.0
 			)
 		);
@@ -153,6 +153,8 @@ void AMultiSystemsActor::BuildDemoSystem()
 			Mass2Index,
 			BobIndex
 		));
+
+	PendulumIndexForDebug = PendulumRodIndex;
 	
 	// We associate the bodies and elements to the subsystem by their indexes. 
 	// We attach an identification tag. 
@@ -336,6 +338,49 @@ void AMultiSystemsActor::PrintInfo() const
 			SimulationDelay,
 			AverageDeltaTime,
 			FixedTimeStep
+		)
+	);
+
+	const TArray<TUniquePtr<ISysElement>>& Elements =
+		FullSys.GetElements();
+
+	if (!Elements.IsValidIndex(PendulumIndexForDebug))
+	{
+		return;
+	}
+
+	const FPendulumRod* PendulumRod =
+		static_cast<const FPendulumRod*>(
+			Elements[PendulumIndexForDebug].Get()
+			);
+
+	if (!PendulumRod)
+	{
+		return;
+	}
+
+	const FPendulumPositions& PendulumPos =
+		PendulumRod->GetPendulumPositions();
+
+	const FPendulumVelocities& PendulumVel =
+		PendulumRod->GetPendulumVelocities();
+
+	GEngine->AddOnScreenDebugMessage(
+		2,
+		0.0f,
+		FColor::Yellow,
+		FString::Printf(
+			TEXT(
+				"Pendulum | "
+				"L: %.4f m | "
+				"Err: %.4f %% | "
+				"Vr: %.6f m/s | "
+				"T: %.3f N"
+			),
+			PendulumPos.ComputedLength,
+			100.0 * PendulumPos.LengthRelError,
+			PendulumVel.Bob2PivotRadial,
+			PendulumRod->GetLastComputedTension()
 		)
 	);
 }
