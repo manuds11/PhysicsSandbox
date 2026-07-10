@@ -24,6 +24,21 @@ void AMultiSystemsActor::BeginPlay()
 	BuildDemoSystem();
 
 	ConfigureIntegrator();
+
+	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+	{
+		EnableInput(PC);
+	}
+
+	if (InputComponent)
+	{
+		InputComponent->BindKey(
+			EKeys::SpaceBar,
+			IE_Pressed,
+			this,
+			&AMultiSystemsActor::ToggleSimulation
+		);
+	}
 }
 
 void AMultiSystemsActor::Tick(float DeltaTime)
@@ -124,7 +139,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 BobIndex =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(4.5, 0.0),
+				FVector2D(4.5, 0.8),
 				1.0
 			)
 		);

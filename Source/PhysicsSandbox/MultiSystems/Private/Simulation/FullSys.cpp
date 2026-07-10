@@ -1,10 +1,18 @@
 #include "Simulation/FullSys.h"
 #include "Math/Units.h"
 
+// ------------------------------------------------------------------------------
+// Construction
+// -----------------------------------------------------------------------------
+
 FFullSys::FFullSys()
+	: Integrator(MakeUnique<FExplicitEulerSysIntegrator>())
 {
-	Integrator = MakeUnique<FExplicitEulerSysIntegrator>();
 }
+
+// -----------------------------------------------------------------------------
+// Public API
+// -----------------------------------------------------------------------------
 
 int32 FFullSys::AddBody(const FBody& Body)
 {
@@ -31,11 +39,6 @@ FSubSys& FFullSys::CreateSubSys(FName Name)
 	return SubSystems[SubSysIndex];
 }
 
-const TArray<FSubSys>& FFullSys::GetSubSystems() const
-{
-	return SubSystems;
-}
-
 void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
 {
 	if (InIntegrator)
@@ -44,15 +47,9 @@ void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
 	}
 }
 
-void FFullSys::Step(double Dt)
-{
-	ClearForces();
-	ApplyGravity();
-	ApplyElementInteractions();
-	ComputeAccelerations(); 
-	Integrate(Dt);
-	ApplyFixedAxes();
-}
+// -----------------------------------------------------------------------------
+// Getters
+// -----------------------------------------------------------------------------
 
 const TArray<FBody>& FFullSys::GetBodies() const
 {
@@ -63,6 +60,29 @@ const TArray<TUniquePtr<ISysElement>>& FFullSys::GetElements() const
 {
 	return Elements;
 }
+
+const TArray<FSubSys>& FFullSys::GetSubSystems() const
+{
+	return SubSystems;
+}
+
+// -----------------------------------------------------------------------------
+// Simulation
+// -----------------------------------------------------------------------------
+
+void FFullSys::Step(double Dt)
+{
+	ClearForces();
+	ApplyGravity();
+	ApplyElementInteractions();
+	ComputeAccelerations();
+	Integrate(Dt);
+	ApplyFixedAxes();
+}
+
+// -----------------------------------------------------------------------------
+// Simulation pipeline
+// -----------------------------------------------------------------------------
 
 void FFullSys::ClearForces()
 {

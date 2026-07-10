@@ -1,5 +1,9 @@
 #include "Elements/SpringDamper.h"
 
+// -----------------------------------------------------------------------------
+// Construction
+// -----------------------------------------------------------------------------
+
 FSpringDamper::FSpringDamper(
 	int32 InBodyA,
 	int32 InBodyB,
@@ -15,6 +19,10 @@ FSpringDamper::FSpringDamper(
 {
 }
 
+// -----------------------------------------------------------------------------
+// ISysElement interface
+// -----------------------------------------------------------------------------
+
 bool FSpringDamper::GetConnectedBodies(
 	int32& OutBodyA,
 	int32& OutBodyB
@@ -25,6 +33,10 @@ bool FSpringDamper::GetConnectedBodies(
 
 	return true;
 }
+
+// -----------------------------------------------------------------------------
+// Simulation
+// -----------------------------------------------------------------------------
 
 void FSpringDamper::ApplyForces(TArray<FBody>& Bodies)
 {
@@ -58,6 +70,10 @@ void FSpringDamper::ApplyForces(TArray<FBody>& Bodies)
 	A.NetForce += Force;
 	B.NetForce -= Force;
 }
+
+// -----------------------------------------------------------------------------
+// Visualization data
+// -----------------------------------------------------------------------------
 
 bool FSpringDamper::GetEquilibriumPoint(
 	const TArray<FBody>& Bodies,

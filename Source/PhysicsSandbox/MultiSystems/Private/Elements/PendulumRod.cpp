@@ -1,6 +1,10 @@
 #include "Elements/PendulumRod.h"
 #include "Math/Units.h"
 
+// -----------------------------------------------------------------------------
+// Construction
+// -----------------------------------------------------------------------------
+
 FPendulumRod::FPendulumRod(
 	int32 InPivotBody,
 	int32 InBobBody
@@ -9,6 +13,10 @@ FPendulumRod::FPendulumRod(
 	, BobBody(InBobBody)
 {
 }
+
+// -----------------------------------------------------------------------------
+// ISysElement interface
+// -----------------------------------------------------------------------------
 
 bool FPendulumRod::GetConnectedBodies(
 	int32& OutBodyA,
@@ -19,17 +27,6 @@ bool FPendulumRod::GetConnectedBodies(
 	OutBodyB = BobBody;
 
 	return true;
-}
-
-void FPendulumRod::InitializePendulumLength()
-{
-	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
-	{
-		return;
-	}
-
-	PendulumPos.InitialLength = PendulumPos.ComputedLength;
-	PendulumPos.bLengthInitialized = true;
 }
 
 void FPendulumRod::ApplyForces(
@@ -67,6 +64,23 @@ void FPendulumRod::ApplyForces(
 	Bob.NetForce -= ConstraintForce;
 
 }
+
+// -----------------------------------------------------------------------------
+// State update pipeline
+// -----------------------------------------------------------------------------
+
+void FPendulumRod::InitializePendulumLength()
+{
+	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	PendulumPos.InitialLength = PendulumPos.ComputedLength;
+	PendulumPos.bLengthInitialized = true;
+}
+
+
 
 void FPendulumRod::UpdatePendulumKinematics(
 	const FBody& Pivot,
@@ -128,6 +142,10 @@ void FPendulumRod::UpdateLengthErrors()
 		PendulumPos.LengthAbsError / PendulumPos.InitialLength;
 }
 
+// -----------------------------------------------------------------------------
+// Derived computations
+// -----------------------------------------------------------------------------
+
 FPolarBase FPendulumRod::ComputePolarBase() const
 {
 	FPolarBase ComputedPolarBase;
@@ -144,81 +162,32 @@ FPolarBase FPendulumRod::ComputePolarBase() const
 	return ComputedPolarBase;
 }
 
-FVector2D FPendulumRod::ComputeFreeAcceleration(
-	const FBody& Body
-) const
-{
-	if (Body.Mass <= UE_SMALL_NUMBER)
-	{
-		return FVector2D::ZeroVector;
-	}
-
-	FVector2D FreeAcceleration =
-		Body.NetForce / Body.Mass;
-
-	if (Body.bXFixed)
-	{
-		FreeAcceleration.X = 0.0;
-	}
-
-	if (Body.bYFixed)
-	{
-		FreeAcceleration.Y = 0.0;
-	}
-
-	return FreeAcceleration;
-}
-
-double FPendulumRod::ComputeEffectiveInverseMass(
-	const FBody& Body,
-	const FVector2D& In_e_Radial
-) const
-{
-	if (Body.Mass <= UE_SMALL_NUMBER)
-	{
-		return 0.0;
-	}
-
-	double EffectiveInverseMass = 0.0;
-
-	if (!Body.bXFixed)
-	{
-		EffectiveInverseMass +=
-			In_e_Radial.X * In_e_Radial.X / Body.Mass;
-	}
-
-	if (!Body.bYFixed)
-	{
-		EffectiveInverseMass +=
-			In_e_Radial.Y * In_e_Radial.Y / Body.Mass;
-	}
-
-	return EffectiveInverseMass;
-}
-
 double FPendulumRod::ComputeTension(
 	const FBody& Pivot,
 	const FBody& Bob,
 	const FPolarBase& InPolarBase
 ) const
 {
-	// Constraint:
-	// |x_B - x_P| = L
-	//
-	// Velocity-level constraint:
-	// Dot(v_B - v_P, e_Radial) = 0
+	// Distance constraint:
+	// |x_B - x_P| = L0
 	//
 	// Acceleration-level constraint:
-	// Dot(a_B - a_P, e_Radial) = -v_t^2 / L
+	// Dot(a_B - a_P, e_Radial) = -v_t^2 / L0
 	//
-	// Newton with fixed axes:
-	// a_P = movable components of (F_P + T e_Radial) / m_P
-	// a_B = movable components of (F_B - T e_Radial) / m_B
+	// The rod forces are:
+	// Pivot: +T e_Radial
+	// Bob:   -T e_Radial
 	//
-	// Tension:
-	// T =
-	// [ Dot(a_B_external - a_P_external, e_Radial)
-	//   + (v_t^2 / L) ]
+	// After accounting for fixed axes, the scalar constraint equation is:
+	//
+	//     A * T = b
+	//
+	// where:
+	//     A = sum of effective inverse masses in the radial direction
+	//     b = external relative radial acceleration + v_t^2 / L0
+	//
+	// Therefore:
+	//     T = b / A
 	// / EffectiveInverseMassSum
 
 	if (
@@ -276,4 +245,68 @@ double FPendulumRod::ComputeTension(
 		ConstraintRhsB / ConstraintCoefficientA;
 
 	return Tension;
+}
+
+FVector2D FPendulumRod::ComputeFreeAcceleration(
+	const FBody& Body
+) const
+{
+	// Computes acceleration from the currently accumulated external forces.
+	// Acceleration components along fixed axes are set to zero because those
+	// forces are balanced by support reactions.
+
+	if (Body.Mass <= UE_SMALL_NUMBER)
+	{
+		return FVector2D::ZeroVector;
+	}
+
+	FVector2D FreeAcceleration =
+		Body.NetForce / Body.Mass;
+
+	if (Body.bXFixed)
+	{
+		FreeAcceleration.X = 0.0;
+	}
+
+	if (Body.bYFixed)
+	{
+		FreeAcceleration.Y = 0.0;
+	}
+
+	return FreeAcceleration;
+}
+
+double FPendulumRod::ComputeEffectiveInverseMass(
+	const FBody& Body,
+	const FVector2D& In_e_Radial
+) const
+{
+	// Measures the radial acceleration produced by one unit of tension.
+	//
+	// For each free Cartesian axis:
+	//     contribution = e_component^2 / mass
+	//
+	// Fixed axes do not contribute because their constraint reactions prevent
+	// acceleration in those directions.
+
+	if (Body.Mass <= UE_SMALL_NUMBER)
+	{
+		return 0.0;
+	}
+
+	double EffectiveInverseMass = 0.0;
+
+	if (!Body.bXFixed)
+	{
+		EffectiveInverseMass +=
+			In_e_Radial.X * In_e_Radial.X / Body.Mass;
+	}
+
+	if (!Body.bYFixed)
+	{
+		EffectiveInverseMass +=
+			In_e_Radial.Y * In_e_Radial.Y / Body.Mass;
+	}
+
+	return EffectiveInverseMass;
 }

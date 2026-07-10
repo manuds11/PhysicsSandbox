@@ -49,7 +49,7 @@ private:
 	// Tick Simulation variables
 	// =========================
 	UPROPERTY(EditAnywhere, Category = "Simulation|Timing")
-	double FixedTimeStep = 1.0 / 480.0;
+	double FixedTimeStep = 1.0 / 120.0;
 
 	UPROPERTY(EditAnywhere, Category = "Simulation|Timing")
 	int32 MaxSubSteps = 8;
@@ -67,21 +67,25 @@ private:
 	int64 FrameCount = 0;
 	int32 LastSubStepCount = 0;
 
-
-	// AUX - Remove after debugging
-	int32 PendulumIndexForDebug = INDEX_NONE;
-
 	// =========================
 	// Visualization
 	// =========================
 	UPROPERTY(EditAnywhere, Category = "Visualization")
 	FVector VisualizationOffset = FVector(-100.0, 0.0, 200.0); // in cm
 
+	// =========================
+	// AUX - Remove after debugging
+	// =========================
+	int32 PendulumIndexForDebug = INDEX_NONE;
+
+	void BuildDemoSystem();
+
 	void ToggleSimulation();
 	void ConfigureIntegrator();
+
 	void RunSimFixedSteps(double FrameDeltaTime);
+
 	FVector ToWorld(const FVector2D& P) const;
-	void BuildDemoSystem();
 	void DrawSystem() const;
 	void PrintInfo() const;
 };
