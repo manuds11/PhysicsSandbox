@@ -1,4 +1,5 @@
 #include "Elements/PendulumRod.h"
+#include "Math/Units.h"
 
 FPendulumRod::FPendulumRod(
 	int32 InPivotBody,

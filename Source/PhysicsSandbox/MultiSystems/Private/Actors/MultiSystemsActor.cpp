@@ -1,4 +1,4 @@
-  // Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Actors/MultiSystemsActor.h"
 #include "Math/Units.h"
@@ -7,52 +7,41 @@
 #include "Elements/SpringDamper.h"
 #include "DrawDebugHelpers.h"
 
-// Sets default values
+// -----------------------------------------------------------------------------
+// Construction and lifecycle
+// -----------------------------------------------------------------------------
+
 AMultiSystemsActor::AMultiSystemsActor()
 {
  	// Set this actor to call Tick() every frame. You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;	
 }
 
-// Called when the game starts or when spawned
 void AMultiSystemsActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
 	BuildDemoSystem();
 
-	switch (IntegratorType)
-	{
-	case EIntegratorType::ExplicitEuler:
-
-		FullSys.SetIntegrator(
-			MakeUnique<FExplicitEulerSysIntegrator>());
-
-		break;
-
-	case EIntegratorType::SemiImplicitEuler:
-
-		FullSys.SetIntegrator(
-			MakeUnique<FSemiImplicitEulerSysIntegrator>());
-
-		break;
-	}
-
-	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-	{
-		EnableInput(PC);
-	}
-
-	if (InputComponent)
-	{
-		InputComponent->BindKey(
-			EKeys::SpaceBar,
-			IE_Pressed,
-			this,
-			&AMultiSystemsActor::ToggleSimulation
-		);
-	}
+	ConfigureIntegrator();
 }
+
+void AMultiSystemsActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (bIsSimulationRunning)
+	{
+		RunSimFixedSteps(DeltaTime);
+	}
+
+	DrawSystem();
+	PrintInfo();
+}
+
+// -----------------------------------------------------------------------------
+// Input
+// -----------------------------------------------------------------------------
 
 void AMultiSystemsActor::ToggleSimulation()
 {
@@ -73,19 +62,31 @@ void AMultiSystemsActor::ToggleSimulation()
 	}*/
 }
 
-// Called every frame
-void AMultiSystemsActor::Tick(float DeltaTime)
+void AMultiSystemsActor::ConfigureIntegrator()
 {
-	Super::Tick(DeltaTime);
-
-	if (bIsSimulationRunning)
+	switch (IntegratorType)
 	{
-		RunSimFixedSteps(DeltaTime);
-	}
+	case EIntegratorType::ExplicitEuler:
+		FullSys.SetIntegrator(
+			MakeUnique<FExplicitEulerSysIntegrator>()
+		);
+		break;
 
-	DrawSystem();
-	PrintInfo();
+	case EIntegratorType::SemiImplicitEuler:
+		FullSys.SetIntegrator(
+			MakeUnique<FSemiImplicitEulerSysIntegrator>()
+		);
+		break;
+
+	default:
+		checkNoEntry();
+		break;
+	}
 }
+
+// -----------------------------------------------------------------------------
+// System setup
+// -----------------------------------------------------------------------------
 
 void AMultiSystemsActor::BuildDemoSystem()
 {
@@ -97,8 +98,10 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// store them in an array in FullSys Class. The body index in the array identifies
 	// each body and is saved. The bodies index allow us define interactions between
 	// bodies.
-	const int32 WallIndex = FullSys.AddBody(
-			FBody::Fixed( FVector2D(0.0, 0.0)
+	const int32 WallIndex = 
+		FullSys.AddBody(
+			FBody::Fixed( 
+				FVector2D(0.0, 0.0)
 			)
 		);
 
@@ -121,7 +124,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 BobIndex =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(3.8, -1.0),
+				FVector2D(4.5, 0.0),
 				1.0
 			)
 		);
@@ -170,6 +173,10 @@ void AMultiSystemsActor::BuildDemoSystem()
 	DoubleSpring.AddPort(TEXT("End"), Mass2Index);
 }
 
+// -----------------------------------------------------------------------------
+// Simulation
+// -----------------------------------------------------------------------------
+
 void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 {
 	if (FixedTimeStep <= 0.0 || FrameDeltaTime <= 0.0)
@@ -217,6 +224,10 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 
 	SimulationDelay = RealRunningTime - SimulatedRunningTime;
 }
+
+// -----------------------------------------------------------------------------
+// Visualization and debug
+// -----------------------------------------------------------------------------
 
 FVector AMultiSystemsActor::ToWorld(const FVector2D& P) const
 {
