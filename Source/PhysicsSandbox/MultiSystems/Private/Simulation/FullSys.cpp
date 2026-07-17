@@ -67,7 +67,7 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 }
 
 // -----------------------------------------------------------------------------
-// Simulation
+// Simulation pipeline
 // -----------------------------------------------------------------------------
 
 void FFullSys::Step(double Dt)
@@ -77,11 +77,12 @@ void FFullSys::Step(double Dt)
 	ApplyElementInteractions();
 	ComputeAccelerations();
 	Integrate(Dt);
+	ProjectElementVelocities();
 	ApplyFixedAxes();
 }
 
 // -----------------------------------------------------------------------------
-// Simulation pipeline
+// Simulation Subprocesses 
 // -----------------------------------------------------------------------------
 
 void FFullSys::ClearForces()
@@ -186,5 +187,18 @@ void FFullSys::ApplyFixedAxes()		// Faltan reacciones
 			Body.Acceleration.Y = 0.0;
 			Body.NetForce.Y = 0.0;
 		}
+	}
+}
+
+void FFullSys::ProjectElementVelocities()
+{
+	for (const TUniquePtr<ISysElement>& Element : Elements)
+	{
+		if (!Element)
+		{
+			continue;
+		}
+
+		Element->ProjectVelocities(Bodies);
 	}
 }

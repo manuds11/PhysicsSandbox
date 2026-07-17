@@ -71,6 +71,14 @@ public:
 		return false;
 	}
 
+	virtual void ApplyForces(TArray<FBody>& Bodies) = 0;
+
+	virtual void ProjectVelocities(
+		TArray<FBody>& Bodies
+	)
+	{
+	}
+
 	virtual bool GetEquilibriumPoint(
 		const TArray<FBody>& Bodies,
 		FVector2D& OutPoint
@@ -78,6 +86,4 @@ public:
 	{
 		return false;
 	}
-
-	virtual void ApplyForces(TArray<FBody>& Bodies) = 0;
 };

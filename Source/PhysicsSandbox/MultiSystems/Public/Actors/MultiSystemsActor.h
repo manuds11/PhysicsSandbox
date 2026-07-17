@@ -60,8 +60,8 @@ private:
 	double SimulationTimeDebt = 0.0;
 	double SimulationDelay = 0.0;
 
-	double RealRunningTime = 0.0;
-	double SimulatedRunningTime = 0.0;
+	double SimuWallClockTime = 0.0;
+	double SimuPhysicalTime = 0.0;
 	double AverageDeltaTime = 0.0;
 
 	int64 FrameCount = 0;

@@ -139,7 +139,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 BobIndex =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(4.5, 0.8),
+				FVector2D(4.5, 0.0),
 				1.0
 			)
 		);
@@ -189,7 +189,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 }
 
 // -----------------------------------------------------------------------------
-// Simulation
+// Fixed step simulation
 // -----------------------------------------------------------------------------
 
 void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
@@ -199,7 +199,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		return;
 	}
 
-	RealRunningTime += FrameDeltaTime;
+	SimuWallClockTime += FrameDeltaTime;
 	FrameCount++;
 
 	AverageDeltaTime +=
@@ -219,7 +219,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 	{
 		FullSys.Step(FixedTimeStep);
 
-		SimulatedRunningTime += FixedTimeStep;
+		SimuPhysicalTime += FixedTimeStep;
 		SimulationTimeDebt -= FixedTimeStep;
 
 		SubStepCount++;
@@ -237,7 +237,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		SimulationTimeDebt = FMath::Min(SimulationTimeDebt, FixedTimeStep);
 	}
 
-	SimulationDelay = RealRunningTime - SimulatedRunningTime;
+	SimulationDelay = SimuWallClockTime - SimuPhysicalTime;
 }
 
 // -----------------------------------------------------------------------------
@@ -355,12 +355,12 @@ void AMultiSystemsActor::PrintInfo() const
 		FString::Printf(
 			TEXT(
 				"SPACE Start/Stop | "
-				"Real: %.2f s | "
+				"SimulTime: %.2f s | "
 				"Delay: %.5f s | "
 				"AvgDt: %.5f s | "
 				"FixedDt: %.5f s"
 			),
-			RealRunningTime,
+			SimuPhysicalTime,
 			SimulationDelay,
 			AverageDeltaTime,
 			FixedTimeStep

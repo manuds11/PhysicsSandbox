@@ -80,8 +80,6 @@ void FPendulumRod::InitializePendulumLength()
 	PendulumPos.bLengthInitialized = true;
 }
 
-
-
 void FPendulumRod::UpdatePendulumKinematics(
 	const FBody& Pivot,
 	const FBody& Bob
@@ -309,4 +307,133 @@ double FPendulumRod::ComputeEffectiveInverseMass(
 	}
 
 	return EffectiveInverseMass;
+}
+
+void FPendulumRod::ProjectVelocities(
+	TArray<FBody>& Bodies
+)
+{
+	// Velocity-level constraint:
+	//
+	//     Dot(v_B - v_P, e_Radial) = 0
+	//
+	// After integration, the provisional state may contain a non-zero radial
+	// relative speed:
+	//
+	//     v_r = Dot(v_B - v_P, e_Radial)
+	//
+	// We apply equal and opposite radial impulses:
+	//
+	//     Pivot: +J e_Radial
+	//     Bob:   -J e_Radial
+	//
+	// The scalar impulse is obtained from:
+	//
+	//     A J = v_r
+	//
+	// where A is the sum of the effective inverse masses in the radial
+	// direction. Therefore:
+	//
+	//     J = v_r / A
+	//
+	// Only the radial component is removed. The tangential relative velocity,
+	// which represents the physical pendulum motion, is preserved.
+
+	if (!Bodies.IsValidIndex(PivotBody) || !Bodies.IsValidIndex(BobBody))
+	{
+		return;
+	}
+
+	FBody& Pivot = Bodies[PivotBody];
+	FBody& Bob = Bodies[BobBody];
+
+	// Recompute the pendulum geometry and velocity from the provisional
+	// post-integration state at t_(n+1).
+	UpdatePendulumKinematics(Pivot, Bob);
+
+	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	const double RadialSpeed =
+		PendulumVel.Bob2PivotRadial;
+
+	const double PivotEffectiveInverseMass =
+		ComputeEffectiveInverseMass(
+			Pivot,
+			PolarBase.e_Radial
+		);
+
+	const double BobEffectiveInverseMass =
+		ComputeEffectiveInverseMass(
+			Bob,
+			PolarBase.e_Radial
+		);
+
+	const double ConstraintCoefficientA =
+		PivotEffectiveInverseMass
+		+ BobEffectiveInverseMass;
+
+	if (ConstraintCoefficientA <= UE_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	const double ConstraintRhsB =
+		RadialSpeed;
+
+	const double ImpulseMagnitude =
+		ConstraintRhsB / ConstraintCoefficientA;
+
+	const FVector2D ConstraintImpulse =
+		ImpulseMagnitude * PolarBase.e_Radial;
+
+	ApplyVelocityImpulse(
+		Pivot,
+		ConstraintImpulse
+	);
+
+	ApplyVelocityImpulse(
+		Bob,
+		-ConstraintImpulse
+	);
+
+	// Refresh diagnostics so the displayed radial speed corresponds to the
+	// corrected state rather than the provisional integrated state.
+	UpdatePendulumKinematics(Pivot, Bob);
+}
+
+void FPendulumRod::ApplyVelocityImpulse(
+	FBody& Body,
+	const FVector2D& Impulse
+) const
+{
+	// Impulse-momentum relation:
+	//
+	//     Impulse = m DeltaVelocity
+	//
+	// Therefore:
+	//
+	//     DeltaVelocity = Impulse / m
+	//
+	// Fixed-axis components are not modified because the corresponding
+	// support reactions prevent velocity changes along those axes.
+
+	if (Body.Mass <= UE_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	if (!Body.bXFixed)
+	{
+		Body.Velocity.X +=
+			Impulse.X / Body.Mass;
+	}
+
+	if (!Body.bYFixed)
+	{
+		Body.Velocity.Y +=
+			Impulse.Y / Body.Mass;
+	}
 }

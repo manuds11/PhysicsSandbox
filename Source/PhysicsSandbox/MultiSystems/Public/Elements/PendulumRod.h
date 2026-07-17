@@ -38,10 +38,6 @@ public:
         int32 InBobBody
     );
 
-    virtual void ApplyForces(
-        TArray<FBody>& Bodies
-    ) override;
-
     virtual bool GetConnectedBodies(
         int32& OutBodyA,
         int32& OutBodyB
@@ -61,6 +57,14 @@ public:
     {
         return LastComputedTension;
     }
+
+    virtual void ApplyForces(
+        TArray<FBody>& Bodies
+    ) override;
+
+    virtual void ProjectVelocities(
+        TArray<FBody>& Bodies
+    ) override;
 
 private:
     // Initialization
@@ -90,6 +94,11 @@ private:
         const FBody& Pivot,
         const FBody& Bob,
         const FPolarBase& InPolarBase
+    ) const;
+
+    void ApplyVelocityImpulse(
+        FBody& Body,
+        const FVector2D& Impulse
     ) const;
 
     // Connectivity
