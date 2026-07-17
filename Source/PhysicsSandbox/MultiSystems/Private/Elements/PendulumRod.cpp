@@ -304,7 +304,7 @@ double FPendulumRod::ComputeEffectiveInverseMass(
 	{
 		EffectiveInverseMass +=
 			In_e_Radial.Y * In_e_Radial.Y / Body.Mass;
-	}
+	}                                     
 
 	return EffectiveInverseMass;
 }
@@ -351,12 +351,14 @@ void FPendulumRod::ProjectVelocities(
 	// post-integration state at t_(n+1).
 	UpdatePendulumKinematics(Pivot, Bob);
 
+	// ComputeFreeVelocity(const FBody & Body) is not neccesarry because before integration the fixed axes where already imposed and ar conserved.
+
 	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
 	{
 		return;
 	}
 
-	const double RadialSpeed =
+	const double RadialSpeedError =
 		PendulumVel.Bob2PivotRadial;
 
 	const double PivotEffectiveInverseMass =
@@ -381,7 +383,7 @@ void FPendulumRod::ProjectVelocities(
 	}
 
 	const double ConstraintRhsB =
-		RadialSpeed;
+		RadialSpeedError;
 
 	const double ImpulseMagnitude =
 		ConstraintRhsB / ConstraintCoefficientA;
@@ -435,5 +437,119 @@ void FPendulumRod::ApplyVelocityImpulse(
 	{
 		Body.Velocity.Y +=
 			Impulse.Y / Body.Mass;
+	}
+}
+
+void FPendulumRod::ProjectPositions(
+	TArray<FBody>& Bodies
+)
+{
+	// Position-level constraint:
+	//
+	//     |x_B - x_P| = L0
+	//
+	// After integration, the provisional geometry may violate the rod length:
+	//
+	//     C = |x_B - x_P| - L0
+	//
+	// We apply equal and opposite radial position corrections:
+	//
+	//     Pivot: +DeltaLambda e_Radial
+	//     Bob:   -DeltaLambda e_Radial
+	//
+	// The scalar correction is obtained from:
+	//
+	//     A DeltaLambda = C
+	//
+	// where A is the sum of the effective inverse masses in the radial
+	// direction.
+	//
+	// This is a geometric correction, not a physical force or impulse.
+
+	if (!Bodies.IsValidIndex(PivotBody) || !Bodies.IsValidIndex(BobBody))
+	{
+		return;
+	}
+
+	FBody& Pivot = Bodies[PivotBody];
+	FBody& Bob = Bodies[BobBody];
+
+	// Recompute geometry from the provisional post-integration state.
+	UpdatePendulumKinematics(Pivot, Bob);
+
+	if (
+		PendulumPos.ComputedLength <= UE_SMALL_NUMBER ||
+		PendulumPos.InitialLength <= UE_SMALL_NUMBER
+		)
+	{
+		return;
+	}
+
+	const double LengthError =
+		PendulumPos.ComputedLength
+		- PendulumPos.InitialLength;
+
+	const double PivotEffectiveInverseMass =
+		ComputeEffectiveInverseMass(
+			Pivot,
+			PolarBase.e_Radial
+		);
+
+	const double BobEffectiveInverseMass =
+		ComputeEffectiveInverseMass(
+			Bob,
+			PolarBase.e_Radial
+		);
+
+	const double ConstraintCoefficientA =
+		PivotEffectiveInverseMass
+		+ BobEffectiveInverseMass;
+
+	if (ConstraintCoefficientA <= UE_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	const double PositionCorrectionMagnitude =
+		LengthError / ConstraintCoefficientA;
+
+	const FVector2D PositionCorrection =
+		PositionCorrectionMagnitude
+		* PolarBase.e_Radial;
+
+	ApplyPositionCorrection(
+		Pivot,
+		PositionCorrection
+	);
+
+	ApplyPositionCorrection(
+		Bob,
+		-PositionCorrection
+	);
+
+	// Refresh diagnostics after correction.
+	UpdatePendulumKinematics(Pivot, Bob);
+}
+
+void FPendulumRod::ApplyPositionCorrection(
+	FBody& Body,
+	const FVector2D& Correction
+) const
+{
+	if (Body.Mass <= UE_SMALL_NUMBER)
+	{
+		return;
+	}
+
+	if (!Body.bXFixed)
+	{
+		Body.Position.X +=
+			Correction.X / Body.Mass;
+	}
+
+	if (!Body.bYFixed)
+	{
+		Body.Position.Y +=
+			Correction.Y / Body.Mass;
 	}
 }

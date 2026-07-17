@@ -36,5 +36,6 @@ private:
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();
-	void ProjectElementVelocities();
+	void ProjectConstraintVelocities();
+	void ProjectConstraintPositions();
 };

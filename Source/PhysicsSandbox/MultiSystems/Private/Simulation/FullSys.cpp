@@ -77,7 +77,8 @@ void FFullSys::Step(double Dt)
 	ApplyElementInteractions();
 	ComputeAccelerations();
 	Integrate(Dt);
-	ProjectElementVelocities();
+	ProjectConstraintVelocities();
+	ProjectConstraintPositions();
 	ApplyFixedAxes();
 }
 
@@ -190,7 +191,7 @@ void FFullSys::ApplyFixedAxes()		// Faltan reacciones
 	}
 }
 
-void FFullSys::ProjectElementVelocities()
+void FFullSys::ProjectConstraintVelocities()
 {
 	for (const TUniquePtr<ISysElement>& Element : Elements)
 	{
@@ -200,5 +201,18 @@ void FFullSys::ProjectElementVelocities()
 		}
 
 		Element->ProjectVelocities(Bodies);
+	}
+}
+
+void FFullSys::ProjectConstraintPositions()
+{
+	for (const TUniquePtr<ISysElement>& Element : Elements)
+	{
+		if (!Element)
+		{
+			continue;
+		}
+
+		Element->ProjectPositions(Bodies);
 	}
 }

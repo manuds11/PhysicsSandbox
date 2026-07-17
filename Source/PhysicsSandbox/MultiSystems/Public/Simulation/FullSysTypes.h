@@ -79,6 +79,12 @@ public:
 	{
 	}
 
+	virtual void ProjectPositions(
+		TArray<FBody>& Bodies
+	)
+	{
+	}
+
 	virtual bool GetEquilibriumPoint(
 		const TArray<FBody>& Bodies,
 		FVector2D& OutPoint

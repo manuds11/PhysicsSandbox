@@ -66,6 +66,10 @@ public:
         TArray<FBody>& Bodies
     ) override;
 
+    virtual void ProjectPositions(
+        TArray<FBody>& Bodies
+    ) override;
+
 private:
     // Initialization
     void InitializePendulumLength();
@@ -99,6 +103,11 @@ private:
     void ApplyVelocityImpulse(
         FBody& Body,
         const FVector2D& Impulse
+    ) const;
+
+    void ApplyPositionCorrection(
+        FBody& Body,
+        const FVector2D& Correction
     ) const;
 
     // Connectivity
