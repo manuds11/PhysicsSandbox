@@ -23,6 +23,11 @@ FSpringDamper::FSpringDamper(
 // ISysElement interface
 // -----------------------------------------------------------------------------
 
+ESysElementType FSpringDamper::GetElementType() const
+{
+	return ESysElementType::SpringDamper;
+}
+
 bool FSpringDamper::GetConnectedBodies(
 	int32& OutBodyA,
 	int32& OutBodyB

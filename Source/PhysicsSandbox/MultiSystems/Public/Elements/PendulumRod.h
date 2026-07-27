@@ -9,6 +9,19 @@ struct FPolarBase
     FVector2D e_Theta = FVector2D::ZeroVector;
 };
 
+struct FPendulumConstraintState
+{
+    FVector2D JacobianPivot =
+        FVector2D::ZeroVector;
+
+    FVector2D JacobianBob =
+        FVector2D::ZeroVector;
+
+    double ConstraintValue = 0.0;
+
+    double JDotV = 0.0;
+};
+
 struct FPendulumPositions
 {
     FVector2D Bob2Pivot = FVector2D::ZeroVector;
@@ -38,6 +51,8 @@ public:
         int32 InBobBody
     );
 
+    virtual ESysElementType GetElementType() const override;
+
     virtual bool GetConnectedBodies(
         int32& OutBodyA,
         int32& OutBodyB
@@ -51,6 +66,11 @@ public:
     const FPendulumVelocities& GetPendulumVelocities() const
     {
         return PendulumVel;
+    }
+
+    const FPendulumConstraintState& GetConstraintState() const
+    {
+        return ConstraintState;
     }
 
     double GetLastComputedTension() const
@@ -115,9 +135,10 @@ private:
     int32 BobBody = INDEX_NONE;
 
     // Runtime state
+    FPolarBase PolarBase;
+    FPendulumConstraintState ConstraintState;
     FPendulumPositions PendulumPos;
     FPendulumVelocities PendulumVel;
-    FPolarBase PolarBase;
 
     double LastComputedTension = 0.0; // N
 };

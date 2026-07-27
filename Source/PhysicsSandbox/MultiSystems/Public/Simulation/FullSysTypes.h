@@ -58,10 +58,18 @@ struct FBody
 	}
 };
 
+enum class ESysElementType : uint8
+{
+	SpringDamper,
+	PendulumRod
+};
+
 class ISysElement
 {
 public:
 	virtual ~ISysElement() = default;
+
+	virtual ESysElementType GetElementType() const = 0;
 
 	virtual bool GetConnectedBodies(
 		int32& OutBodyA,

@@ -18,6 +18,11 @@ FPendulumRod::FPendulumRod(
 // ISysElement interface
 // -----------------------------------------------------------------------------
 
+ESysElementType FPendulumRod::GetElementType() const
+{
+	return ESysElementType::PendulumRod;
+}
+
 bool FPendulumRod::GetConnectedBodies(
 	int32& OutBodyA,
 	int32& OutBodyB
@@ -28,6 +33,8 @@ bool FPendulumRod::GetConnectedBodies(
 
 	return true;
 }
+
+
 
 void FPendulumRod::ApplyForces(
 	TArray<FBody>& Bodies

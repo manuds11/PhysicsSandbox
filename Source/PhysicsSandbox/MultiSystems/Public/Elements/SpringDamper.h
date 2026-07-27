@@ -14,6 +14,8 @@ public:
 		double InRestLength
 	);
 
+	virtual ESysElementType GetElementType() const override;
+
 	virtual bool GetConnectedBodies(
 		int32& OutBodyA,
 		int32& OutBodyB
