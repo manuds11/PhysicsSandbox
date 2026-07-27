@@ -140,7 +140,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 		FullSys.AddBody(
 			FBody::Free(
 				FVector2D(3.0, 1.0),
-				1.0
+				1.5
 			)
 		);
 
@@ -153,7 +153,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 			WallIndex,
 			Mass1Index,
 			20.0,
-			0.1,
+			1,
 			1.5
 		));
 
@@ -162,7 +162,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 			Mass1Index,
 			Mass2Index,
 			20.0,
-			0.1,
+			1,
 			1.5
 		));
 

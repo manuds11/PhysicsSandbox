@@ -96,7 +96,7 @@ void FFullSys::ClearForces()
 
 void FFullSys::ApplyGravity()
 {
-	const FVector2D Gravity(0.0, -PhysicsConsts::Gravity);
+	const FVector2D Gravity(0.0, PhysicsConsts::Gravity);
 
 	for (FBody& Body : Bodies)
 	{
@@ -105,7 +105,7 @@ void FFullSys::ApplyGravity()
 			continue;
 		}
 
-		Body.NetForce += Body.Mass * Gravity;
+		Body.NetForce += Body.Mass * -Gravity;
 	}
 }
 
