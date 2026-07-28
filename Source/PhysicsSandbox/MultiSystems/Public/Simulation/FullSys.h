@@ -6,6 +6,8 @@
 
 #include "CoreMinimal.h"
 
+class FPendulumRod;
+
 class FFullSys
 {
 public:
@@ -23,6 +25,8 @@ public:
 	const TArray<FBody>& GetBodies() const;
 	const TArray<TUniquePtr<ISysElement>>& GetElements() const;
 
+	
+
 private:
 	TArray<FSubSys> SubSystems;
 	TArray<FBody> Bodies;
@@ -38,4 +42,13 @@ private:
 	void ApplyFixedAxes();
 	void ProjectConstraintVelocities();
 	void ProjectConstraintPositions();
+
+	// -----------------------------------------------------------------------------
+	// MultiRod System
+	// -----------------------------------------------------------------------------
+	
+	TArray<FPendulumRod*> ActivePendulumRods;
+	void CollectRods();
+	void UpdateRodSystemJacobians();
 };
+

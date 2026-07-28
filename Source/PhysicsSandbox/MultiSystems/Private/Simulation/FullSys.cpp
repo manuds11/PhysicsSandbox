@@ -1,5 +1,6 @@
 #include "Simulation/FullSys.h"
 #include "Math/Units.h"
+#include "Elements/PendulumRod.h"
 
 // ------------------------------------------------------------------------------
 // Construction
@@ -64,6 +65,51 @@ const TArray<TUniquePtr<ISysElement>>& FFullSys::GetElements() const
 const TArray<FSubSys>& FFullSys::GetSubSystems() const
 {
 	return SubSystems;
+}
+
+// -----------------------------------------------------------------------------
+// MultiRod System
+// -----------------------------------------------------------------------------
+
+void FFullSys::CollectRods()
+{
+	ActivePendulumRods.Reset();
+
+	for (const TUniquePtr<ISysElement>& Element : Elements)
+	{
+		if (!Element)
+		{
+			continue;
+		}
+
+		if (
+			Element->GetElementType()
+			!= ESysElementType::PendulumRod
+			)
+		{
+			continue;
+		}
+
+		FPendulumRod* PendulumRod =
+			static_cast<FPendulumRod*>(
+				Element.Get()
+				);
+
+		ActivePendulumRods.Add(PendulumRod);
+	}
+}
+
+void FFullSys::UpdateRodSystemJacobians()
+{
+	for (FPendulumRod* PendulumRod : ActivePendulumRods)
+	{
+		if (!PendulumRod)
+		{
+			continue;
+		}
+
+		PendulumRod->UpdateRodJacobian(Bodies);
+	}
 }
 
 // -----------------------------------------------------------------------------
