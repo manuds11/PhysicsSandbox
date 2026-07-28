@@ -12,6 +12,7 @@ class FFullSys
 {
 public:
 	FFullSys();
+	void Initialize();
 
 	FSubSys& CreateSubSys(FName Name);
 	const TArray<FSubSys>& GetSubSystems() const;
@@ -24,8 +25,6 @@ public:
 
 	const TArray<FBody>& GetBodies() const;
 	const TArray<TUniquePtr<ISysElement>>& GetElements() const;
-
-	
 
 private:
 	TArray<FSubSys> SubSystems;
@@ -46,9 +45,22 @@ private:
 	// -----------------------------------------------------------------------------
 	// MultiRod System
 	// -----------------------------------------------------------------------------
+
+	TArray<FPendulumRod*> RodSystemArray;	// Non-owning pointers to rod elements stored in Elements.
+
+	TArray<double> RodSysMatrixA;
+	TArray<double> RodSysVectorB;
+	TArray<double> RodSysVectorLambda;
+
+	void AssembleRodSystem();       // Una vez
+	void UpdateRodSystemValues();   // Cada step
 	
-	TArray<FPendulumRod*> ActivePendulumRods;
+	// Helpers
 	void CollectRods();
 	void UpdateRodSystemJacobians();
+
+	double& MatrixIndex2ArrayIndex(int32 Row, int32 Column);
+	const double& MatrixIndex2ArrayIndex(int32 Row, int32 Column) const;
 };
+
 

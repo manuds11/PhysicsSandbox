@@ -15,6 +15,11 @@ FFullSys::FFullSys()
 // Public API
 // -----------------------------------------------------------------------------
 
+void FFullSys::Initialize()
+{
+	AssembleRodSystem();
+}
+
 int32 FFullSys::AddBody(const FBody& Body)
 {
 	return Bodies.Add(Body);
@@ -71,9 +76,72 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 // MultiRod System
 // -----------------------------------------------------------------------------
 
+void FFullSys::AssembleRodSystem()
+{
+	CollectRods();
+
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	RodSysMatrixA.SetNumZeroed(
+		NumRods * NumRods
+	);
+
+	RodSysVectorB.SetNumZeroed(
+		NumRods
+	);
+
+	RodSysVectorLambda.SetNumZeroed(
+		NumRods
+	);
+}
+
+void FFullSys::UpdateRodSystemValues()
+{	
+	// Check Matrix consistency
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		RodSysMatrixA.Num()
+		== NumRods * NumRods
+	);
+
+	check(
+		RodSysVectorB.Num()
+		== NumRods
+	);
+
+	check(
+		RodSysVectorLambda.Num()
+		== NumRods
+	);
+	
+	for (double& Value : RodSysMatrixA)
+	{
+		Value = 0.0;
+	}
+
+	for (double& Value : RodSysVectorB)
+	{
+		Value = 0.0;
+	}
+
+	for (double& Value : RodSysVectorLambda)
+	{
+		Value = 0.0;
+	}
+
+	UpdateRodSystemJacobians();
+
+	// Próximos pasos:
+	// UpdateRodMatrixA();
+	// UpdateRodVectorB();
+}
+
 void FFullSys::CollectRods()
 {
-	ActivePendulumRods.Reset();
+	RodSystemArray.Reset();
 
 	for (const TUniquePtr<ISysElement>& Element : Elements)
 	{
@@ -95,13 +163,13 @@ void FFullSys::CollectRods()
 				Element.Get()
 				);
 
-		ActivePendulumRods.Add(PendulumRod);
+		RodSystemArray.Add(PendulumRod);
 	}
 }
 
 void FFullSys::UpdateRodSystemJacobians()
 {
-	for (FPendulumRod* PendulumRod : ActivePendulumRods)
+	for (FPendulumRod* PendulumRod : RodSystemArray)
 	{
 		if (!PendulumRod)
 		{
@@ -110,6 +178,36 @@ void FFullSys::UpdateRodSystemJacobians()
 
 		PendulumRod->UpdateRodJacobian(Bodies);
 	}
+}
+
+double& FFullSys::MatrixIndex2ArrayIndex(
+	int32 Row,
+	int32 Column
+)
+{
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(Row >= 0 && Row < NumRods);
+	check(Column >= 0 && Column < NumRods);
+
+	return RodSysMatrixA[ Row * NumRods + Column ];
+}
+
+const double& FFullSys::MatrixIndex2ArrayIndex(
+	int32 Row,
+	int32 Column
+) const
+{
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(Row >= 0 && Row < NumRods);
+	check(Column >= 0 && Column < NumRods);
+
+	return RodSysMatrixA[
+		Row * NumRods + Column
+	];
 }
 
 // -----------------------------------------------------------------------------
@@ -121,6 +219,9 @@ void FFullSys::Step(double Dt)
 	ClearForces();
 	ApplyGravity();
 	ApplyElementInteractions();
+
+	UpdateRodSystemValues();
+
 	ComputeAccelerations();
 	Integrate(Dt);
 	ProjectConstraintVelocities();

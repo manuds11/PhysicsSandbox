@@ -186,6 +186,8 @@ void AMultiSystemsActor::BuildDemoSystem()
 	DoubleSpring.AddElement(TEXT("PendulumRod"), PendulumRodIndex);
 
 	DoubleSpring.AddPort(TEXT("End"), Mass2Index);
+
+	FullSys.Initialize();
 }
 
 // -----------------------------------------------------------------------------
