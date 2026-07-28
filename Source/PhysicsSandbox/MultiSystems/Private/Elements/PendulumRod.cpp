@@ -34,7 +34,45 @@ bool FPendulumRod::GetConnectedBodies(
 	return true;
 }
 
+void FPendulumRod::UpdateRodJacobian(
+	const TArray<FBody>& Bodies
+)
+{
+	if (
+		!Bodies.IsValidIndex(PivotBody)
+		|| !Bodies.IsValidIndex(BobBody)
+		)
+	{
+		RodJacobian = FRodJacobian();
+		return;
+	}
 
+	const FBody& Pivot = Bodies[PivotBody];
+	const FBody& Bob = Bodies[BobBody];
+
+	UpdatePendulumKinematics(Pivot, Bob);
+
+	if (
+		PendulumPos.ComputedLength
+		<= UE_SMALL_NUMBER
+		)
+	{
+		RodJacobian =
+			FRodJacobian();
+
+		return;
+	}
+
+	RodJacobian.JPivot =
+		-PolarBase.e_Radial;	// e_Radial = Constriction Normal vector pointing from Pivot to Bob.
+
+	RodJacobian.JBob =
+		PolarBase.e_Radial;
+
+	RodJacobian.JDotVel =
+		FMath::Square( PendulumVel.Bob2PivotTangential )
+		/ PendulumPos.ComputedLength;		// Computed Length must ne used, NOT INITIAL LENGTH, in order to compute accuretely the angular frequency of the pendulum  Omega = Vel_tan/|r|
+}
 
 void FPendulumRod::ApplyForces(
 	TArray<FBody>& Bodies
@@ -69,7 +107,6 @@ void FPendulumRod::ApplyForces(
 
 	Pivot.NetForce += ConstraintForce;
 	Bob.NetForce -= ConstraintForce;
-
 }
 
 // -----------------------------------------------------------------------------

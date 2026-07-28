@@ -172,7 +172,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 			BobIndex
 		));
 
-	PendulumIndexForDebug = PendulumRodIndex;
+	PendulumIndexForDebug = PendulumRodIndex;	// This is ad-hoc for debugging purposes, to access the pendulum element in the simulation.
 	
 	// We associate the bodies and elements to the subsystem by their indexes. 
 	// We attach an identification tag. 

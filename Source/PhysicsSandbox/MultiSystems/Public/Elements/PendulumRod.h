@@ -9,17 +9,15 @@ struct FPolarBase
     FVector2D e_Theta = FVector2D::ZeroVector;
 };
 
-struct FPendulumConstraintState
+struct FRodJacobian
 {
-    FVector2D JacobianPivot =
+    FVector2D JPivot =
         FVector2D::ZeroVector;
 
-    FVector2D JacobianBob =
+    FVector2D JBob =
         FVector2D::ZeroVector;
 
-    double ConstraintValue = 0.0;
-
-    double JDotV = 0.0;
+    double JDotVel = 0.0;
 };
 
 struct FPendulumPositions
@@ -68,10 +66,19 @@ public:
         return PendulumVel;
     }
 
-    const FPendulumConstraintState& GetConstraintState() const
+    const FRodJacobian& GetRodJacobian() const
     {
-        return ConstraintState;
+        return RodJacobian;
     }
+
+    double GetConstraintFunctionValue() const
+    {
+        return PendulumPos.LengthAbsError;
+    }
+
+    void UpdateRodJacobian(
+        const TArray<FBody>& Bodies
+    );
 
     double GetLastComputedTension() const
     {
@@ -136,7 +143,7 @@ private:
 
     // Runtime state
     FPolarBase PolarBase;
-    FPendulumConstraintState ConstraintState;
+    FRodJacobian RodJacobian;
     FPendulumPositions PendulumPos;
     FPendulumVelocities PendulumVel;
 
