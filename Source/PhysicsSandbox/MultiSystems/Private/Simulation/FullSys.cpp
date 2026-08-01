@@ -76,7 +76,7 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 // MultiRod System
 // -----------------------------------------------------------------------------
 
-void FFullSys::AssembleRodSystem()
+void FFullSys::AssembleRodSystem() 
 {
 	CollectRods();
 
@@ -98,6 +98,11 @@ void FFullSys::AssembleRodSystem()
 
 void FFullSys::UpdateRodSystemValues()
 {	
+	if (RodSystemArray.IsEmpty())
+	{
+		return;
+	}
+
 	// Check Matrix consistency
 	const int32 NumRods =
 		RodSystemArray.Num();
@@ -133,11 +138,148 @@ void FFullSys::UpdateRodSystemValues()
 	}
 
 	UpdateRodSystemJacobians();
+	UpdateRodSystemMatrixA();
 
-	// Próximos pasos:
-	// UpdateRodMatrixA();
-	// UpdateRodVectorB();
+	// Próximo paso:
+	// UpdateRodSystemVectorB();
 }
+
+void FFullSys::UpdateRodSystemMatrixA()
+{
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	for (int32 Row = 0; Row < NumRods; ++Row)
+	{
+		for (int32 Column = 0;
+			Column < NumRods;
+			++Column)
+		{
+			MatrixIndex2ArrayIndex(Row, Column) =
+				ComputeA_ij(
+					*RodSystemArray[Row],
+					*RodSystemArray[Column]
+				);
+		}
+	}
+}
+
+double FFullSys::ComputeA_ij(
+	const FPendulumRod& Rod_i,
+	const FPendulumRod& Rod_j
+) const
+{
+	int32 BodyPivot_i = INDEX_NONE;
+	int32 BodyBob_i = INDEX_NONE;
+
+	int32 BodyPivot_j = INDEX_NONE;
+	int32 BodyBob_j = INDEX_NONE;
+
+	Rod_i.GetConnectedBodies(
+		BodyPivot_i,
+		BodyBob_i
+	);
+
+	Rod_j.GetConnectedBodies(
+		BodyPivot_j,
+		BodyBob_j
+	);
+
+	const FRodJacobian& Jacobian_i =
+		Rod_i.GetRodJacobian();
+
+	const FRodJacobian& Jacobian_j =
+		Rod_j.GetRodJacobian();
+
+	const FRodExtreme Pivot_i
+	{
+		BodyPivot_i,
+		Jacobian_i.JPivot
+	};
+
+	const FRodExtreme Bob_i
+	{
+		BodyBob_i,
+		Jacobian_i.JBob
+	};
+
+	const FRodExtreme Pivot_j
+	{
+		BodyPivot_j,
+		Jacobian_j.JPivot
+	};
+
+	const FRodExtreme Bob_j
+	{
+		BodyBob_j,
+		Jacobian_j.JBob
+	};
+
+	const auto ComputeA_ijComponent =
+		[this](
+			const FRodExtreme& Rod_iExtreme,
+			const FRodExtreme& Rod_jExtreme
+			) -> double
+		{
+			if (Rod_iExtreme.BodyIndex != Rod_jExtreme.BodyIndex)
+			{
+				return 0.0;
+			}
+
+			const int32 SharedBodyIndex =
+				Rod_iExtreme.BodyIndex;
+
+			if (!Bodies.IsValidIndex(SharedBodyIndex))
+			{
+				return 0.0;
+			}
+
+			const FBody& SharedBody =
+				Bodies[SharedBodyIndex];
+
+			if (SharedBody.Mass <= UE_SMALL_NUMBER)
+			{
+				return 0.0;
+			}
+
+			const double InverseMass =
+				1.0 / SharedBody.Mass;
+
+			double A_ijComponent = 0.0;
+
+			if (!SharedBody.bXFixed)
+			{
+				A_ijComponent +=
+					Rod_iExtreme.Jacobian.X *
+					Rod_jExtreme.Jacobian.X *
+					InverseMass;
+			}
+
+			if (!SharedBody.bYFixed)
+			{
+				A_ijComponent +=
+					Rod_iExtreme.Jacobian.Y *
+					Rod_jExtreme.Jacobian.Y *
+					InverseMass;
+			}
+
+			return A_ijComponent;
+		};
+
+	/*
+	 * A_ij = J_i M^-1 J_j^T
+	 *
+	 * Each rod contributes one Jacobian block for its pivot
+	 * and another for its bob. Only blocks associated with
+	 * the same body produce a non-zero component.
+	 */
+	return
+		ComputeA_ijComponent(Pivot_i, Pivot_j) +
+		ComputeA_ijComponent(Pivot_i, Bob_j) +
+		ComputeA_ijComponent(Bob_i, Pivot_j) +
+		ComputeA_ijComponent(Bob_i, Bob_j);
+}
+
 
 void FFullSys::CollectRods()
 {
@@ -180,6 +322,7 @@ void FFullSys::UpdateRodSystemJacobians()
 	}
 }
 
+
 double& FFullSys::MatrixIndex2ArrayIndex(
 	int32 Row,
 	int32 Column
@@ -191,7 +334,9 @@ double& FFullSys::MatrixIndex2ArrayIndex(
 	check(Row >= 0 && Row < NumRods);
 	check(Column >= 0 && Column < NumRods);
 
-	return RodSysMatrixA[ Row * NumRods + Column ];
+	return RodSysMatrixA[
+		Row * NumRods + Column
+	];
 }
 
 const double& FFullSys::MatrixIndex2ArrayIndex(

@@ -45,7 +45,7 @@ private:
 	// -----------------------------------------------------------------------------
 	// MultiRod System
 	// -----------------------------------------------------------------------------
-
+private:
 	TArray<FPendulumRod*> RodSystemArray;	// Non-owning pointers to rod elements stored in Elements.
 
 	TArray<double> RodSysMatrixA;
@@ -58,6 +58,19 @@ private:
 	// Helpers
 	void CollectRods();
 	void UpdateRodSystemJacobians();
+	
+	void UpdateRodSystemMatrixA();
+
+	struct FRodExtreme
+	{
+		int32 BodyIndex = INDEX_NONE;
+		FVector2D Jacobian = FVector2D::ZeroVector;
+	};
+
+	double ComputeA_ij(
+		const FPendulumRod& Rod_i,
+		const FPendulumRod& Rod_j
+	) const;
 
 	double& MatrixIndex2ArrayIndex(int32 Row, int32 Column);
 	const double& MatrixIndex2ArrayIndex(int32 Row, int32 Column) const;
