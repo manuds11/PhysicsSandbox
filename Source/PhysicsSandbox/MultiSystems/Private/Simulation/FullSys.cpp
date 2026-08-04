@@ -625,19 +625,19 @@ void FFullSys::ApplyRodConstraintForces()
 				FBody& Body =
 					Bodies[BodyIndex];
 
-				const FVector2D ConstraintForce =
+				const FVector2D ConstraintForce_i =
 					BodyJacobian * Lambda_i;
 
 				if (!Body.bXFixed)
 				{
 					Body.NetForce.X +=
-						ConstraintForce.X;
+						ConstraintForce_i.X;
 				}
 
 				if (!Body.bYFixed)
 				{
 					Body.NetForce.Y +=
-						ConstraintForce.Y;
+						ConstraintForce_i.Y;
 				}
 			};
 
@@ -649,6 +649,71 @@ void FFullSys::ApplyRodConstraintForces()
 		ApplyForceToBody(
 			BodyBob_i,
 			Jacobian_i.JBob
+		);
+
+		// ---------------------------------------------------------------------
+		// DEBUG
+		// ---------------------------------------------------------------------
+
+		const FVector2D PivotConstraintForce_i =
+			Jacobian_i.JPivot * Lambda_i;
+
+		const FVector2D BobConstraintForce_i =
+			Jacobian_i.JBob * Lambda_i;
+
+		const FVector2D ConstraintForceResidual_i =
+			PivotConstraintForce_i +
+			BobConstraintForce_i;
+
+		ensureMsgf(
+			FMath::IsFinite(Lambda_i),
+			TEXT("Rod %d: Lambda is not finite."),
+			Rod_iIndex
+		);
+
+		ensureMsgf(
+			FMath::IsFinite(PivotConstraintForce_i.X) &&
+			FMath::IsFinite(PivotConstraintForce_i.Y),
+			TEXT("Rod %d: Pivot constraint force is not finite."),
+			Rod_iIndex
+		);
+
+		ensureMsgf(
+			FMath::IsFinite(BobConstraintForce_i.X) &&
+			FMath::IsFinite(BobConstraintForce_i.Y),
+			TEXT("Rod %d: Bob constraint force is not finite."),
+			Rod_iIndex
+		);
+
+		ensureMsgf(
+			ConstraintForceResidual_i.SizeSquared()
+			<= UE_SMALL_NUMBER,
+			TEXT(
+				"Rod %d: Action-reaction residual = (%f,%f)"
+			),
+			Rod_iIndex,
+			ConstraintForceResidual_i.X,
+			ConstraintForceResidual_i.Y
+		);
+
+		UE_LOG(
+			LogTemp,
+			Display,
+			TEXT(
+				"Rod %d"
+				"\n  Lambda               = %.9f"
+				"\n  PivotConstraintForce = (%.9f, %.9f)"
+				"\n  BobConstraintForce   = (%.9f, %.9f)"
+				"\n  Residual             = (%.9f, %.9f)"
+			),
+			Rod_iIndex,
+			Lambda_i,
+			PivotConstraintForce_i.X,
+			PivotConstraintForce_i.Y,
+			BobConstraintForce_i.X,
+			BobConstraintForce_i.Y,
+			ConstraintForceResidual_i.X,
+			ConstraintForceResidual_i.Y
 		);
 	}
 }

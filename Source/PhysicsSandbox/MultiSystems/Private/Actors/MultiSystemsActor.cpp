@@ -105,17 +105,22 @@ void AMultiSystemsActor::ConfigureIntegrator()
 
 void AMultiSystemsActor::BuildDemoSystem()
 {
-	// Subsystem 1: Two masses connected by two springs to a fixed wall. Subystem is declared.
-	FSubSys& DoubleSpring =
-		FullSys.CreateSubSys(TEXT("DoubleSpring"));
+	// -------------------------------------------------------------------------
+	// Subsystem
+	// -------------------------------------------------------------------------
 
-	// Declare the bodies of the subsystem with required parameters to define them and
-	// store them in an array in FullSys Class. The body index in the array identifies
-	// each body and is saved. The bodies index allow us define interactions between
-	// bodies.
-	const int32 WallIndex = 
+	FSubSys& DoubleSpringDoublePendulum =
+		FullSys.CreateSubSys(
+			TEXT("DoubleSpringDoublePendulum")
+		);
+
+	// -------------------------------------------------------------------------
+	// Bodies
+	// -------------------------------------------------------------------------
+
+	const int32 WallIndex =
 		FullSys.AddBody(
-			FBody::Fixed( 
+			FBody::Fixed(
 				FVector2D(0.0, 0.0)
 			)
 		);
@@ -124,7 +129,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 		FullSys.AddBody(
 			FBody::SlidingMassX(
 				FVector2D(2.0, 0.0),
-				1.0						// mass kg
+				1.0
 			)
 		);
 
@@ -136,7 +141,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 			)
 		);
 
-	const int32 BobIndex =
+	const int32 Bob1Index =
 		FullSys.AddBody(
 			FBody::Free(
 				FVector2D(4.5, -0.5),
@@ -144,49 +149,115 @@ void AMultiSystemsActor::BuildDemoSystem()
 			)
 		);
 
-	// Declare elements with its connections and parameters and store them in an
-	// array in FullSys Class. The element index in the array identifies each element 
-	// and is saved. The element index allow us define interactions between bodies.
+	const int32 Bob2Index =
+		FullSys.AddBody(
+			FBody::Free(
+				FVector2D(5.2, -1.4),
+				1.0
+			)
+		);
+
+	// -------------------------------------------------------------------------
+	// Elements
+	// -------------------------------------------------------------------------
 
 	const int32 Spring1Index =
-		FullSys.AddElement(MakeUnique<FSpringDamper>(
-			WallIndex,
-			Mass1Index,
-			20.0,
-			1,
-			1.5
-		));
+		FullSys.AddElement(
+			MakeUnique<FSpringDamper>(
+				WallIndex,
+				Mass1Index,
+				20.0,
+				1.0,
+				1.5
+			)
+		);
 
 	const int32 Spring2Index =
-		FullSys.AddElement(MakeUnique<FSpringDamper>(
-			Mass1Index,
-			Mass2Index,
-			20.0,
-			1,
-			1.5
-		));
+		FullSys.AddElement(
+			MakeUnique<FSpringDamper>(
+				Mass1Index,
+				Mass2Index,
+				20.0,
+				1.0,
+				1.5
+			)
+		);
 
-	const int32 PendulumRodIndex =
-		FullSys.AddElement(MakeUnique<FPendulumRod>(
-			Mass2Index,
-			BobIndex
-		));
+	const int32 PendulumRod1Index =
+		FullSys.AddElement(
+			MakeUnique<FPendulumRod>(
+				Mass2Index,
+				Bob1Index
+			)
+		);
 
-	PendulumIndexForDebug = PendulumRodIndex;	// This is ad-hoc for debugging purposes, to access the pendulum element in the simulation.
-	
-	// We associate the bodies and elements to the subsystem by their indexes. 
-	// We attach an identification tag. 
-	DoubleSpring.AddBody(TEXT("Wall"), WallIndex);
-	DoubleSpring.AddBody(TEXT("Mass1"), Mass1Index);
-	DoubleSpring.AddBody(TEXT("Mass2"), Mass2Index);
-	DoubleSpring.AddBody(TEXT("Bob"), BobIndex);
+	const int32 PendulumRod2Index =
+		FullSys.AddElement(
+			MakeUnique<FPendulumRod>(
+				Bob1Index,
+				Bob2Index
+			)
+		);
 
-	DoubleSpring.AddElement(TEXT("Spring1"), Spring1Index);
-	DoubleSpring.AddElement(TEXT("Spring2"), Spring2Index);
-	DoubleSpring.AddElement(TEXT("PendulumRod"), PendulumRodIndex);
+	// Temporary ad-hoc debug reference.
+	PendulumIndexForDebug =
+		PendulumRod1Index;
 
-	DoubleSpring.AddPort(TEXT("End"), Mass2Index);
+	// -------------------------------------------------------------------------
+	// Subsystem associations
+	// -------------------------------------------------------------------------
 
+	DoubleSpringDoublePendulum.AddBody(
+		TEXT("Wall"),
+		WallIndex
+	);
+
+	DoubleSpringDoublePendulum.AddBody(
+		TEXT("Mass1"),
+		Mass1Index
+	);
+
+	DoubleSpringDoublePendulum.AddBody(
+		TEXT("Mass2"),
+		Mass2Index
+	);
+
+	DoubleSpringDoublePendulum.AddBody(
+		TEXT("Bob1"),
+		Bob1Index
+	);
+
+	DoubleSpringDoublePendulum.AddBody(
+		TEXT("Bob2"),
+		Bob2Index
+	);
+
+	DoubleSpringDoublePendulum.AddElement(
+		TEXT("Spring1"),
+		Spring1Index
+	);
+
+	DoubleSpringDoublePendulum.AddElement(
+		TEXT("Spring2"),
+		Spring2Index
+	);
+
+	DoubleSpringDoublePendulum.AddElement(
+		TEXT("PendulumRod1"),
+		PendulumRod1Index
+	);
+
+	DoubleSpringDoublePendulum.AddElement(
+		TEXT("PendulumRod2"),
+		PendulumRod2Index
+	);
+
+	DoubleSpringDoublePendulum.AddPort(
+		TEXT("End"),
+		Mass2Index
+	);
+
+	// Must be called after all bodies and elements have been added.
 	FullSys.Initialize();
 }
 
