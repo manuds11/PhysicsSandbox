@@ -36,11 +36,16 @@ private:
 	void ClearForces();
 	void ApplyNonConstraintInteractions();
 	void ApplyGravity();
+	void ApplyRodConstraintForces();
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();
 	void ProjectConstraintVelocities();
 	void ProjectConstraintPositions();
+	void ApplyConstraintForce(
+		const FPendulumRod& Rod,
+		double Lambda
+	);
 
 	// -----------------------------------------------------------------------------
 	// MultiRod System

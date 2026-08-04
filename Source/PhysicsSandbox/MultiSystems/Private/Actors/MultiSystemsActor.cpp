@@ -139,7 +139,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 BobIndex =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(3.0, 1.0),
+				FVector2D(4.5, -0.5),
 				1.5
 			)
 		);

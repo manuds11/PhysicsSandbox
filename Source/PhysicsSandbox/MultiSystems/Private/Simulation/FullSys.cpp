@@ -508,13 +508,12 @@ void FFullSys::Step(double Dt)
 		return;
 	}
 
-	// Next:
-	// ApplyRodConstraintForces();
+	ApplyRodConstraintForces();
 
 	ComputeAccelerations();
 	Integrate(Dt);
-	ProjectConstraintVelocities();
-	ProjectConstraintPositions();
+	// ProjectConstraintVelocities();
+	// ProjectConstraintPositions();
 	ApplyFixedAxes();
 }
 
@@ -563,6 +562,94 @@ void FFullSys::ApplyNonConstraintInteractions()
 		}
 
 		Element->ApplyForces(Bodies);
+	}
+}
+
+void FFullSys::ApplyRodConstraintForces()
+{
+	if (RodSystemArray.IsEmpty())
+	{
+		return;
+	}
+
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		RodSysVectorLambda.Num()
+		== NumRods
+	);
+
+	for (
+		int32 Rod_iIndex = 0;
+		Rod_iIndex < NumRods;
+		++Rod_iIndex
+		)
+	{
+		FPendulumRod* Rod_i =
+			RodSystemArray[Rod_iIndex];
+
+		check(Rod_i);
+
+		int32 BodyPivot_i = INDEX_NONE;
+		int32 BodyBob_i = INDEX_NONE;
+
+		const bool bBodiesRetrieved =
+			Rod_i->GetConnectedBodies(
+				BodyPivot_i,
+				BodyBob_i
+			);
+
+		if (!bBodiesRetrieved)
+		{
+			continue;
+		}
+
+		const FRodJacobian& Jacobian_i =
+			Rod_i->GetRodJacobian();
+
+		const double Lambda_i =
+			RodSysVectorLambda[Rod_iIndex];
+
+		const auto ApplyForceToBody =
+			[this, Lambda_i](
+				int32 BodyIndex,
+				const FVector2D& BodyJacobian
+				)
+			{
+				if (!Bodies.IsValidIndex(BodyIndex))
+				{
+					return;
+				}
+
+				FBody& Body =
+					Bodies[BodyIndex];
+
+				const FVector2D ConstraintForce =
+					BodyJacobian * Lambda_i;
+
+				if (!Body.bXFixed)
+				{
+					Body.NetForce.X +=
+						ConstraintForce.X;
+				}
+
+				if (!Body.bYFixed)
+				{
+					Body.NetForce.Y +=
+						ConstraintForce.Y;
+				}
+			};
+
+		ApplyForceToBody(
+			BodyPivot_i,
+			Jacobian_i.JPivot
+		);
+
+		ApplyForceToBody(
+			BodyBob_i,
+			Jacobian_i.JBob
+		);
 	}
 }
 
