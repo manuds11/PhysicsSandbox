@@ -34,6 +34,11 @@ bool FPendulumRod::GetConnectedBodies(
 	return true;
 }
 
+double FPendulumRod::GetJDotV() const
+{
+	return RodJacobian.JDotVel;
+}
+
 void FPendulumRod::UpdateRodJacobian(
 	const TArray<FBody>& Bodies
 )
@@ -71,7 +76,8 @@ void FPendulumRod::UpdateRodJacobian(
 
 	RodJacobian.JDotVel =
 		FMath::Square( PendulumVel.Bob2PivotTangential )
-		/ PendulumPos.ComputedLength;		// Computed Length must ne used, NOT INITIAL LENGTH, in order to compute accuretely the angular frequency of the pendulum  Omega = Vel_tan/|r|
+		/ PendulumPos.ComputedLength;		// Use the current length, not the initial length.
+											// Instantaneous angular velocity: Omega = V_t / |r|.
 }
 
 void FPendulumRod::ApplyForces(

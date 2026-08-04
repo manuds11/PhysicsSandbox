@@ -1,6 +1,7 @@
 #include "Simulation/FullSys.h"
 #include "Math/Units.h"
 #include "Elements/PendulumRod.h"
+#include "Math/DenseLinearSolver.h"
 
 // ------------------------------------------------------------------------------
 // Construction
@@ -139,9 +140,10 @@ void FFullSys::UpdateRodSystemValues()
 
 	UpdateRodSystemJacobians();
 	UpdateRodSystemMatrixA();
+	UpdateRodSystemVectorB();
 
 	// Próximo paso:
-	// UpdateRodSystemVectorB();
+	// SolveRodSystem();
 }
 
 void FFullSys::UpdateRodSystemMatrixA()
@@ -163,6 +165,8 @@ void FFullSys::UpdateRodSystemMatrixA()
 		}
 	}
 }
+
+// A_ij = J_i M^-1 J_j^T
 
 double FFullSys::ComputeA_ij(
 	const FPendulumRod& Rod_i,
@@ -280,6 +284,135 @@ double FFullSys::ComputeA_ij(
 		ComputeA_ijComponent(Bob_i, Bob_j);
 }
 
+void FFullSys::UpdateRodSystemVectorB()
+{
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	for (int32 Row = 0; Row < NumRods; ++Row)
+	{
+		check(RodSystemArray[Row]);
+
+		RodSysVectorB[Row] =
+			ComputeB_i(
+				*RodSystemArray[Row]
+			);
+	}
+}
+
+double FFullSys::ComputeB_i(
+	const FPendulumRod& Rod_i
+) const
+{
+	int32 BodyPivot_i = INDEX_NONE;
+	int32 BodyBob_i = INDEX_NONE;
+
+	Rod_i.GetConnectedBodies(
+		BodyPivot_i,
+		BodyBob_i
+	);
+
+	const FRodJacobian& Jacobian_i =
+		Rod_i.GetRodJacobian();
+
+	const FRodExtreme Pivot_i
+	{
+		BodyPivot_i,
+		Jacobian_i.JPivot
+	};
+
+	const FRodExtreme Bob_i
+	{
+		BodyBob_i,
+		Jacobian_i.JBob
+	};
+
+	const auto ComputeB_iComponent =
+		[this](
+			const FRodExtreme& Rod_iExtreme
+			) -> double
+		{
+			if (!Bodies.IsValidIndex(Rod_iExtreme.BodyIndex))
+			{
+				return 0.0;
+			}
+
+			const FBody& Body =
+				Bodies[Rod_iExtreme.BodyIndex];
+
+			if (Body.Mass <= UE_SMALL_NUMBER)
+			{
+				return 0.0;
+			}
+
+			const double InverseMass =
+				1.0 / Body.Mass;
+
+			double B_iComponent = 0.0;
+
+			if (!Body.bXFixed)
+			{
+				B_iComponent +=
+					Rod_iExtreme.Jacobian.X *
+					Body.NetForce.X *
+					InverseMass;
+			}
+
+			if (!Body.bYFixed)
+			{
+				B_iComponent +=
+					Rod_iExtreme.Jacobian.Y *
+					Body.NetForce.Y *
+					InverseMass;
+			}
+
+			return B_iComponent;
+		};
+
+	const double JMinvF_i =
+		ComputeB_iComponent(Pivot_i) +
+		ComputeB_iComponent(Bob_i);
+
+	const double JDotV_i =
+		Rod_i.GetJDotV();
+
+	/*
+	 * Acceleration-level constraint equation:
+	 *
+	 * J_i a + JDot_i v = 0
+	 *
+	 * Substituting:
+	 *
+	 * a = M^-1 (F_ext + J^T Lambda)
+	 *
+	 * gives:
+	 *
+	 * A Lambda = B
+	 *
+	 * where:
+	 *
+	 * B_i = -(J_i M^-1 F_ext + JDot_i v)
+	 */
+	return -(
+		JMinvF_i +
+		JDotV_i
+		);
+}
+
+bool FFullSys::SolveRodSystem()
+{
+	if (RodSystemArray.IsEmpty())
+	{
+		return true;
+	}
+
+	return DenseLinearSolver::Solve(
+		RodSysMatrixA,
+		RodSysVectorB,
+		RodSysVectorLambda
+	);
+}
+	
 
 void FFullSys::CollectRods()
 {
@@ -363,9 +496,20 @@ void FFullSys::Step(double Dt)
 {
 	ClearForces();
 	ApplyGravity();
-	ApplyElementInteractions();
+	ApplyNonConstraintInteractions();
 
 	UpdateRodSystemValues();
+
+	const bool bRodSystemSolved =
+		SolveRodSystem();
+
+	if (!bRodSystemSolved)
+	{
+		return;
+	}
+
+	// Next:
+	// ApplyRodConstraintForces();
 
 	ComputeAccelerations();
 	Integrate(Dt);
@@ -374,7 +518,7 @@ void FFullSys::Step(double Dt)
 	ApplyFixedAxes();
 }
 
-// -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------º
 // Simulation Subprocesses 
 // -----------------------------------------------------------------------------
 
@@ -401,10 +545,23 @@ void FFullSys::ApplyGravity()
 	}
 }
 
-void FFullSys::ApplyElementInteractions()
+void FFullSys::ApplyNonConstraintInteractions()
 {
 	for (const TUniquePtr<ISysElement>& Element : Elements)
 	{
+		if (!Element)
+		{
+			continue;
+		}
+
+		if (
+			Element->GetElementType()
+			== ESysElementType::PendulumRod
+			)
+		{
+			continue;
+		}
+
 		Element->ApplyForces(Bodies);
 	}
 }

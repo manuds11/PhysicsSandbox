@@ -56,6 +56,8 @@ public:
         int32& OutBodyB
     ) const override;
 
+    double GetJDotV() const;
+
     const FPendulumPositions& GetPendulumPositions() const
     {
         return PendulumPos;

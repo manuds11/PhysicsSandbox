@@ -34,7 +34,7 @@ private:
 	TUniquePtr<ISysIntegrator> Integrator;
 
 	void ClearForces();
-	void ApplyElementInteractions();
+	void ApplyNonConstraintInteractions();
 	void ApplyGravity();
 	void ComputeAccelerations();
 	void Integrate(double Dt);
@@ -56,21 +56,29 @@ private:
 	void UpdateRodSystemValues();   // Cada step
 	
 	// Helpers
-	void CollectRods();
-	void UpdateRodSystemJacobians();
-	
-	void UpdateRodSystemMatrixA();
-
 	struct FRodExtreme
 	{
 		int32 BodyIndex = INDEX_NONE;
 		FVector2D Jacobian = FVector2D::ZeroVector;
 	};
 
+	void CollectRods();
+	void UpdateRodSystemJacobians();
+	
+	void UpdateRodSystemMatrixA();
+	
 	double ComputeA_ij(
 		const FPendulumRod& Rod_i,
 		const FPendulumRod& Rod_j
 	) const;
+
+	void UpdateRodSystemVectorB();
+
+	double ComputeB_i(
+		const FPendulumRod& Rod_i
+	) const;
+
+	bool SolveRodSystem();
 
 	double& MatrixIndex2ArrayIndex(int32 Row, int32 Column);
 	const double& MatrixIndex2ArrayIndex(int32 Row, int32 Column) const;
