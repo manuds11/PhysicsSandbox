@@ -42,14 +42,14 @@ private:
 	void ApplyFixedAxes();
 	void ProjectConstraintVelocities();
 	void ProjectConstraintPositions();
-	void ApplyConstraintForce(
-		const FPendulumRod& Rod,
-		double Lambda
-	);
 
 	// -----------------------------------------------------------------------------
 	// MultiRod System
 	// -----------------------------------------------------------------------------
+public:
+	const TArray<FPendulumRod*>& GetRodSystemArray() const;
+	const TArray<double>& GetRodSystemLambdaVector() const;
+
 private:
 	TArray<FPendulumRod*> RodSystemArray;	// Non-owning pointers to rod elements stored in Elements.
 

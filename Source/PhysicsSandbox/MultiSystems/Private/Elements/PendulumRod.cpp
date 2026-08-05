@@ -135,36 +135,36 @@ void FPendulumRod::UpdatePendulumKinematics(
 	const FBody& Bob
 )
 {
+	// -------------------------------------------------------------------------
+	// Position data
+	// -------------------------------------------------------------------------
+
 	PendulumPos.Bob2Pivot =
-		Bob.Position - Pivot.Position;
+		Bob.Position
+		- Pivot.Position;
 
 	PendulumPos.ComputedLength =
 		PendulumPos.Bob2Pivot.Size();
 
 	if (!PendulumPos.bLengthInitialized)
 	{
-		InitializePendulumLength();
+		PendulumPos.InitialLength =
+			PendulumPos.ComputedLength;
+
+		PendulumPos.bLengthInitialized =
+			true;
 	}
 
-	if (PendulumPos.ComputedLength <= UE_SMALL_NUMBER)
-	{
-		PolarBase = FPolarBase();
-		PendulumVel = FPendulumVelocities();
-		return;
-	}
+	PolarBase =
+		ComputePolarBase();
 
-	PolarBase = ComputePolarBase();
-
-	UpdateLengthErrors();
+	// -------------------------------------------------------------------------
+	// Velocity data
+	// -------------------------------------------------------------------------
 
 	PendulumVel.Bob2Pivot =
-		Bob.Velocity - Pivot.Velocity;
-
-	PendulumVel.Bob2PivotTangential =
-		FVector2D::DotProduct(
-			PendulumVel.Bob2Pivot,
-			PolarBase.e_Theta
-		);
+		Bob.Velocity
+		- Pivot.Velocity;
 
 	PendulumVel.Bob2PivotRadial =
 		FVector2D::DotProduct(
@@ -172,22 +172,96 @@ void FPendulumRod::UpdatePendulumKinematics(
 			PolarBase.e_Radial
 		);
 
+	PendulumVel.Bob2PivotTangential =
+		FVector2D::DotProduct(
+			PendulumVel.Bob2Pivot,
+			PolarBase.e_Theta
+		);
+
+	// Must be called only once per physics step and after
+	// all current kinematic values have been computed.
+	UpdateErrorData();
 }
 
-void FPendulumRod::UpdateLengthErrors()
+void FPendulumRod::UpdateErrorData()
 {
 	if (PendulumPos.InitialLength <= UE_SMALL_NUMBER)
 	{
 		PendulumPos.LengthAbsError = 0.0;
 		PendulumPos.LengthRelError = 0.0;
+		PendulumPos.StepLengthIncrement = 0.0;
 		return;
 	}
-	
+
+	// -------------------------------------------------------------------------
+	// Error relative to the target length
+	// -------------------------------------------------------------------------
+
 	PendulumPos.LengthAbsError =
-		PendulumPos.ComputedLength - PendulumPos.InitialLength;
+		PendulumPos.ComputedLength
+		- PendulumPos.InitialLength;
 
 	PendulumPos.LengthRelError =
-		PendulumPos.LengthAbsError / PendulumPos.InitialLength;
+		PendulumPos.LengthAbsError
+		/ PendulumPos.InitialLength;
+
+	// -------------------------------------------------------------------------
+	// First temporal sample
+	// -------------------------------------------------------------------------
+
+	if (!PendulumPos.bHasPreviousLengthSample)
+	{
+		PendulumPos.PreviousLength =
+			PendulumPos.ComputedLength;
+
+		PendulumPos.StepLengthIncrement =
+			0.0;
+
+		PendulumPos.bHasPreviousLengthSample =
+			true;
+
+		return;
+	}
+
+	// -------------------------------------------------------------------------
+	// Increment from the previous physics step
+	// -------------------------------------------------------------------------
+
+	const double CurrentLength =
+		PendulumPos.ComputedLength;
+
+	PendulumPos.StepLengthIncrement =
+		CurrentLength
+		- PendulumPos.PreviousLength;
+
+	// PreviousLength must be updated only after computing the increment.
+	PendulumPos.PreviousLength =
+		CurrentLength;
+
+	++ErrorDataSampleCount;
+
+	const double SampleCount =
+		static_cast<double>(
+			ErrorDataSampleCount
+			);
+
+	// -------------------------------------------------------------------------
+	// Incremental signed averages
+	// -------------------------------------------------------------------------
+
+	PendulumPos.StepMeanLengthIncrement +=
+		(
+			PendulumPos.StepLengthIncrement
+			- PendulumPos.StepMeanLengthIncrement
+			)
+		/ SampleCount;
+
+	PendulumVel.MeanRadialVelocity +=
+		(
+			PendulumVel.Bob2PivotRadial
+			- PendulumVel.MeanRadialVelocity
+			)
+		/ SampleCount;
 }
 
 // -----------------------------------------------------------------------------

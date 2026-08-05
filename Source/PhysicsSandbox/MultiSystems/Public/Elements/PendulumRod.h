@@ -11,11 +11,8 @@ struct FPolarBase
 
 struct FRodJacobian
 {
-    FVector2D JPivot =
-        FVector2D::ZeroVector;
-
-    FVector2D JBob =
-        FVector2D::ZeroVector;
+    FVector2D JPivot = FVector2D::ZeroVector;
+    FVector2D JBob = FVector2D::ZeroVector;
 
     double JDotVel = 0.0;
 };
@@ -24,21 +21,28 @@ struct FPendulumPositions
 {
     FVector2D Bob2Pivot = FVector2D::ZeroVector;
 
-    bool bLengthInitialized = false;
-
-    double InitialLength = 1.0;
+    double InitialLength = 0.0;
     double ComputedLength = 0.0;
 
     double LengthAbsError = 0.0;
     double LengthRelError = 0.0;
+
+    double PreviousLength = 0.0;
+    double StepLengthIncrement = 0.0;
+    double StepMeanLengthIncrement = 0.0;
+
+    bool bLengthInitialized = false;
+    bool bHasPreviousLengthSample = false;
 };
 
 struct FPendulumVelocities
 {
     FVector2D Bob2Pivot = FVector2D::ZeroVector;
 
-    double Bob2PivotTangential = 0.0;
     double Bob2PivotRadial = 0.0;
+    double Bob2PivotTangential = 0.0;
+
+    double MeanRadialVelocity = 0.0;
 };
 
 class FPendulumRod : public ISysElement
@@ -109,7 +113,7 @@ private:
         const FBody& Bob
     );
 
-    void UpdateLengthErrors();
+    void UpdateErrorData();
 
     // Derived quantities
     FPolarBase ComputePolarBase() const;
@@ -138,7 +142,10 @@ private:
         FBody& Body,
         const FVector2D& Correction
     ) const;
-
+    
+    // Simulation
+    uint64 ErrorDataSampleCount = 0;
+    
     // Connectivity
     int32 PivotBody = INDEX_NONE;
     int32 BobBody = INDEX_NONE;

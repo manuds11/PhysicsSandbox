@@ -49,7 +49,7 @@ private:
 	// Tick Simulation variables
 	// =========================
 	UPROPERTY(EditAnywhere, Category = "Simulation|Timing")
-	double FixedTimeStep = 1.0 / 120.0;
+	double FixedTimeStep = 1.0 / 960.0;
 
 	UPROPERTY(EditAnywhere, Category = "Simulation|Timing")
 	int32 MaxSubSteps = 8;
@@ -66,6 +66,8 @@ private:
 
 	int64 FrameCount = 0;
 	int32 LastSubStepCount = 0;
+
+	uint64 FixedStepCount = 0;
 
 	// =========================
 	// Visualization

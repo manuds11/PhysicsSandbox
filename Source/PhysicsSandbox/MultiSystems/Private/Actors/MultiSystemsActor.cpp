@@ -199,10 +199,6 @@ void AMultiSystemsActor::BuildDemoSystem()
 			)
 		);
 
-	// Temporary ad-hoc debug reference.
-	PendulumIndexForDebug =
-		PendulumRod1Index;
-
 	// -------------------------------------------------------------------------
 	// Subsystem associations
 	// -------------------------------------------------------------------------
@@ -291,6 +287,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		&& SubStepCount < MaxSubSteps)
 	{
 		FullSys.Step(FixedTimeStep);
+		++FixedStepCount;
 
 		SimuPhysicalTime += FixedTimeStep;
 		SimulationTimeDebt -= FixedTimeStep;
@@ -404,82 +401,101 @@ void AMultiSystemsActor::PrintInfo() const
 		return;
 	}
 
-	const FColor TitleColor =
+	FString DebugText;
+
+	DebugText += TEXT("MULTI SYSTEMS\n");
+
+	DebugText += FString::Printf(
+		TEXT(
+			"SPACE Start/Stop\n"
+			"\n"
+			"|	SimulTime: %.2f s	|	FixedSteps: %llu\n"
+			"Delay: %.5f s	|	AvgDt: %.5f s	|	FixedDt: %.8f s\n\n"
+		),
+		SimuPhysicalTime, FixedStepCount,
+		SimulationDelay, AverageDeltaTime, FixedTimeStep
+	);
+
+	const TArray<FPendulumRod*>& RodSystemArray =
+		FullSys.GetRodSystemArray();
+
+	const TArray<double>& RodSystemLambda =
+		FullSys.GetRodSystemLambdaVector();
+
+	check(
+		RodSystemArray.Num()
+		== RodSystemLambda.Num()
+	);
+
+	for (
+		int32 Rod_iIndex = 0;
+		Rod_iIndex < RodSystemArray.Num();
+		++Rod_iIndex
+		)
+	{
+		const FPendulumRod* Rod_i =
+			RodSystemArray[Rod_iIndex];
+
+		if (!Rod_i)
+		{
+			continue;
+		}
+
+		const FPendulumPositions& PendulumPos_i =
+			Rod_i->GetPendulumPositions();
+
+		const FPendulumVelocities& PendulumVel_i =
+			Rod_i->GetPendulumVelocities();
+
+		const double Lambda_i =
+			RodSystemLambda[Rod_iIndex];
+
+		DebugText += FString::Printf(
+			TEXT(
+				"--------------------------------------------------\n"
+				"ROD %d\n\n"
+
+				"Length: %.9f m\n"
+
+				"Length error: %.9f m"
+				"      ||      "
+				"Relative error: %.6f %%\n\n"
+
+				"Step length increment: %.12f m/step\n"
+				"Mean length increment: %.12f m/step\n\n"
+
+				"Radial velocity: %.9f m/s\n"
+				"Mean radial velocity: %.9f m/s\n\n"
+
+				"Lambda: %.6f N\n\n"
+			),
+
+			Rod_iIndex + 1,
+
+			PendulumPos_i.ComputedLength,
+
+			PendulumPos_i.LengthAbsError,
+			100.0 * PendulumPos_i.LengthRelError,
+
+			PendulumPos_i.StepLengthIncrement,
+			PendulumPos_i.StepMeanLengthIncrement,
+
+			PendulumVel_i.Bob2PivotRadial,
+			PendulumVel_i.MeanRadialVelocity,
+
+			Lambda_i
+		);
+	}
+
+	const FColor TextColor =
 		bIsSimulationRunning
 		? FColor::Green
 		: FColor::Red;
 
-	const FColor InfoColor =
-		bIsSimulationRunning
-		? FColor::Cyan
-		: FColor::Silver;
-
 	GEngine->AddOnScreenDebugMessage(
 		0,
 		0.0f,
-		TitleColor,
-		TEXT("MULTI SYSTEMS")
-	);
-
-	GEngine->AddOnScreenDebugMessage(
-		1,
-		0.0f,
-		InfoColor,
-		FString::Printf(
-			TEXT(
-				"SPACE Start/Stop | "
-				"SimulTime: %.2f s | "
-				"Delay: %.5f s | "
-				"AvgDt: %.5f s | "
-				"FixedDt: %.5f s"
-			),
-			SimuPhysicalTime,
-			SimulationDelay,
-			AverageDeltaTime,
-			FixedTimeStep
-		)
-	);
-
-	const TArray<TUniquePtr<ISysElement>>& Elements =
-		FullSys.GetElements();
-
-	if (!Elements.IsValidIndex(PendulumIndexForDebug))
-	{
-		return;
-	}
-
-	const FPendulumRod* PendulumRod =
-		static_cast<const FPendulumRod*>(
-			Elements[PendulumIndexForDebug].Get()
-			);
-
-	if (!PendulumRod)
-	{
-		return;
-	}
-
-	const FPendulumPositions& PendulumPos =
-		PendulumRod->GetPendulumPositions();
-
-	const FPendulumVelocities& PendulumVel =
-		PendulumRod->GetPendulumVelocities();
-
-	GEngine->AddOnScreenDebugMessage(
-		2,
-		0.0f,
-		FColor::Yellow,
-		FString::Printf(
-			TEXT(
-				"Pendulum | "
-				"L: %.4f m | "
-				"Err: %.4f %% | "
-				"Vr: %.6f m/s | "
-				"T: %.3f N"
-			),
-			PendulumPos.ComputedLength,
-			100.0 * PendulumPos.LengthRelError,
-			PendulumVel.Bob2PivotRadial,
-			PendulumRod->GetLastComputedTension()
-		)
+		TextColor,
+		DebugText
 	);
 }
