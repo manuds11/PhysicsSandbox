@@ -3,6 +3,7 @@
 #include "Simulation/FullSysTypes.h"
 #include "Simulation/SysIntegrator.h"
 #include "Simulation/SubSys.h"
+#include "Simulation/RodSys.h"
 
 #include "CoreMinimal.h"
 
@@ -36,10 +37,11 @@ private:
 	void ClearForces();
 	void ApplyNonConstraintInteractions();
 	void ApplyGravity();
-	void ApplyRodConstraintForces();
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();
+
+	// Obsolete: Constraint projection is now handled by the rod system.
 	void ProjectConstraintVelocities();
 	void ProjectConstraintPositions();
 
@@ -47,46 +49,20 @@ private:
 	// MultiRod System
 	// -----------------------------------------------------------------------------
 public:
-	const TArray<FPendulumRod*>& GetRodSystemArray() const;
-	const TArray<double>& GetRodSystemLambdaVector() const;
+	const TArray<FPendulumRod*>&
+		GetRodSystemArray() const
+	{
+		return RodSys.GetRodSystemArray();
+	}
+
+	const TArray<double>&
+		GetRodSystemLambdaVector() const
+	{
+		return RodSys.GetSystemLambdaVector();
+	}
 
 private:
-	TArray<FPendulumRod*> RodSystemArray;	// Non-owning pointers to rod elements stored in Elements.
-
-	TArray<double> RodSysMatrixA;
-	TArray<double> RodSysVectorB;
-	TArray<double> RodSysVectorLambda;
-
-	void AssembleRodSystem();       // Una vez
-	void UpdateRodSystem();   // Cada step
-	
-	// Helpers
-	struct FRodExtreme
-	{
-		int32 BodyIndex = INDEX_NONE;
-		FVector2D Jacobian = FVector2D::ZeroVector;
-	};
-
-	void CollectRods();
-	void UpdateRodSystemJacobians();
-	
-	void UpdateRodSystemMatrixA();
-	
-	double ComputeA_ij(
-		const FPendulumRod& Rod_i,
-		const FPendulumRod& Rod_j
-	) const;
-
-	void UpdateRodSystemVectorB();
-
-	double ComputeB_i(
-		const FPendulumRod& Rod_i
-	) const;
-
-	bool SolveRodSystem();
-
-	double& MatrixIndex2ArrayIndex(int32 Row, int32 Column);
-	const double& MatrixIndex2ArrayIndex(int32 Row, int32 Column) const;
+	FRodSys RodSys;
 };
 
 
