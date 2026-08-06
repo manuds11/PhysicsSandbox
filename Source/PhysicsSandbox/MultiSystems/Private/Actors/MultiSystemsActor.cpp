@@ -409,7 +409,7 @@ void AMultiSystemsActor::PrintInfo() const
 		TEXT(
 			"SPACE Start/Stop\n"
 			"\n"
-			"|	SimulTime: %.2f s	|	FixedSteps: %llu\n"
+			"SimulTime: %.3f s	|	FixedSteps: %llu\n"
 			"Delay: %.5f s	|	AvgDt: %.5f s	|	FixedDt: %.8f s\n\n"
 		),
 		SimuPhysicalTime, FixedStepCount,
@@ -455,22 +455,26 @@ void AMultiSystemsActor::PrintInfo() const
 				"--------------------------------------------------\n"
 				"ROD %d\n\n"
 
-				"L computed: %.9f m	 ||	L Abs error: %.9f m || L Rel error: %.6f %%\n\n"
+				"L computed: %.6f m  ||  L Abs error: %.6f m  ||  L Rel error: %.4f %%\n"
 
-				"LastStep L Increment: %.12f m/step || Mean Step L Increment: %.12f m/step\n\n"
+				"LastStep L Increment: %.7f mm/step  ||  Mean Step L Increment: %.7f mm/step\n"
 
-				"Radial Vel: %.9f m/s || Mean Radial Vel: %.9f m/s\n\n"
+				"Radial Vel: %.6f m/s  ||  Mean Radial Vel: %.6f m/s\n"
 
-				"Lambda: %.6f N\n\n"
+				"Lambda: %.4f N\n\n"
 			),
 
 			Rod_iIndex + 1,
 
-			PendulumPos_i.ComputedLength, PendulumPos_i.LengthAbsError, 100.0 * PendulumPos_i.LengthRelError,
+			PendulumPos_i.ComputedLength,
+			PendulumPos_i.LengthAbsError,
+			100.0 * PendulumPos_i.LengthRelError,
 
-			PendulumPos_i.StepLengthIncrement, PendulumPos_i.StepMeanLengthIncrement, 
+			1000.0 * PendulumPos_i.StepLengthIncrement,
+			1000.0 * PendulumPos_i.StepMeanLengthIncrement,
 
-			PendulumVel_i.Bob2PivotRadial, PendulumVel_i.MeanRadialVelocity,
+			PendulumVel_i.Bob2PivotRadial,
+			PendulumVel_i.MeanRadialVelocity,
 
 			Lambda_i
 		);

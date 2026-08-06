@@ -73,7 +73,7 @@ private:
 	// Visualization
 	// =========================
 	UPROPERTY(EditAnywhere, Category = "Visualization")
-	FVector VisualizationOffset = FVector(-100.0, 0.0, 200.0); // in cm
+	FVector VisualizationOffset = FVector(-100.0, 0.0, 250.0); // in cm
 
 	// =========================
 	// AUX - Remove after debugging
