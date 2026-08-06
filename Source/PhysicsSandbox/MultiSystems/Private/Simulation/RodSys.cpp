@@ -128,64 +128,15 @@ void FRodSys::ApplyRodConstraintForces(
 
 		check(Rod_i);
 
-		int32 BodyPivot_i = INDEX_NONE;
-		int32 BodyBob_i = INDEX_NONE;
-
-		const bool bBodiesRetrieved =
-			Rod_i->GetConnectedBodies(
-				BodyPivot_i,
-				BodyBob_i
-			);
-
-		if (!bBodiesRetrieved)
-		{
-			continue;
-		}
-
-		const FRodJacobian& Jacobian_i =
-			Rod_i->GetRodJacobian();
-
 		const double Lambda_i =
 			LambdaVector[Rod_iIndex];
 
-		const auto ApplyConstraintForceToBody =
-			[&Bodies, Lambda_i](
-				int32 BodyIndex,
-				const FVector2D& BodyJacobian
-				)
-			{
-				if (!Bodies.IsValidIndex(BodyIndex))
-				{
-					return;
-				}
-
-				FBody& Body =
-					Bodies[BodyIndex];
-
-				const FVector2D ConstraintForce_i =
-					BodyJacobian * Lambda_i;
-
-				if (!Body.bXFixed)
-				{
-					Body.NetForce.X +=
-						ConstraintForce_i.X;
-				}
-
-				if (!Body.bYFixed)
-				{
-					Body.NetForce.Y +=
-						ConstraintForce_i.Y;
-				}
-			};
-
-		ApplyConstraintForceToBody(
-			BodyPivot_i,
-			Jacobian_i.JPivot
+		Rod_i->UpdateConstraintForces(
+			Lambda_i
 		);
 
-		ApplyConstraintForceToBody(
-			BodyBob_i,
-			Jacobian_i.JBob
+		Rod_i->ApplyForces(
+			Bodies
 		);
 	}
 }

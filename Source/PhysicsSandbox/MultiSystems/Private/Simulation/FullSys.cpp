@@ -231,29 +231,3 @@ void FFullSys::ApplyFixedAxes()		// Faltan reacciones
 		}
 	}
 }
-
-void FFullSys::ProjectConstraintVelocities()
-{
-	for (const TUniquePtr<ISysElement>& Element : Elements)
-	{
-		if (!Element)
-		{
-			continue;
-		}
-
-		Element->ProjectVelocities(Bodies);
-	}
-}
-
-void FFullSys::ProjectConstraintPositions()
-{
-	for (const TUniquePtr<ISysElement>& Element : Elements)
-	{
-		if (!Element)
-		{
-			continue;
-		}
-
-		Element->ProjectPositions(Bodies);
-	}
-}
