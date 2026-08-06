@@ -144,7 +144,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 Bob1Index =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(4.5, -0.5),
+				FVector2D(4.5, 0.0),
 				1.5
 			)
 		);
@@ -152,7 +152,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 Bob2Index =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(5.2, -1.4),
+				FVector2D(4.5, -1.0),
 				1.0
 			)
 		);
@@ -455,33 +455,22 @@ void AMultiSystemsActor::PrintInfo() const
 				"--------------------------------------------------\n"
 				"ROD %d\n\n"
 
-				"Length: %.9f m\n"
+				"L computed: %.9f m	 ||	L Abs error: %.9f m || L Rel error: %.6f %%\n\n"
 
-				"Length error: %.9f m"
-				"      ||      "
-				"Relative error: %.6f %%\n\n"
+				"LastStep L Increment: %.12f m/step || Mean Step L Increment: %.12f m/step\n\n"
 
-				"Step length increment: %.12f m/step\n"
-				"Mean length increment: %.12f m/step\n\n"
-
-				"Radial velocity: %.9f m/s\n"
-				"Mean radial velocity: %.9f m/s\n\n"
+				"Radial Vel: %.9f m/s || Mean Radial Vel: %.9f m/s\n\n"
 
 				"Lambda: %.6f N\n\n"
 			),
 
 			Rod_iIndex + 1,
 
-			PendulumPos_i.ComputedLength,
+			PendulumPos_i.ComputedLength, PendulumPos_i.LengthAbsError, 100.0 * PendulumPos_i.LengthRelError,
 
-			PendulumPos_i.LengthAbsError,
-			100.0 * PendulumPos_i.LengthRelError,
+			PendulumPos_i.StepLengthIncrement, PendulumPos_i.StepMeanLengthIncrement, 
 
-			PendulumPos_i.StepLengthIncrement,
-			PendulumPos_i.StepMeanLengthIncrement,
-
-			PendulumVel_i.Bob2PivotRadial,
-			PendulumVel_i.MeanRadialVelocity,
+			PendulumVel_i.Bob2PivotRadial, PendulumVel_i.MeanRadialVelocity,
 
 			Lambda_i
 		);

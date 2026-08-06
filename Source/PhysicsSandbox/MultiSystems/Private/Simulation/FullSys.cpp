@@ -108,7 +108,7 @@ void FFullSys::AssembleRodSystem()
 	);
 }
 
-void FFullSys::UpdateRodSystemValues()
+void FFullSys::UpdateRodSystem()
 {	
 	if (RodSystemArray.IsEmpty())
 	{
@@ -507,7 +507,7 @@ void FFullSys::Step(double Dt)
 	ApplyGravity();
 	ApplyNonConstraintInteractions();
 
-	UpdateRodSystemValues();
+	UpdateRodSystem();
 
 	const bool bRodSystemSolved =
 		SolveRodSystem();

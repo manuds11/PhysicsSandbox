@@ -58,7 +58,7 @@ private:
 	TArray<double> RodSysVectorLambda;
 
 	void AssembleRodSystem();       // Una vez
-	void UpdateRodSystemValues();   // Cada step
+	void UpdateRodSystem();   // Cada step
 	
 	// Helpers
 	struct FRodExtreme
