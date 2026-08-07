@@ -110,7 +110,7 @@ public:
 	// Rod state update
 	// -------------------------------------------------------------------------
 
-	void UpdateRodJacobian(
+	void UpdateRodState(
 		const TArray<FBody>& Bodies
 	);
 
@@ -174,11 +174,6 @@ private:
 	// -------------------------------------------------------------------------
 
 	void InitializePendulumLength();
-
-	void UpdatePendulumKinematics(
-		const FBody& Pivot,
-		const FBody& Bob
-	);
 
 	FRodPolarBase ComputePolarBase() const;
 

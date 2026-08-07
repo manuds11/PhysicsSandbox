@@ -176,7 +176,7 @@ void FRodSys::UpdateJacobians(
 			continue;
 		}
 
-		PendulumRod->UpdateRodJacobian(Bodies);
+		PendulumRod->UpdateRodState(Bodies);
 
 		PendulumRod->ComputeInstantErrorData();
 	}

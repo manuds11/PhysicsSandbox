@@ -107,16 +107,32 @@ void FPendulumRod::InitializePendulumLength()
 }
 
 // -----------------------------------------------------------------------------
-// Kinematic update
+// Constraint state update
 // -----------------------------------------------------------------------------
 
-void FPendulumRod::UpdatePendulumKinematics(
-	const FBody& Pivot,
-	const FBody& Bob
+void FPendulumRod::UpdateRodState(
+	const TArray<FBody>& Bodies
 )
 {
+	if (
+		!Bodies.IsValidIndex(PivotBody)
+		|| !Bodies.IsValidIndex(BobBody)
+		)
+	{
+		RodJacobian =
+			FRodJacobian();
+
+		return;
+	}
+
+	const FBody& Pivot =
+		Bodies[PivotBody];
+
+	const FBody& Bob =
+		Bodies[BobBody];
+
 	// -------------------------------------------------------------------------
-	// Position data
+	// Position state
 	// -------------------------------------------------------------------------
 
 	PendulumPos.Bob2Pivot =
@@ -131,11 +147,32 @@ void FPendulumRod::UpdatePendulumKinematics(
 		InitializePendulumLength();
 	}
 
+	if (
+		PendulumPos.ComputedLength
+		<= UE_SMALL_NUMBER
+		)
+	{
+		PolarBase =
+			FRodPolarBase();
+
+		RodJacobian =
+			FRodJacobian();
+
+		PendulumVel =
+			FPendulumVelocities();
+
+		return;
+	}
+
+	// -------------------------------------------------------------------------
+	// Polar base
+	// -------------------------------------------------------------------------
+
 	PolarBase =
 		ComputePolarBase();
 
 	// -------------------------------------------------------------------------
-	// Velocity data
+	// Velocity state
 	// -------------------------------------------------------------------------
 
 	PendulumVel.Bob2Pivot =
@@ -153,6 +190,31 @@ void FPendulumRod::UpdatePendulumKinematics(
 			PendulumVel.Bob2Pivot,
 			PolarBase.e_Theta
 		);
+
+	// -------------------------------------------------------------------------
+	// Constraint Jacobian
+	// -------------------------------------------------------------------------
+
+	// e_Radial is the constraint normal pointing from pivot to bob.
+	RodJacobian.JPivot =
+		-PolarBase.e_Radial;
+
+	RodJacobian.JBob =
+		PolarBase.e_Radial;
+
+	/*
+	 * JDotVel = v_t² / |r|
+	 *
+	 * The current computed length must be used rather than the target length,
+	 * since the instantaneous angular velocity is:
+	 *
+	 * Omega = v_t / |r|
+	 */
+	RodJacobian.JDotVel =
+		FMath::Square(
+			PendulumVel.Bob2PivotTangential
+		)
+		/ PendulumPos.ComputedLength;
 }
 
 FRodPolarBase FPendulumRod::ComputePolarBase() const
@@ -178,67 +240,6 @@ FRodPolarBase FPendulumRod::ComputePolarBase() const
 	return ComputedPolarBase;
 }
 
-// -----------------------------------------------------------------------------
-// Constraint data
-// -----------------------------------------------------------------------------
-
-void FPendulumRod::UpdateRodJacobian(
-	const TArray<FBody>& Bodies
-)
-{
-	if (
-		!Bodies.IsValidIndex(PivotBody)
-		|| !Bodies.IsValidIndex(BobBody)
-		)
-	{
-		RodJacobian =
-			FRodJacobian();
-
-		return;
-	}
-
-	const FBody& Pivot =
-		Bodies[PivotBody];
-
-	const FBody& Bob =
-		Bodies[BobBody];
-
-	UpdatePendulumKinematics(
-		Pivot,
-		Bob
-	);
-
-	if (
-		PendulumPos.ComputedLength
-		<= UE_SMALL_NUMBER
-		)
-	{
-		RodJacobian = FRodJacobian();
-
-		return;
-	}
-
-	// e_Radial is the constraint normal pointing from pivot to bob.
-	RodJacobian.JPivot =
-		-PolarBase.e_Radial;
-
-	RodJacobian.JBob =
-		PolarBase.e_Radial;
-
-	/*
-	 * JDotVel = v_t² / |r|
-	 *
-	 * The current computed length must be used rather than the target length,
-	 * since the instantaneous angular velocity is:
-	 *
-	 * Omega = v_t / |r|
-	 */
-	RodJacobian.JDotVel =
-		FMath::Square(
-			PendulumVel.Bob2PivotTangential
-		)
-		/ PendulumPos.ComputedLength;
-}
 
 // -----------------------------------------------------------------------------
 // Constraint forces
