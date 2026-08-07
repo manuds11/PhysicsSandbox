@@ -31,17 +31,7 @@ struct FPendulumPositions
 	double InitialLength = 0.0;
 	double ComputedLength = 0.0;
 
-	// Signed length error relative to the target length.
-	double LengthAbsError = 0.0;
-	double LengthRelError = 0.0;
-
-	// Signed length increment between consecutive physics steps.
-	double PreviousLength = 0.0;
-	double StepLengthIncrement = 0.0;
-	double StepMeanLengthIncrement = 0.0;
-
 	bool bLengthInitialized = false;
-	bool bHasPreviousLengthSample = false;
 };
 
 struct FPendulumVelocities
@@ -51,8 +41,6 @@ struct FPendulumVelocities
 
 	double Bob2PivotRadial = 0.0;
 	double Bob2PivotTangential = 0.0;
-
-	double MeanRadialVelocity = 0.0;
 };
 
 struct FRodConstraintForces
@@ -62,6 +50,28 @@ struct FRodConstraintForces
 
 	FVector2D BobForce =
 		FVector2D::ZeroVector;
+};
+
+struct FInstantErrorData
+{
+	double LengthAbsError = 0.0;
+	double LengthRelError = 0.0;
+
+	double RadialVelocityError = 0.0;
+};
+
+struct FStatisticalErrorData
+{
+	double PreviousLength = 0.0;
+
+	double StepLengthIncrement = 0.0;
+	double MeanStepLengthIncrement = 0.0;
+
+	double MeanRadialVelocity = 0.0;
+
+	uint64 SampleCount = 0;
+
+	bool bHasPreviousLengthSample = false;
 };
 
 // -----------------------------------------------------------------------------
@@ -108,6 +118,10 @@ public:
 		double Lambda
 	);
 
+	void ComputeInstantErrorData();
+
+	void UpdateStatisticalErrorData();
+
 	const FPendulumPositions& GetPendulumPositions() const
 	{
 		return PendulumPos;
@@ -135,7 +149,22 @@ public:
 
 	double GetConstraintFunctionValue() const
 	{
-		return PendulumPos.LengthAbsError;
+		return InstantErrorData.LengthAbsError;
+	}
+
+	double GetVelocityConstraintError() const
+	{
+		return InstantErrorData.RadialVelocityError;
+	}
+
+	const FInstantErrorData& GetInstantErrorData() const
+	{
+		return InstantErrorData;
+	}
+
+	const FStatisticalErrorData& GetStatisticalErrorData() const
+	{
+		return StatisticalErrorData;
 	}
 
 private:
@@ -173,6 +202,8 @@ private:
 	FPendulumVelocities PendulumVel;
 
 	FRodConstraintForces RodConstraintForces;
+	FInstantErrorData InstantErrorData;
+	FStatisticalErrorData StatisticalErrorData;
 
 	// -------------------------------------------------------------------------
 	// Diagnostics

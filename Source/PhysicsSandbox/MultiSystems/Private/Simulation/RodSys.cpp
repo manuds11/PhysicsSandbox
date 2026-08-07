@@ -40,22 +40,18 @@ void FRodSys::Update(
 		return;
 	}
 
-	const int32 NumRods =
-		RodSystemArray.Num();
+	const int32 NumRods = RodSystemArray.Num();
 
 	check(
-		AMatrix.Num()
-		== NumRods * NumRods
+		AMatrix.Num() == NumRods * NumRods
 	);
 
 	check(
-		BVector.Num()
-		== NumRods
+		BVector.Num() == NumRods
 	);
 
 	check(
-		LambdaVector.Num()
-		== NumRods
+		LambdaVector.Num() == NumRods
 	);
 
 	for (double& Value : AMatrix)
@@ -73,17 +69,11 @@ void FRodSys::Update(
 		Value = 0.0;
 	}
 
-	UpdateJacobians(
-		Bodies
-	);
+	UpdateJacobians(Bodies);
 
-	UpdateAMatrix(
-		Bodies
-	);
+	UpdateAMatrix(Bodies);
 
-	UpdateBVector(
-		Bodies
-	);
+	UpdateBVector(Bodies);
 }
 
 bool FRodSys::Solve()
@@ -102,19 +92,17 @@ bool FRodSys::Solve()
 
 void FRodSys::ApplyRodConstraintForces(
 	TArray<FBody>& Bodies
-)
+)  
 {
 	if (RodSystemArray.IsEmpty())
 	{
 		return;
 	}
 
-	const int32 NumRods =
-		RodSystemArray.Num();
+	const int32 NumRods = RodSystemArray.Num();
 
 	check(
-		LambdaVector.Num()
-		== NumRods
+		LambdaVector.Num() == NumRods
 	);
 
 	for (
@@ -188,9 +176,9 @@ void FRodSys::UpdateJacobians(
 			continue;
 		}
 
-		PendulumRod->UpdateRodJacobian(
-			Bodies
-		);
+		PendulumRod->UpdateRodJacobian(Bodies);
+
+		PendulumRod->ComputeInstantErrorData();
 	}
 }
 
@@ -506,6 +494,19 @@ double FRodSys::ComputeB_i(
 		);
 }
 
+void FRodSys::UpdateStatisticalErrorData()
+{
+	for (FPendulumRod* PendulumRod : RodSystemArray)
+	{
+		if (!PendulumRod)
+		{
+			continue;
+		}
+
+		PendulumRod->UpdateStatisticalErrorData();
+	}
+}
+
 // -----------------------------------------------------------------------------
 // Matrix Management
 // -----------------------------------------------------------------------------
@@ -541,3 +542,4 @@ const double& FRodSys::MatrixIndex2ArrayIndex(
 		Row * NumRods + Column
 	];
 }
+

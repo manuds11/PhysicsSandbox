@@ -108,6 +108,8 @@ void FFullSys::Step(double Dt)
 	// ProjectConstraintPositions();
 
 	ApplyFixedAxes();
+
+	RodSys.UpdateStatisticalErrorData();
 }
 
 // -----------------------------------------------------------------------------º

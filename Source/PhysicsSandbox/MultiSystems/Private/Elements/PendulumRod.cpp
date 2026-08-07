@@ -153,10 +153,6 @@ void FPendulumRod::UpdatePendulumKinematics(
 			PendulumVel.Bob2Pivot,
 			PolarBase.e_Theta
 		);
-
-	// Must be called only once per physics step and after all current
-	// position and velocity data have been computed.
-	UpdateErrorData();
 }
 
 FRodPolarBase FPendulumRod::ComputePolarBase() const
@@ -217,8 +213,7 @@ void FPendulumRod::UpdateRodJacobian(
 		<= UE_SMALL_NUMBER
 		)
 	{
-		RodJacobian =
-			FRodJacobian();
+		RodJacobian = FRodJacobian();
 
 		return;
 	}
@@ -275,76 +270,77 @@ void FPendulumRod::UpdateConstraintForces(
 // Diagnostics
 // -----------------------------------------------------------------------------
 
-void FPendulumRod::UpdateErrorData()
+void FPendulumRod::ComputeInstantErrorData()
 {
 	if (PendulumPos.InitialLength <= UE_SMALL_NUMBER)
 	{
-		PendulumPos.LengthAbsError = 0.0;
-		PendulumPos.LengthRelError = 0.0;
-		PendulumPos.StepLengthIncrement = 0.0;
+		InstantErrorData =
+			FInstantErrorData();
 
 		return;
 	}
 
-	// Error relative to the target length
-
-	PendulumPos.LengthAbsError =
+	InstantErrorData.LengthAbsError =
 		PendulumPos.ComputedLength
 		- PendulumPos.InitialLength;
 
-	PendulumPos.LengthRelError =
-		PendulumPos.LengthAbsError
+	InstantErrorData.LengthRelError =
+		InstantErrorData.LengthAbsError
 		/ PendulumPos.InitialLength;
 
-	// First temporal sample
+	InstantErrorData.RadialVelocityError =
+		PendulumVel.Bob2PivotRadial;
+}
 
-	if (!PendulumPos.bHasPreviousLengthSample)
+void FPendulumRod::UpdateStatisticalErrorData()
+{
+	if (
+		!PendulumPos.bLengthInitialized
+		|| PendulumPos.InitialLength <= UE_SMALL_NUMBER
+		)
 	{
-		PendulumPos.PreviousLength =
+		return;
+	}
+
+	if (!StatisticalErrorData.bHasPreviousLengthSample)
+	{
+		StatisticalErrorData.PreviousLength =
 			PendulumPos.ComputedLength;
 
-		PendulumPos.StepLengthIncrement =
+		StatisticalErrorData.StepLengthIncrement =
 			0.0;
 
-		PendulumPos.bHasPreviousLengthSample =
+		StatisticalErrorData.bHasPreviousLengthSample =
 			true;
 
 		return;
 	}
 
-	// Increment from the previous physics step
+	StatisticalErrorData.StepLengthIncrement =
+		PendulumPos.ComputedLength
+		- StatisticalErrorData.PreviousLength;
 
-	const double CurrentLength =
+	StatisticalErrorData.PreviousLength =
 		PendulumPos.ComputedLength;
 
-	PendulumPos.StepLengthIncrement =
-		CurrentLength
-		- PendulumPos.PreviousLength;
-
-	// PreviousLength must be updated only after computing the increment.
-	PendulumPos.PreviousLength =
-		CurrentLength;
-
-	++ErrorDataSampleCount;
+	++StatisticalErrorData.SampleCount;
 
 	const double SampleCount =
 		static_cast<double>(
-			ErrorDataSampleCount
+			StatisticalErrorData.SampleCount
 			);
 
-	// Incremental signed averages
-
-	PendulumPos.StepMeanLengthIncrement +=
+	StatisticalErrorData.MeanStepLengthIncrement +=
 		(
-			PendulumPos.StepLengthIncrement
-			- PendulumPos.StepMeanLengthIncrement
+			StatisticalErrorData.StepLengthIncrement
+			- StatisticalErrorData.MeanStepLengthIncrement
 			)
 		/ SampleCount;
 
-	PendulumVel.MeanRadialVelocity +=
+	StatisticalErrorData.MeanRadialVelocity +=
 		(
 			PendulumVel.Bob2PivotRadial
-			- PendulumVel.MeanRadialVelocity
+			- StatisticalErrorData.MeanRadialVelocity
 			)
 		/ SampleCount;
 }

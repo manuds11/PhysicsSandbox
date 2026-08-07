@@ -447,6 +447,12 @@ void AMultiSystemsActor::PrintInfo() const
 		const FPendulumVelocities& PendulumVel_i =
 			Rod_i->GetPendulumVelocities();
 
+		const FInstantErrorData& InstantErrorData_i =
+			Rod_i->GetInstantErrorData();
+
+		const FStatisticalErrorData& StatisticalErrorData_i =
+			Rod_i->GetStatisticalErrorData();
+
 		const double Lambda_i =
 			RodSystemLambda[Rod_iIndex];
 
@@ -455,11 +461,11 @@ void AMultiSystemsActor::PrintInfo() const
 				"--------------------------------------------------\n"
 				"ROD %d\n\n"
 
-				"L computed: %.6f m  ||  L Abs error: %.6f m  ||  L Rel error: %.4f %%\n"
+				"L computed: %.6f m  ||  L Abs error: %.6f m  ||  L Rel error: %.4f %%\n\n"
 
-				"LastStep L Increment: %.7f mm/step  ||  Mean Step L Increment: %.7f mm/step\n"
+				"LastStep L Increment: %.4f mm/step  ||  Mean Step L Increment: %.4f mm/step\n\n"
 
-				"Radial Vel: %.6f m/s  ||  Mean Radial Vel: %.6f m/s\n"
+				"Radial Vel: %.4f mm/s  ||  Mean Radial Vel: %.4f mm/s\n\n"
 
 				"Lambda: %.4f N\n\n"
 			),
@@ -467,14 +473,14 @@ void AMultiSystemsActor::PrintInfo() const
 			Rod_iIndex + 1,
 
 			PendulumPos_i.ComputedLength,
-			PendulumPos_i.LengthAbsError,
-			100.0 * PendulumPos_i.LengthRelError,
+			InstantErrorData_i.LengthAbsError,
+			100.0 * InstantErrorData_i.LengthRelError,
 
-			1000.0 * PendulumPos_i.StepLengthIncrement,
-			1000.0 * PendulumPos_i.StepMeanLengthIncrement,
+			1000.0 * StatisticalErrorData_i.StepLengthIncrement,
+			1000.0 * StatisticalErrorData_i.MeanStepLengthIncrement,
 
-			PendulumVel_i.Bob2PivotRadial,
-			PendulumVel_i.MeanRadialVelocity,
+			1000.0 * PendulumVel_i.Bob2PivotRadial,
+			1000.0 * StatisticalErrorData_i.MeanRadialVelocity,
 
 			Lambda_i
 		);

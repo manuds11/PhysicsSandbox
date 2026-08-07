@@ -27,6 +27,8 @@ public:
 		TArray<FBody>& Bodies
 	);
 
+	void UpdateStatisticalErrorData();
+
 	// Getters
 	const TArray<FPendulumRod*>& GetRodSystemArray() const
 	{
