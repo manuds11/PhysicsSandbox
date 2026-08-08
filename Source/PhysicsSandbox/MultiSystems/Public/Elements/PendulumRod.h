@@ -16,7 +16,7 @@ struct FRodJacobian
 {
 	FVector2D JPivot =
 		FVector2D::ZeroVector;
-
+		
 	FVector2D JBob =
 		FVector2D::ZeroVector;
 
@@ -49,6 +49,15 @@ struct FRodConstraintForces
 		FVector2D::ZeroVector;
 
 	FVector2D BobForce =
+		FVector2D::ZeroVector;
+};
+
+struct FRodConstraintImpulses
+{
+	FVector2D PivotImpulse =
+		FVector2D::ZeroVector;
+
+	FVector2D BobImpulse =
 		FVector2D::ZeroVector;
 };
 
@@ -106,6 +115,10 @@ public:
 		TArray<FBody>& Bodies
 	) override;
 
+	void ApplyImpulses(
+		TArray<FBody>& Bodies
+	);
+
 	// -------------------------------------------------------------------------
 	// Rod state update
 	// -------------------------------------------------------------------------
@@ -116,6 +129,10 @@ public:
 
 	void UpdateConstraintForces(
 		double Lambda
+	);
+
+	void UpdateConstraintImpulses(
+		double Impulse
 	);
 
 	void ComputeInstantErrorData();
@@ -157,6 +174,11 @@ public:
 		return InstantErrorData.RadialVelocityError;
 	}
 
+	const FRodConstraintImpulses& GetConstraintImpulses() const
+	{
+		return RodConstraintImpulses;
+	}
+
 	const FInstantErrorData& GetInstantErrorData() const
 	{
 		return InstantErrorData;
@@ -177,8 +199,6 @@ private:
 
 	FRodPolarBase ComputePolarBase() const;
 
-	void UpdateErrorData();
-
 	// -------------------------------------------------------------------------
 	// Connectivity
 	// -------------------------------------------------------------------------
@@ -197,6 +217,8 @@ private:
 	FPendulumVelocities PendulumVel;
 
 	FRodConstraintForces RodConstraintForces;
+	FRodConstraintImpulses RodConstraintImpulses;
+
 	FInstantErrorData InstantErrorData;
 	FStatisticalErrorData StatisticalErrorData;
 

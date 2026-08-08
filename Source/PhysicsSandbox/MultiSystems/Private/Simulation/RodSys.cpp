@@ -29,9 +29,17 @@ void FRodSys::Assemble(
 	LambdaVector.SetNumZeroed(
 		NumRods
 	);
+
+	VelocityBVector.SetNumZeroed(
+		NumRods
+	);
+
+	ImpulseLambdaVector.SetNumZeroed(
+		NumRods
+	);
 }
 
-void FRodSys::Update(
+void FRodSys::UpdateConstraintForces(
 	const TArray<FBody>& Bodies
 )
 {
@@ -69,14 +77,90 @@ void FRodSys::Update(
 		Value = 0.0;
 	}
 
-	UpdateJacobians(Bodies);
+	UpdateRodStates(Bodies);
 
 	UpdateAMatrix(Bodies);
 
 	UpdateBVector(Bodies);
 }
 
-bool FRodSys::Solve()
+void FRodSys::UpdateVelocityCorrection(
+	const TArray<FBody>& Bodies
+)
+{
+	if (RodSystemArray.IsEmpty())
+	{
+		return;
+	}
+
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		AMatrix.Num() == NumRods * NumRods
+	);
+
+	check(
+		VelocityBVector.Num() == NumRods
+	);
+
+	check(
+		ImpulseLambdaVector.Num() == NumRods
+	);
+
+	for (double& Value : AMatrix)
+	{
+		Value = 0.0;
+	}
+
+	for (double& Value : VelocityBVector)
+	{
+		Value = 0.0;
+	}
+
+	for (double& Value : ImpulseLambdaVector)
+	{
+		Value = 0.0;
+	}
+
+	UpdateRodStates(
+		Bodies
+	);
+
+	UpdateAMatrix(
+		Bodies
+	);
+
+	UpdateVelocityBVector();
+}
+
+void FRodSys::UpdateVelocityBVector()
+{
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		VelocityBVector.Num()
+		== NumRods
+	);
+
+	for (
+		int32 Rod_iIndex = 0;
+		Rod_iIndex < NumRods;
+		++Rod_iIndex
+		)
+	{
+		const FPendulumRod* Rod_i =
+			RodSystemArray[Rod_iIndex];
+
+		check(Rod_i);
+
+		VelocityBVector[Rod_iIndex] =
+			-Rod_i->GetVelocityConstraintError();
+	}
+}
+
+bool FRodSys::SolveConstraintForces()
 {
 	if (RodSystemArray.IsEmpty())
 	{
@@ -87,6 +171,20 @@ bool FRodSys::Solve()
 		AMatrix,
 		BVector,
 		LambdaVector
+	);
+}
+
+bool FRodSys::SolveVelocityCorrection()
+{
+	if (RodSystemArray.IsEmpty())
+	{
+		return true;
+	}
+
+	return DenseLinearSolver::Solve(
+		AMatrix,
+		VelocityBVector,
+		ImpulseLambdaVector
 	);
 }
 
@@ -129,6 +227,47 @@ void FRodSys::ApplyRodConstraintForces(
 	}
 }
 
+void FRodSys::ApplyVelocityCorrection(
+	TArray<FBody>& Bodies
+)
+{
+	if (RodSystemArray.IsEmpty())
+	{
+		return;
+	}
+
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		ImpulseLambdaVector.Num()
+		== NumRods
+	);
+
+	for (
+		int32 Rod_iIndex = 0;
+		Rod_iIndex < NumRods;
+		++Rod_iIndex
+		)
+	{
+		FPendulumRod* Rod_i =
+			RodSystemArray[Rod_iIndex];
+
+		check(Rod_i);
+
+		const double ImpulseLambda_i =
+			ImpulseLambdaVector[Rod_iIndex];
+
+		Rod_i->UpdateConstraintImpulses(
+			ImpulseLambda_i
+		);
+
+		Rod_i->ApplyImpulses(
+			Bodies
+		);
+	}
+}
+
 // -----------------------------------------------------------------------------
 // Rod collection and Jacobians
 // -----------------------------------------------------------------------------
@@ -165,7 +304,7 @@ void FRodSys::CollectRods(
 	}
 }
 
-void FRodSys::UpdateJacobians(
+void FRodSys::UpdateRodStates(
 	const TArray<FBody>& Bodies
 )
 {

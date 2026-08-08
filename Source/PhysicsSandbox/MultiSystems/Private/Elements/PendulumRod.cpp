@@ -34,7 +34,7 @@ bool FPendulumRod::GetConnectedBodies(
 }
 
 // -----------------------------------------------------------------------------
-// ISysElement interface
+// Constraint force and impulse
 // -----------------------------------------------------------------------------
 
 void FPendulumRod::ApplyForces(
@@ -86,6 +86,114 @@ void FPendulumRod::ApplyForces(
 		Bob.NetForce.Y +=
 			RodConstraintForces.BobForce.Y;
 	}
+}
+
+void FPendulumRod::ApplyImpulses(
+	TArray<FBody>& Bodies
+)
+{
+	if (
+		!Bodies.IsValidIndex(PivotBody)
+		|| !Bodies.IsValidIndex(BobBody)
+		)
+	{
+		return;
+	}
+
+	FBody& Pivot =
+		Bodies[PivotBody];
+
+	FBody& Bob =
+		Bodies[BobBody];
+
+	// -------------------------------------------------------------------------
+	// Pivot impulse
+	// -------------------------------------------------------------------------
+
+	if (Pivot.Mass > UE_SMALL_NUMBER)
+	{
+		const double PivotInverseMass =
+			1.0 / Pivot.Mass;
+
+		if (!Pivot.bXFixed)
+		{
+			Pivot.Velocity.X +=
+				RodConstraintImpulses.PivotImpulse.X
+				* PivotInverseMass;
+		}
+
+		if (!Pivot.bYFixed)
+		{
+			Pivot.Velocity.Y +=
+				RodConstraintImpulses.PivotImpulse.Y
+				* PivotInverseMass;
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Bob impulse
+	// -------------------------------------------------------------------------
+
+	if (Bob.Mass > UE_SMALL_NUMBER)
+	{
+		const double BobInverseMass =
+			1.0 / Bob.Mass;
+
+		if (!Bob.bXFixed)
+		{
+			Bob.Velocity.X +=
+				RodConstraintImpulses.BobImpulse.X
+				* BobInverseMass;
+		}
+
+		if (!Bob.bYFixed)
+		{
+			Bob.Velocity.Y +=
+				RodConstraintImpulses.BobImpulse.Y
+				* BobInverseMass;
+		}
+	}
+}
+
+void FPendulumRod::UpdateConstraintForces(
+	double Lambda
+)
+{
+	/*
+	 * Constraint-force contribution of this rod:
+	 *
+	 * Q_c,i = J_i^T Lambda_i
+	 *
+	 * Each Jacobian block generates the force applied
+	 * to its corresponding connected body.
+	 */
+
+	RodConstraintForces.PivotForce =
+		RodJacobian.JPivot
+		* Lambda;
+
+	RodConstraintForces.BobForce =
+		RodJacobian.JBob
+		* Lambda;
+}
+
+void FPendulumRod::UpdateConstraintImpulses(
+	double Impulse
+)
+{
+	/*
+	 * Constraint impulse contribution of this rod:
+	 *
+	 * I_c,i = J_i^T P_i
+	 */
+
+	RodConstraintImpulses.PivotImpulse =
+		RodJacobian.JPivot
+		* Impulse;
+
+	RodConstraintImpulses.BobImpulse =
+		RodJacobian.JBob
+		* Impulse;
 }
 
 // -----------------------------------------------------------------------------
@@ -238,33 +346,6 @@ FRodPolarBase FPendulumRod::ComputePolarBase() const
 		);
 
 	return ComputedPolarBase;
-}
-
-
-// -----------------------------------------------------------------------------
-// Constraint forces
-// -----------------------------------------------------------------------------
-
-void FPendulumRod::UpdateConstraintForces(
-	double Lambda
-)
-{
-	/*
-	 * Constraint-force contribution of this rod:
-	 *
-	 * Q_c,i = J_i^T Lambda_i
-	 *
-	 * Each Jacobian block generates the force applied
-	 * to its corresponding connected body.
-	 */
-
-	RodConstraintForces.PivotForce =
-		RodJacobian.JPivot
-		* Lambda;
-
-	RodConstraintForces.BobForce =
-		RodJacobian.JBob
-		* Lambda;
 }
 
 // -----------------------------------------------------------------------------

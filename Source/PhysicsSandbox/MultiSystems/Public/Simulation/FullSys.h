@@ -41,10 +41,6 @@ private:
 	void Integrate(double Dt);
 	void ApplyFixedAxes();
 
-	// Obsolete: Constraint projection is now handled by the rod system.
-	void ProjectConstraintVelocities();
-	void ProjectConstraintPositions();
-
 	// -----------------------------------------------------------------------------
 	// MultiRod System
 	// -----------------------------------------------------------------------------

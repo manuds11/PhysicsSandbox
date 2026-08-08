@@ -17,13 +17,23 @@ public:
 		const TArray<TUniquePtr<ISysElement>>& Elements
 	);
 
-	void Update(
+	void UpdateConstraintForces(
 		const TArray<FBody>& Bodies
 	);
 
-	bool Solve();
+	void UpdateVelocityCorrection(
+		const TArray<FBody>& Bodies
+	);
+
+	bool SolveConstraintForces();
+
+	bool SolveVelocityCorrection();
 
 	void ApplyRodConstraintForces(
+		TArray<FBody>& Bodies
+	);
+
+	void ApplyVelocityCorrection(
 		TArray<FBody>& Bodies
 	);
 
@@ -50,8 +60,12 @@ private:
 	TArray<FPendulumRod*> RodSystemArray;
 
 	TArray<double> AMatrix;
+
 	TArray<double> BVector;
 	TArray<double> LambdaVector;
+	
+	TArray<double> VelocityBVector;
+	TArray<double> ImpulseLambdaVector;
 
 	// -------------------------------------------------------------------------
 	// Helpers
@@ -67,7 +81,7 @@ private:
 		const TArray<TUniquePtr<ISysElement>>& Elements
 	);
 
-	void UpdateJacobians(
+	void UpdateRodStates(
 		const TArray<FBody>& Bodies
 	);
 
@@ -84,6 +98,8 @@ private:
 	void UpdateBVector(
 		const TArray<FBody>& Bodies
 	);
+
+	void UpdateVelocityBVector();
 
 	double ComputeB_i(
 		const FPendulumRod& Rod_i,

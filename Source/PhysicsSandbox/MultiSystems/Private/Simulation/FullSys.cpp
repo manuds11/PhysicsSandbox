@@ -85,12 +85,16 @@ void FFullSys::Step(double Dt)
 	ApplyGravity();
 	ApplyNonConstraintInteractions();
 
-	RodSys.Update(
+	// -------------------------------------------------------------------------
+	// Constraint forces
+	// -------------------------------------------------------------------------
+
+	RodSys.UpdateConstraintForces(
 		Bodies
 	);
 
 	const bool bRodSystemSolved =
-		RodSys.Solve();
+		RodSys.SolveConstraintForces();
 
 	if (!bRodSystemSolved)
 	{
@@ -101,13 +105,38 @@ void FFullSys::Step(double Dt)
 		Bodies
 	);
 
+	// -------------------------------------------------------------------------
+	// Integration
+	// -------------------------------------------------------------------------
+
 	ComputeAccelerations();
 	Integrate(Dt);
 
-	// ProjectConstraintVelocities();
-	// ProjectConstraintPositions();
-
 	ApplyFixedAxes();
+
+	// -------------------------------------------------------------------------
+	// Velocity correction
+	// -------------------------------------------------------------------------
+
+	RodSys.UpdateVelocityCorrection(
+		Bodies
+	);
+
+	const bool bVelocityCorrectionSolved =
+		RodSys.SolveVelocityCorrection();
+
+	if (!bVelocityCorrectionSolved)
+	{
+		return;
+	}
+
+	RodSys.ApplyVelocityCorrection(
+		Bodies
+	);
+
+	// -------------------------------------------------------------------------
+	// Diagnostics
+	// -------------------------------------------------------------------------
 
 	RodSys.UpdateStatisticalErrorData();
 }
