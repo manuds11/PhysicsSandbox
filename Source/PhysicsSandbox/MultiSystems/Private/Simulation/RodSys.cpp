@@ -72,7 +72,7 @@ bool FRodSys::RunConstraintCorrections(
 )
 {
 	// -------------------------------------------------------------------------
-	// Velocity projection
+	// Initial velocity projection
 	// -------------------------------------------------------------------------
 
 	ImpulseCorrectionSysUpdate(
@@ -110,7 +110,62 @@ bool FRodSys::RunConstraintCorrections(
 		ApplyAllPositionProjections(
 			Bodies
 		);
+
+		UpdateRodStates(
+			Bodies
+		);
+
+		const double MaxPositionError =
+			ComputeMaxPositionConstraintError();
+
+		UE_LOG(
+			LogTemp,
+			Log,
+			TEXT(
+				"RodSys Position Correction | "
+				"Iteration: %d/%d | "
+				"MaxError: %.12e m | "
+				"Tolerance: %.12e m"
+			),
+			Iteration + 1,
+			MaxPositionCorrectionIterations,
+			MaxPositionError,
+			PositionCorrectionTolerance
+		);
+
+		if (
+			MaxPositionError
+			<= PositionCorrectionTolerance
+			)
+		{
+			break;
+		}
 	}
+
+	// -------------------------------------------------------------------------
+	// Final velocity projection
+	// -------------------------------------------------------------------------
+
+	ImpulseCorrectionSysUpdate(
+		Bodies
+	);
+
+	if (!SolveEtaVelCorrection())
+	{
+		return false;
+	}
+
+	ApplyAllVelocityProjections(
+		Bodies
+	);
+
+	// -------------------------------------------------------------------------
+	// Final state update
+	// -------------------------------------------------------------------------
+
+	UpdateRodStates(
+		Bodies
+	);
 
 	return true;
 }
@@ -871,6 +926,36 @@ void FRodSys::UpdatePositionBVector()
 		PositionBVector[Rod_iIndex] =
 			-Rod_i->GetConstraintFunctionValue();
 	}
+}
+
+// -----------------------------------------------------------------------------
+// Error function
+// -----------------------------------------------------------------------------
+
+double FRodSys::ComputeMaxPositionConstraintError() const
+{
+	double MaxError = 0.0;
+
+	for (const FPendulumRod* Rod_i : RodSystemArray)
+	{
+		if (!Rod_i)
+		{
+			continue;
+		}
+
+		const double Error_i =
+			FMath::Abs(
+				Rod_i->GetConstraintFunctionValue()
+			);
+
+		MaxError =
+			FMath::Max(
+				MaxError,
+				Error_i
+			);
+	}
+
+	return MaxError;
 }
 
 // -----------------------------------------------------------------------------

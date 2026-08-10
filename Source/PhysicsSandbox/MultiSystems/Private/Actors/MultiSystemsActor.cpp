@@ -129,7 +129,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 		FullSys.AddBody(
 			FBody::SlidingMassX(
 				FVector2D(2.0, 0.0),
-				1.0
+				2.0
 			)
 		);
 
@@ -145,7 +145,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 		FullSys.AddBody(
 			FBody::Free(
 				FVector2D(4.5, 0.0),
-				1.5
+				0.5
 			)
 		);
 
@@ -167,7 +167,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 				WallIndex,
 				Mass1Index,
 				20.0,
-				1.0,
+				0.2,
 				1.5
 			)
 		);
@@ -178,7 +178,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 				Mass1Index,
 				Mass2Index,
 				20.0,
-				1.0,
+				0.2,
 				1.5
 			)
 		);
@@ -409,8 +409,8 @@ void AMultiSystemsActor::PrintInfo() const
 		TEXT(
 			"SPACE Start/Stop\n"
 			"\n"
-			"SimulTime: %.3f s	|	FixedSteps: %llu\n"
-			"Delay: %.5f s	|	AvgDt: %.5f s	|	FixedDt: %.8f s\n\n"
+			"SimulTime: %.3f s | FixedSteps: %llu\n"
+			"Delay: %.5f s | AvgDt: %.5f s | FixedDt: %.6f s\n\n"
 		),
 		SimuPhysicalTime, FixedStepCount,
 		SimulationDelay, AverageDeltaTime, FixedTimeStep
@@ -461,11 +461,11 @@ void AMultiSystemsActor::PrintInfo() const
 				"--------------------------------------------------\n"
 				"ROD %d\n\n"
 
-				"L computed: %.6f m  ||  L Abs error: %.6f m  ||  L Rel error: %.4f %%\n\n"
+				"L computed: %.10f m  ||  L Abs error: %.4f m  ||  L Rel error: %.10f %%\n\n"
 
-				"LastStep L Increment: %.4f mm/step  ||  Mean Step L Increment: %.4f mm/step\n\n"
+				"LastStep L Increment: %.10f microm/step  ||  Mean Step L Increment: %.10f microm/step\n\n"
 
-				"Radial Vel: %.4f mm/s  ||  Mean Radial Vel: %.4f mm/s\n\n"
+				"Radial Vel: %.12f microm/s  ||  Mean Radial Vel: %.12f microm/s\n\n"
 
 				"Lambda: %.4f N\n\n"
 			),
@@ -476,11 +476,11 @@ void AMultiSystemsActor::PrintInfo() const
 			InstantErrorData_i.LengthAbsError,
 			100.0 * InstantErrorData_i.LengthRelError,
 
-			1000.0 * StatisticalErrorData_i.StepLengthIncrement,
-			1000.0 * StatisticalErrorData_i.MeanStepLengthIncrement,
+			1.0e6 * StatisticalErrorData_i.StepLengthIncrement,
+			1.0e6 * StatisticalErrorData_i.MeanStepLengthIncrement,
 
-			1000.0 * PendulumVel_i.Bob2PivotRadial,
-			1000.0 * StatisticalErrorData_i.MeanRadialVelocity,
+			1.0e6 * PendulumVel_i.Bob2PivotRadial,
+			1.0e6 * StatisticalErrorData_i.MeanRadialVelocity,
 
 			Lambda_i
 		);

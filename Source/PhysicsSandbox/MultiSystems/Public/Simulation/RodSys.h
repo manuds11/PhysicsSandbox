@@ -61,7 +61,9 @@ private:
 	TArray<double> PositionBVector;
 	TArray<double> PositionMuVector;
 
-	int32 MaxPositionCorrectionIterations = 1;
+
+	static constexpr int32 MaxPositionCorrectionIterations = 5;
+	static constexpr double PositionCorrectionTolerance = 1.0e-6; // m
 
 	// -------------------------------------------------------------------------
 	// Helpers
@@ -103,6 +105,8 @@ private:
 	void UpdateForceBVector(const TArray<FBody>& Bodies);
 	void UpdateVelocityBVector();
 	void UpdatePositionBVector();
+
+	double ComputeMaxPositionConstraintError() const;
 
 	double ComputeForceB_i(
 		const FPendulumRod& Rod_i,
