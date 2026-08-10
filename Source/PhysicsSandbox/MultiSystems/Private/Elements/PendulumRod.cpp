@@ -37,6 +37,71 @@ bool FPendulumRod::GetConnectedBodies(
 // Constraint force and impulse
 // -----------------------------------------------------------------------------
 
+void FPendulumRod::UpdateConstraintForces(
+	double Lambda
+)
+{
+	/*
+	 * Constraint-force contribution of this rod:
+	 *
+	 * Q_c,i = J_i^T Lambda_i
+	 *
+	 * Each Jacobian block generates the force applied
+	 * to its corresponding connected body.
+	 */
+
+	RodConstraintForces.PivotForce =
+		RodJacobian.JPivot
+		* Lambda;
+
+	RodConstraintForces.BobForce =
+		RodJacobian.JBob
+		* Lambda;
+}
+
+void FPendulumRod::UpdateConstraintImpulses(
+	double Eta
+)
+{
+	/*
+	 * Constraint impulse contribution of this rod:
+	 *
+	 * I_c,i = J_i^T P_i
+	 */
+
+	RodConstraintImpulses.PivotImpulse =
+		RodJacobian.JPivot
+		* Eta;
+
+	RodConstraintImpulses.BobImpulse =
+		RodJacobian.JBob
+		* Eta;
+}
+
+void FPendulumRod::UpdatePositionCorrections(
+	double Mu
+)
+{
+	/*
+	 * Position-constraint contribution of this rod:
+	 *
+	 * DeltaQ_i = J_i^T Mu_i
+	 *
+	 * The inverse mass is applied later when the
+	 * correction is transferred to each body:
+	 *
+	 * Deltaq = M^-1 J^T Mu
+	 */
+
+	RodPositionCorrections.PivotCorrection =
+		RodJacobian.JPivot
+		* Mu;
+
+	RodPositionCorrections.BobCorrection =
+		RodJacobian.JBob
+		* Mu;
+}
+
 void FPendulumRod::ApplyForces(
 	TArray<FBody>& Bodies
 )
@@ -88,7 +153,7 @@ void FPendulumRod::ApplyForces(
 	}
 }
 
-void FPendulumRod::ApplyImpulses(
+void FPendulumRod::ApplyImpulses2Bodies(
 	TArray<FBody>& Bodies
 )
 {
@@ -155,45 +220,71 @@ void FPendulumRod::ApplyImpulses(
 	}
 }
 
-void FPendulumRod::UpdateConstraintForces(
-	double Lambda
+void FPendulumRod::ApplyPosCorrections2Bodies(
+	TArray<FBody>& Bodies
 )
 {
-	/*
-	 * Constraint-force contribution of this rod:
-	 *
-	 * Q_c,i = J_i^T Lambda_i
-	 *
-	 * Each Jacobian block generates the force applied
-	 * to its corresponding connected body.
-	 */
+	if (
+		!Bodies.IsValidIndex(PivotBody)
+		|| !Bodies.IsValidIndex(BobBody)
+		)
+	{
+		return;
+	}
 
-	RodConstraintForces.PivotForce =
-		RodJacobian.JPivot
-		* Lambda;
+	FBody& Pivot =
+		Bodies[PivotBody];
 
-	RodConstraintForces.BobForce =
-		RodJacobian.JBob
-		* Lambda;
-}
+	FBody& Bob =
+		Bodies[BobBody];
 
-void FPendulumRod::UpdateConstraintImpulses(
-	double Impulse
-)
-{
-	/*
-	 * Constraint impulse contribution of this rod:
-	 *
-	 * I_c,i = J_i^T P_i
-	 */
+	// -------------------------------------------------------------------------
+	// Pivot
+	// -------------------------------------------------------------------------
 
-	RodConstraintImpulses.PivotImpulse =
-		RodJacobian.JPivot
-		* Impulse;
+	if (Pivot.Mass > UE_SMALL_NUMBER)
+	{
+		const double InverseMass =
+			1.0 / Pivot.Mass;
 
-	RodConstraintImpulses.BobImpulse =
-		RodJacobian.JBob
-		* Impulse;
+		if (!Pivot.bXFixed)
+		{
+			Pivot.Position.X +=
+				RodPositionCorrections.PivotCorrection.X
+				* InverseMass;
+		}
+
+		if (!Pivot.bYFixed)
+		{
+			Pivot.Position.Y +=
+				RodPositionCorrections.PivotCorrection.Y
+				* InverseMass;
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Bob
+	// -------------------------------------------------------------------------
+
+	if (Bob.Mass > UE_SMALL_NUMBER)
+	{
+		const double InverseMass =
+			1.0 / Bob.Mass;
+
+		if (!Bob.bXFixed)
+		{
+			Bob.Position.X +=
+				RodPositionCorrections.BobCorrection.X
+				* InverseMass;
+		}
+
+		if (!Bob.bYFixed)
+		{
+			Bob.Position.Y +=
+				RodPositionCorrections.BobCorrection.Y
+				* InverseMass;
+		}
+	}
 }
 
 // -----------------------------------------------------------------------------

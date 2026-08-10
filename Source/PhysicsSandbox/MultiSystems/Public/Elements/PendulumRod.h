@@ -61,6 +61,15 @@ struct FRodConstraintImpulses
 		FVector2D::ZeroVector;
 };
 
+struct FRodPositionCorrections
+{
+	FVector2D PivotCorrection =
+		FVector2D::ZeroVector;
+
+	FVector2D BobCorrection =
+		FVector2D::ZeroVector;
+};
+
 struct FInstantErrorData
 {
 	double LengthAbsError = 0.0;
@@ -111,14 +120,6 @@ public:
 		int32& OutBodyB
 	) const override;
 
-	virtual void ApplyForces(
-		TArray<FBody>& Bodies
-	) override;
-
-	void ApplyImpulses(
-		TArray<FBody>& Bodies
-	);
-
 	// -------------------------------------------------------------------------
 	// Rod state update
 	// -------------------------------------------------------------------------
@@ -132,12 +133,40 @@ public:
 	);
 
 	void UpdateConstraintImpulses(
-		double Impulse
+		double Eta
 	);
+
+	void UpdatePositionCorrections(
+		double Mu
+	);
+
+	// -------------------------------------------------------------------------
+	// Action Application
+	// -------------------------------------------------------------------------
+
+	virtual void ApplyForces(
+		TArray<FBody>& Bodies
+	) override;
+
+	void ApplyImpulses2Bodies(
+		TArray<FBody>& Bodies
+	);
+
+	void ApplyPosCorrections2Bodies(
+		TArray<FBody>& Bodies
+	);
+
+	// -------------------------------------------------------------------------
+	// Error data computation and retrieval
+	// -------------------------------------------------------------------------
 
 	void ComputeInstantErrorData();
 
 	void UpdateStatisticalErrorData();
+
+	// -------------------------------------------------------------------------
+	// Getters
+	// -------------------------------------------------------------------------
 
 	const FPendulumPositions& GetPendulumPositions() const
 	{
@@ -218,6 +247,7 @@ private:
 
 	FRodConstraintForces RodConstraintForces;
 	FRodConstraintImpulses RodConstraintImpulses;
+	FRodPositionCorrections RodPositionCorrections;
 
 	FInstantErrorData InstantErrorData;
 	FStatisticalErrorData StatisticalErrorData;

@@ -18,7 +18,7 @@ FFullSys::FFullSys()
 
 void FFullSys::Initialize()
 {
-	RodSys.Assemble(
+	RodSys.BuildEmptyStructure(
 		Elements
 	);
 }

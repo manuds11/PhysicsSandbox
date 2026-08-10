@@ -7,7 +7,7 @@
 // Public API
 // -----------------------------------------------------------------------------
 
-void FRodSys::Assemble(
+void FRodSys::BuildEmptyStructure(
 	const TArray<TUniquePtr<ISysElement>>& Elements
 )
 {
@@ -34,26 +34,33 @@ void FRodSys::Assemble(
 		NumRods
 	);
 
-	ImpulseLambdaVector.SetNumZeroed(
+	ImpulseEtaVector.SetNumZeroed(
+		NumRods
+	);
+
+	PositionBVector.SetNumZeroed(
+		NumRods
+	);
+
+	PositionMuVector.SetNumZeroed(
 		NumRods
 	);
 }
-
 
 bool FRodSys::RunConstraintForces(
 	TArray<FBody>& Bodies
 )
 {
-	UpdateConstraintForces(
+	ForcesSysUpdate(
 		Bodies
 	);
 
-	if (!SolveConstraintForces())
+	if (!SolveLambdaForce())
 	{
 		return false;
 	}
 
-	ApplyRodConstraintForces(
+	ApplyAllForces(
 		Bodies
 	);
 
@@ -64,18 +71,46 @@ bool FRodSys::RunConstraintCorrections(
 	TArray<FBody>& Bodies
 )
 {
-	UpdateVelocityCorrection(
+	// -------------------------------------------------------------------------
+	// Velocity projection
+	// -------------------------------------------------------------------------
+
+	ImpulseCorrectionSysUpdate(
 		Bodies
 	);
 
-	if (!SolveVelocityCorrection())
+	if (!SolveEtaVelCorrection())
 	{
 		return false;
 	}
 
-	ApplyVelocityCorrection(
+	ApplyAllVelocityProjections(
 		Bodies
 	);
+
+	// -------------------------------------------------------------------------
+	// Position projection
+	// -------------------------------------------------------------------------
+
+	for (
+		int32 Iteration = 0;
+		Iteration < MaxPositionCorrectionIterations;
+		++Iteration
+		)
+	{
+		PosCorrectionSysUpdate(
+			Bodies
+		);
+
+		if (!SolveMuPosCorrection())
+		{
+			return false;
+		}
+
+		ApplyAllPositionProjections(
+			Bodies
+		);
+	}
 
 	return true;
 }
@@ -92,7 +127,6 @@ void FRodSys::UpdateStatisticalErrorData()
 		PendulumRod->UpdateStatisticalErrorData();
 	}
 }
-
 
 // -----------------------------------------------------------------------------
 // Rod collection and Jacobians
@@ -148,10 +182,10 @@ void FRodSys::UpdateRodStates(
 }
 
 // -----------------------------------------------------------------------------
-// Pipeline Helpers
+// Pipeline Organisers
 // -----------------------------------------------------------------------------
 
-void FRodSys::UpdateConstraintForces(
+void FRodSys::ForcesSysUpdate(
 	const TArray<FBody>& Bodies
 )
 {
@@ -196,7 +230,7 @@ void FRodSys::UpdateConstraintForces(
 	UpdateForceBVector(Bodies);
 }
 
-void FRodSys::UpdateVelocityCorrection(
+void FRodSys::ImpulseCorrectionSysUpdate(
 	const TArray<FBody>& Bodies
 )
 {
@@ -217,7 +251,7 @@ void FRodSys::UpdateVelocityCorrection(
 	);
 
 	check(
-		ImpulseLambdaVector.Num() == NumRods
+		ImpulseEtaVector.Num() == NumRods
 	);
 
 	for (double& Value : AMatrix)
@@ -230,7 +264,7 @@ void FRodSys::UpdateVelocityCorrection(
 		Value = 0.0;
 	}
 
-	for (double& Value : ImpulseLambdaVector)
+	for (double& Value : ImpulseEtaVector)
 	{
 		Value = 0.0;
 	}
@@ -246,7 +280,65 @@ void FRodSys::UpdateVelocityCorrection(
 	UpdateVelocityBVector();
 }
 
-bool FRodSys::SolveConstraintForces()
+void FRodSys::PosCorrectionSysUpdate(
+	const TArray<FBody>& Bodies
+)
+{
+	if (RodSystemArray.IsEmpty())
+	{
+		return;
+	}
+
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		AMatrix.Num()
+		== NumRods * NumRods
+	);
+
+	check(
+		PositionBVector.Num()
+		== NumRods
+	);
+
+	check(
+		PositionMuVector.Num()
+		== NumRods
+	);
+
+	for (double& Value : AMatrix)
+	{
+		Value = 0.0;
+	}
+
+	for (double& Value : PositionBVector)
+	{
+		Value = 0.0;
+	}
+
+	for (double& Value : PositionMuVector)
+	{
+		Value = 0.0;
+	}
+
+	UpdateRodStates(
+		Bodies
+	);
+
+	UpdateAMatrix(
+		Bodies
+	);
+
+	UpdatePositionBVector();
+}
+
+// -----------------------------------------------------------------------------
+// Solvers
+// -----------------------------------------------------------------------------
+
+
+bool FRodSys::SolveLambdaForce()
 {
 	if (RodSystemArray.IsEmpty())
 	{
@@ -260,7 +352,7 @@ bool FRodSys::SolveConstraintForces()
 	);
 }
 
-bool FRodSys::SolveVelocityCorrection()
+bool FRodSys::SolveEtaVelCorrection()
 {
 	if (RodSystemArray.IsEmpty())
 	{
@@ -270,11 +362,30 @@ bool FRodSys::SolveVelocityCorrection()
 	return DenseLinearSolver::Solve(
 		AMatrix,
 		VelocityBVector,
-		ImpulseLambdaVector
+		ImpulseEtaVector
 	);
 }
 
-void FRodSys::ApplyRodConstraintForces(
+bool FRodSys::SolveMuPosCorrection()
+{
+	if (RodSystemArray.IsEmpty())
+	{
+		return true;
+	}
+
+	return DenseLinearSolver::Solve(
+		AMatrix,
+		PositionBVector,
+		PositionMuVector
+	);
+}
+
+// -----------------------------------------------------------------------------
+// Force Application in bodies
+// -----------------------------------------------------------------------------
+
+
+void FRodSys::ApplyAllForces(
 	TArray<FBody>& Bodies
 )
 {
@@ -313,7 +424,7 @@ void FRodSys::ApplyRodConstraintForces(
 	}
 }
 
-void FRodSys::ApplyVelocityCorrection(
+void FRodSys::ApplyAllVelocityProjections(
 	TArray<FBody>& Bodies
 )
 {
@@ -326,7 +437,7 @@ void FRodSys::ApplyVelocityCorrection(
 		RodSystemArray.Num();
 
 	check(
-		ImpulseLambdaVector.Num()
+		ImpulseEtaVector.Num()
 		== NumRods
 	);
 
@@ -341,14 +452,55 @@ void FRodSys::ApplyVelocityCorrection(
 
 		check(Rod_i);
 
-		const double ImpulseLambda_i =
-			ImpulseLambdaVector[Rod_iIndex];
+		const double ImpulseEta_i =
+			ImpulseEtaVector[Rod_iIndex];
 
 		Rod_i->UpdateConstraintImpulses(
-			ImpulseLambda_i
+			ImpulseEta_i
 		);
 
-		Rod_i->ApplyImpulses(
+		Rod_i->ApplyImpulses2Bodies(
+			Bodies
+		);
+	}
+}
+
+void FRodSys::ApplyAllPositionProjections(
+	TArray<FBody>& Bodies
+)
+{
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		PositionMuVector.Num()
+		== NumRods
+	);
+
+	for (
+		int32 Rod_iIndex = 0;
+		Rod_iIndex < NumRods;
+		++Rod_iIndex
+		)
+	{
+		FPendulumRod* Rod_i =
+			RodSystemArray[Rod_iIndex];
+
+		check(Rod_i);
+
+		const double Mu_i =
+			PositionMuVector[Rod_iIndex];
+
+		Rod_i->UpdatePositionCorrections(
+			Mu_i
+		);
+	}
+
+	for (FPendulumRod* Rod_i : RodSystemArray)
+	{
+		check(Rod_i);
+
+		Rod_i->ApplyPosCorrections2Bodies(
 			Bodies
 		);
 	}
@@ -534,7 +686,7 @@ double FRodSys::ComputeA_ij(
 }
 
 // -----------------------------------------------------------------------------
-// Vector B Forces 
+// Vector B Forces, Velocity
 // -----------------------------------------------------------------------------
 
 void FRodSys::UpdateForceBVector(
@@ -557,32 +709,6 @@ void FRodSys::UpdateForceBVector(
 				*RodSystemArray[Row],
 				Bodies
 			);
-	}
-}
-
-void FRodSys::UpdateVelocityBVector()
-{
-	const int32 NumRods =
-		RodSystemArray.Num();
-
-	check(
-		VelocityBVector.Num()
-		== NumRods
-	);
-
-	for (
-		int32 Rod_iIndex = 0;
-		Rod_iIndex < NumRods;
-		++Rod_iIndex
-		)
-	{
-		const FPendulumRod* Rod_i =
-			RodSystemArray[Rod_iIndex];
-
-		check(Rod_i);
-
-		VelocityBVector[Rod_iIndex] =
-			-Rod_i->GetVelocityConstraintError();
 	}
 }
 
@@ -693,6 +819,58 @@ double FRodSys::ComputeForceB_i(
 		JMinvF_i
 		+ JDotV_i
 		);
+}
+
+void FRodSys::UpdateVelocityBVector()
+{
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		VelocityBVector.Num()
+		== NumRods
+	);
+
+	for (
+		int32 Rod_iIndex = 0;
+		Rod_iIndex < NumRods;
+		++Rod_iIndex
+		)
+	{
+		const FPendulumRod* Rod_i =
+			RodSystemArray[Rod_iIndex];
+
+		check(Rod_i);
+
+		VelocityBVector[Rod_iIndex] =
+			-Rod_i->GetVelocityConstraintError();
+	}
+}
+
+void FRodSys::UpdatePositionBVector()
+{
+	const int32 NumRods =
+		RodSystemArray.Num();
+
+	check(
+		PositionBVector.Num()
+		== NumRods
+	);
+
+	for (
+		int32 Rod_iIndex = 0;
+		Rod_iIndex < NumRods;
+		++Rod_iIndex
+		)
+	{
+		const FPendulumRod* Rod_i =
+			RodSystemArray[Rod_iIndex];
+
+		check(Rod_i);
+
+		PositionBVector[Rod_iIndex] =
+			-Rod_i->GetConstraintFunctionValue();
+	}
 }
 
 // -----------------------------------------------------------------------------

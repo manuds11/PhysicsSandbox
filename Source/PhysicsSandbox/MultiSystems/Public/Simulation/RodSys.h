@@ -13,7 +13,7 @@ public:
 	// Public API
 	// -------------------------------------------------------------------------
 
-	void Assemble(
+	void BuildEmptyStructure(
 		const TArray<TUniquePtr<ISysElement>>& Elements
 	);
 
@@ -49,11 +49,19 @@ private:
 
 	TArray<double> AMatrix;
 
+	// Forces - Acceleration
 	TArray<double> BVector;
 	TArray<double> LambdaVector;
 	
+	// Impulses - Velocities
 	TArray<double> VelocityBVector;
-	TArray<double> ImpulseLambdaVector;
+	TArray<double> ImpulseEtaVector;
+
+	// Pos corrections
+	TArray<double> PositionBVector;
+	TArray<double> PositionMuVector;
+
+	int32 MaxPositionCorrectionIterations = 1;
 
 	// -------------------------------------------------------------------------
 	// Helpers
@@ -68,34 +76,23 @@ private:
 	void CollectRods(
 		const TArray<TUniquePtr<ISysElement>>& Elements
 	);
-
 	void UpdateRodStates(
 		const TArray<FBody>& Bodies
 	);
 
-	void UpdateAMatrix(
-		const TArray<FBody>& Bodies
-	);
+	void ForcesSysUpdate(const TArray<FBody>& Bodies);
+	void ImpulseCorrectionSysUpdate(const TArray<FBody>& Bodies);
+	void PosCorrectionSysUpdate(const TArray<FBody>& Bodies);
 
-	void UpdateConstraintForces(
-		const TArray<FBody>& Bodies
-	);
+	bool SolveLambdaForce();
+	bool SolveEtaVelCorrection();
+	bool SolveMuPosCorrection();
 
-	void UpdateVelocityCorrection(
-		const TArray<FBody>& Bodies
-	);
+	void ApplyAllForces(TArray<FBody>& Bodies);
+	void ApplyAllVelocityProjections(TArray<FBody>& Bodies);
+	void ApplyAllPositionProjections(TArray<FBody>& Bodies);
 
-	bool SolveConstraintForces();
-
-	bool SolveVelocityCorrection();
-
-	void ApplyRodConstraintForces(
-		TArray<FBody>& Bodies
-	);
-
-	void ApplyVelocityCorrection(
-		TArray<FBody>& Bodies
-	);
+	void UpdateAMatrix(const TArray<FBody>& Bodies);
 
 	double ComputeA_ij(
 		const FPendulumRod& Rod_i,
@@ -103,11 +100,9 @@ private:
 		const TArray<FBody>& Bodies
 	) const;
 
-	void UpdateForceBVector(
-		const TArray<FBody>& Bodies
-	);
-
+	void UpdateForceBVector(const TArray<FBody>& Bodies);
 	void UpdateVelocityBVector();
+	void UpdatePositionBVector();
 
 	double ComputeForceB_i(
 		const FPendulumRod& Rod_i,
