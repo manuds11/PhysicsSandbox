@@ -89,21 +89,12 @@ void FFullSys::Step(double Dt)
 	// Constraint forces
 	// -------------------------------------------------------------------------
 
-	RodSys.UpdateConstraintForces(
+	if (!RodSys.RunConstraintForces(
 		Bodies
-	);
-
-	const bool bRodSystemSolved =
-		RodSys.SolveConstraintForces();
-
-	if (!bRodSystemSolved)
+	))
 	{
 		return;
 	}
-
-	RodSys.ApplyRodConstraintForces(
-		Bodies
-	);
 
 	// -------------------------------------------------------------------------
 	// Integration
@@ -115,24 +106,15 @@ void FFullSys::Step(double Dt)
 	ApplyFixedAxes();
 
 	// -------------------------------------------------------------------------
-	// Velocity correction
+	// Constraint corrections
 	// -------------------------------------------------------------------------
 
-	RodSys.UpdateVelocityCorrection(
+	if (!RodSys.RunConstraintCorrections(
 		Bodies
-	);
-
-	const bool bVelocityCorrectionSolved =
-		RodSys.SolveVelocityCorrection();
-
-	if (!bVelocityCorrectionSolved)
+	))
 	{
 		return;
 	}
-
-	RodSys.ApplyVelocityCorrection(
-		Bodies
-	);
 
 	// -------------------------------------------------------------------------
 	// Diagnostics

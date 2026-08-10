@@ -17,23 +17,11 @@ public:
 		const TArray<TUniquePtr<ISysElement>>& Elements
 	);
 
-	void UpdateConstraintForces(
-		const TArray<FBody>& Bodies
-	);
-
-	void UpdateVelocityCorrection(
-		const TArray<FBody>& Bodies
-	);
-
-	bool SolveConstraintForces();
-
-	bool SolveVelocityCorrection();
-
-	void ApplyRodConstraintForces(
+	bool RunConstraintForces(
 		TArray<FBody>& Bodies
 	);
 
-	void ApplyVelocityCorrection(
+	bool RunConstraintCorrections(
 		TArray<FBody>& Bodies
 	);
 
@@ -89,19 +77,39 @@ private:
 		const TArray<FBody>& Bodies
 	);
 
+	void UpdateConstraintForces(
+		const TArray<FBody>& Bodies
+	);
+
+	void UpdateVelocityCorrection(
+		const TArray<FBody>& Bodies
+	);
+
+	bool SolveConstraintForces();
+
+	bool SolveVelocityCorrection();
+
+	void ApplyRodConstraintForces(
+		TArray<FBody>& Bodies
+	);
+
+	void ApplyVelocityCorrection(
+		TArray<FBody>& Bodies
+	);
+
 	double ComputeA_ij(
 		const FPendulumRod& Rod_i,
 		const FPendulumRod& Rod_j,
 		const TArray<FBody>& Bodies
 	) const;
 
-	void UpdateBVector(
+	void UpdateForceBVector(
 		const TArray<FBody>& Bodies
 	);
 
 	void UpdateVelocityBVector();
 
-	double ComputeB_i(
+	double ComputeForceB_i(
 		const FPendulumRod& Rod_i,
 		const TArray<FBody>& Bodies
 	) const;
