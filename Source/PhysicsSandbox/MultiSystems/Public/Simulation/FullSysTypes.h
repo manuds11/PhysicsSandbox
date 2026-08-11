@@ -81,6 +81,8 @@ public:
 
 	virtual void ApplyForces(TArray<FBody>& Bodies) = 0;
 
+	virtual FColor GetDebugColor() const = 0;
+
 	virtual bool GetEquilibriumPoint(
 		const TArray<FBody>& Bodies,
 		FVector2D& OutPoint

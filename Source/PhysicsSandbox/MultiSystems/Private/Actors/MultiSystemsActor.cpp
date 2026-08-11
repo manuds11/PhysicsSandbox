@@ -386,13 +386,9 @@ void AMultiSystemsActor::DrawSystem() const
 
 		DrawDebugLine(
 			GetWorld(),
-			ToWorld(
-				Bodies[BodyAIndex].Position
-			),
-			ToWorld(
-				Bodies[BodyBIndex].Position
-			),
-			FColor::Yellow,
+			ToWorld(Bodies[BodyAIndex].Position),
+			ToWorld(Bodies[BodyBIndex].Position),
+			Element->GetDebugColor(),
 			false,
 			0.0f,
 			0,

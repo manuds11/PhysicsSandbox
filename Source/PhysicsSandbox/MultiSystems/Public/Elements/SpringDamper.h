@@ -23,6 +23,11 @@ public:
 
 	virtual void ApplyForces(TArray<FBody>& Bodies) override;
 
+	virtual FColor GetDebugColor() const override
+	{
+		return FColor::Purple;
+	}
+
 	virtual bool GetEquilibriumPoint(
 		const TArray<FBody>& Bodies,
 		FVector2D& OutPoint

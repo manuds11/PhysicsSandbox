@@ -120,6 +120,11 @@ public:
 		int32& OutBodyB
 	) const override;
 
+	virtual FColor GetDebugColor() const override
+	{
+		return FColor::Yellow;
+	}
+
 	// -------------------------------------------------------------------------
 	// Rod state update
 	// -------------------------------------------------------------------------
