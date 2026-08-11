@@ -441,17 +441,34 @@ void AMultiSystemsActor::PrintInfo() const
 
 	FString DebugText;
 
-	DebugText += TEXT("MULTI SYSTEMS\n");
+	DebugText +=
+		TEXT("MULTI SYSTEMS\n");
+
+	const TCHAR* CameraMode =
+		TEXT("Unknown");
+
+	if (SimuCameraController)
+	{
+		CameraMode =
+			SimuCameraController->IsUsing1AxisCamera()
+			? TEXT("1Axis")
+			: TEXT("Free");
+	}
 
 	DebugText += FString::Printf(
 		TEXT(
 			"SPACE Start/Stop\n"
+			"Key 'C' Camera Toggle: %s\n"
 			"\n"
-			"SimulTime: %.3f s | FixedSteps: %llu\n"
-			"Delay: %.5f s | AvgDt: %.5f s | FixedDt: %.6f s\n\n"
+			"SimulTime: %.2f s | FixedSteps: %llu\n"
+			"Delay: %.3f s | AvgDt: %.3f s | FixedDt: %.4f s\n\n"
 		),
-		SimuPhysicalTime, FixedStepCount,
-		SimulationDelay, AverageDeltaTime, FixedTimeStep
+		CameraMode,
+		SimuPhysicalTime,
+		FixedStepCount,
+		SimulationDelay,
+		AverageDeltaTime,
+		FixedTimeStep
 	);
 
 	const TArray<FPendulumRod*>& RodSystemArray =
@@ -479,12 +496,6 @@ void AMultiSystemsActor::PrintInfo() const
 			continue;
 		}
 
-		const FPendulumPositions& PendulumPos_i =
-			Rod_i->GetPendulumPositions();
-
-		const FPendulumVelocities& PendulumVel_i =
-			Rod_i->GetPendulumVelocities();
-
 		const FInstantErrorData& InstantErrorData_i =
 			Rod_i->GetInstantErrorData();
 
@@ -499,28 +510,13 @@ void AMultiSystemsActor::PrintInfo() const
 				"--------------------------------------------------\n"
 				"ROD %d\n\n"
 
-				"L computed: %.10f m  ||  L Abs error: %.4f m  ||  L Rel error: %.10f %%\n\n"
-
-				"LastStep L Increment: %.10f microm/step  ||  Mean Step L Increment: %.10f microm/step\n\n"
-
-				"Radial Vel: %.12f microm/s  ||  Mean Radial Vel: %.12f microm/s\n\n"
-
-				"Lambda: %.4f N\n\n"
+				"L Rel Error: %.3e   ||   Radial Vel: %.3e m/s\n"
 			),
 
 			Rod_iIndex + 1,
 
-			PendulumPos_i.ComputedLength,
-			InstantErrorData_i.LengthAbsError,
-			100.0 * InstantErrorData_i.LengthRelError,
-
-			1.0e6 * StatisticalErrorData_i.StepLengthIncrement,
-			1.0e6 * StatisticalErrorData_i.MeanStepLengthIncrement,
-
-			1.0e6 * PendulumVel_i.Bob2PivotRadial,
-			1.0e6 * StatisticalErrorData_i.MeanRadialVelocity,
-
-			Lambda_i
+			InstantErrorData_i.LengthRelError,
+			InstantErrorData_i.RadialVelocityError
 		);
 	}
 

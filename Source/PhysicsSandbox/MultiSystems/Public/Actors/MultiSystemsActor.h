@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Simulation/FullSys.h"
+#include "Actors/SimuCameraController.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -14,6 +15,8 @@ enum class EIntegratorType : uint8
 	ExplicitEuler,
 	SemiImplicitEuler
 };
+
+class ASimuCameraController;
 
 UCLASS()
 class PHYSICSSANDBOX_API AMultiSystemsActor : public AActor
@@ -34,6 +37,16 @@ public:
 
 private:
 	FFullSys FullSys;
+
+	// =========================
+	// Camera Control Instnace
+	// =========================
+	UPROPERTY(
+		EditInstanceOnly,
+		Category = "Camera"
+	)
+	ASimuCameraController* SimuCameraController =
+		nullptr;
 
 	// =========================
 	// Simulation control
