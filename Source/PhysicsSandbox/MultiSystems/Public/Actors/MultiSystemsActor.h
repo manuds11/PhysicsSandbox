@@ -90,4 +90,6 @@ private:
 	FVector ToWorld(const FVector2D& P) const;
 	void DrawSystem() const;
 	void PrintInfo() const;
+
+	double ComputeBodyDebugRadius(double Mass) const;
 };

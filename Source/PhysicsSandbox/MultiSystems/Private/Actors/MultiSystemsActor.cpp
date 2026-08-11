@@ -327,16 +327,24 @@ FVector AMultiSystemsActor::ToWorld(const FVector2D& P) const
 
 void AMultiSystemsActor::DrawSystem() const
 {
-	const TArray<FBody>& Bodies = FullSys.GetBodies();
+	const TArray<FBody>& Bodies =
+		FullSys.GetBodies();
 
 	for (const FBody& Body : Bodies)
 	{
+		const double DebugRadius =
+			ComputeBodyDebugRadius(
+				Body.Mass
+			);
+
 		DrawDebugSphere(
 			GetWorld(),
 			ToWorld(Body.Position),
-			10.0f,
+			DebugRadius,
 			16,
-			Body.bXFixed && Body.bYFixed ? FColor::Red : FColor::Green,
+			Body.bXFixed && Body.bYFixed
+			? FColor::Red
+			: FColor::Green,
 			false,
 			0.0f
 		);
@@ -352,23 +360,38 @@ void AMultiSystemsActor::DrawSystem() const
 			continue;
 		}
 
-		int32 BodyAIndex = INDEX_NONE;
-		int32 BodyBIndex = INDEX_NONE;
+		int32 BodyAIndex =
+			INDEX_NONE;
 
-		if (!Element->GetConnectedBodies(BodyAIndex, BodyBIndex))
+		int32 BodyBIndex =
+			INDEX_NONE;
+
+		if (
+			!Element->GetConnectedBodies(
+				BodyAIndex,
+				BodyBIndex
+			)
+			)
 		{
 			continue;
 		}
 
-		if (!Bodies.IsValidIndex(BodyAIndex) || !Bodies.IsValidIndex(BodyBIndex))
+		if (
+			!Bodies.IsValidIndex(BodyAIndex)
+			|| !Bodies.IsValidIndex(BodyBIndex)
+			)
 		{
 			continue;
 		}
 
 		DrawDebugLine(
 			GetWorld(),
-			ToWorld(Bodies[BodyAIndex].Position),
-			ToWorld(Bodies[BodyBIndex].Position),
+			ToWorld(
+				Bodies[BodyAIndex].Position
+			),
+			ToWorld(
+				Bodies[BodyBIndex].Position
+			),
 			FColor::Yellow,
 			false,
 			0.0f,
@@ -378,12 +401,27 @@ void AMultiSystemsActor::DrawSystem() const
 
 		FVector2D EquilibriumPoint;
 
-		if (Element->GetEquilibriumPoint(Bodies, EquilibriumPoint))
+		if (
+			Element->GetEquilibriumPoint(
+				Bodies,
+				EquilibriumPoint
+			)
+			)
 		{
 			DrawDebugLine(
 				GetWorld(),
-				ToWorld(EquilibriumPoint) + FVector(0.0, 0.0, -50.0),
-				ToWorld(EquilibriumPoint) + FVector(0.0, 0.0, 50.0),
+				ToWorld(EquilibriumPoint)
+				+ FVector(
+					0.0,
+					0.0,
+					-50.0
+				),
+				ToWorld(EquilibriumPoint)
+				+ FVector(
+					0.0,
+					0.0,
+					50.0
+				),
 				FColor::Blue,
 				false,
 				0.0f,
@@ -496,5 +534,35 @@ void AMultiSystemsActor::PrintInfo() const
 		0.0f,
 		TextColor,
 		DebugText
+	);
+}
+
+// -----------------------------------------------------------------------------
+// Debug Helpers
+// -----------------------------------------------------------------------------
+
+double AMultiSystemsActor::ComputeBodyDebugRadius(
+	double Mass
+) const
+{
+	constexpr double ReferenceMass = 1.0;
+	constexpr double ReferenceRadius = 8.0;
+
+	if (Mass <= UE_SMALL_NUMBER)
+	{
+		return ReferenceRadius;
+	}
+
+	const double ComputedRadius =
+		ReferenceRadius
+		* FMath::Pow(
+			Mass / ReferenceMass,
+			1.0 / 3.0
+		);
+
+	return FMath::Clamp(
+		ComputedRadius,
+		4.0,
+		20.0
 	);
 }
