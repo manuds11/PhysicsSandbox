@@ -118,21 +118,6 @@ bool FRodSys::RunConstraintCorrections(
 		const double MaxPositionError =
 			ComputeMaxPositionConstraintError();
 
-		UE_LOG(
-			LogTemp,
-			Log,
-			TEXT(
-				"RodSys Position Correction | "
-				"Iteration: %d/%d | "
-				"MaxError: %.12e m | "
-				"Tolerance: %.12e m"
-			),
-			Iteration + 1,
-			MaxPositionCorrectionIterations,
-			MaxPositionError,
-			PositionCorrectionTolerance
-		);
-
 		if (
 			MaxPositionError
 			<= PositionCorrectionTolerance
