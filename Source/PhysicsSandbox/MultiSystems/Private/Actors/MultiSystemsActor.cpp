@@ -109,51 +109,43 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// Subsystem
 	// -------------------------------------------------------------------------
 
-	FSubSys& DoubleSpringDoublePendulum =
+	FSubSys& SuspendedRodQuadrilateral =
 		FullSys.CreateSubSys(
-			TEXT("DoubleSpringDoublePendulum")
+			TEXT("SuspendedRodQuadrilateral")
 		);
 
 	// -------------------------------------------------------------------------
 	// Bodies
 	// -------------------------------------------------------------------------
 
-	const int32 WallIndex =
+	const int32 BodyAIndex =
+		FullSys.AddBody(
+			FBody::Free(
+				FVector2D(-1.4, 1.8),
+				1.0
+			)
+		);
+
+	const int32 BodyBIndex =
 		FullSys.AddBody(
 			FBody::Fixed(
-				FVector2D(0.0, 0.0)
+				FVector2D(1.0, 1.5)
 			)
 		);
 
-	const int32 Mass1Index =
-		FullSys.AddBody(
-			FBody::SlidingMassX(
-				FVector2D(2.0, 0.0),
-				2.0
-			)
-		);
-
-	const int32 Mass2Index =
-		FullSys.AddBody(
-			FBody::SlidingMassX(
-				FVector2D(3.5, 0.0),
-				1.0
-			)
-		);
-
-	const int32 Bob1Index =
+	const int32 BodyCIndex =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(4.5, 0.0),
-				0.5
+				FVector2D(1.3, -0.3),
+				1.8
 			)
 		);
 
-	const int32 Bob2Index =
+	const int32 BodyDIndex =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(4.5, -1.0),
-				1.0
+				FVector2D(-0.8, -0.9),
+				0.7
 			)
 		);
 
@@ -161,41 +153,57 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// Elements
 	// -------------------------------------------------------------------------
 
-	const int32 Spring1Index =
-		FullSys.AddElement(
-			MakeUnique<FSpringDamper>(
-				WallIndex,
-				Mass1Index,
-				20.0,
-				0.2,
-				1.5
-			)
-		);
-
-	const int32 Spring2Index =
-		FullSys.AddElement(
-			MakeUnique<FSpringDamper>(
-				Mass1Index,
-				Mass2Index,
-				20.0,
-				0.2,
-				1.5
-			)
-		);
-
-	const int32 PendulumRod1Index =
+	const int32 RodABIndex =
 		FullSys.AddElement(
 			MakeUnique<FPendulumRod>(
-				Mass2Index,
-				Bob1Index
+				BodyAIndex,
+				BodyBIndex
 			)
 		);
 
-	const int32 PendulumRod2Index =
+	const int32 RodBCIndex =
 		FullSys.AddElement(
 			MakeUnique<FPendulumRod>(
-				Bob1Index,
-				Bob2Index
+				BodyBIndex,
+				BodyCIndex
+			)
+		);
+
+	const int32 RodCDIndex =
+		FullSys.AddElement(
+			MakeUnique<FPendulumRod>(
+				BodyCIndex,
+				BodyDIndex
+			)
+		);
+
+	const int32 RodDAIndex =
+		FullSys.AddElement(
+			MakeUnique<FPendulumRod>(
+				BodyDIndex,
+				BodyAIndex
+			)
+		);
+
+	const int32 DiagonalSpringACIndex =
+		FullSys.AddElement(
+			MakeUnique<FSpringDamper>(
+				BodyAIndex,
+				BodyCIndex,
+				18.0,
+				0.35,
+				2.6
+			)
+		);
+
+	const int32 DiagonalSpringBDIndex =
+		FullSys.AddElement(
+			MakeUnique<FSpringDamper>(
+				BodyBIndex,
+				BodyDIndex,
+				11.0,
+				0.65,
+				2.9
 			)
 		);
 
@@ -203,55 +211,62 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// Subsystem associations
 	// -------------------------------------------------------------------------
 
-	DoubleSpringDoublePendulum.AddBody(
-		TEXT("Wall"),
-		WallIndex
+	SuspendedRodQuadrilateral.AddBody(
+		TEXT("BodyA"),
+		BodyAIndex
 	);
 
-	DoubleSpringDoublePendulum.AddBody(
-		TEXT("Mass1"),
-		Mass1Index
+	SuspendedRodQuadrilateral.AddBody(
+		TEXT("BodyB"),
+		BodyBIndex
 	);
 
-	DoubleSpringDoublePendulum.AddBody(
-		TEXT("Mass2"),
-		Mass2Index
+	SuspendedRodQuadrilateral.AddBody(
+		TEXT("BodyC"),
+		BodyCIndex
 	);
 
-	DoubleSpringDoublePendulum.AddBody(
-		TEXT("Bob1"),
-		Bob1Index
+	SuspendedRodQuadrilateral.AddBody(
+		TEXT("BodyD"),
+		BodyDIndex
 	);
 
-	DoubleSpringDoublePendulum.AddBody(
-		TEXT("Bob2"),
-		Bob2Index
+	SuspendedRodQuadrilateral.AddElement(
+		TEXT("RodAB"),
+		RodABIndex
 	);
 
-	DoubleSpringDoublePendulum.AddElement(
-		TEXT("Spring1"),
-		Spring1Index
+	SuspendedRodQuadrilateral.AddElement(
+		TEXT("RodBC"),
+		RodBCIndex
 	);
 
-	DoubleSpringDoublePendulum.AddElement(
-		TEXT("Spring2"),
-		Spring2Index
+	SuspendedRodQuadrilateral.AddElement(
+		TEXT("RodCD"),
+		RodCDIndex
 	);
 
-	DoubleSpringDoublePendulum.AddElement(
-		TEXT("PendulumRod1"),
-		PendulumRod1Index
+	SuspendedRodQuadrilateral.AddElement(
+		TEXT("RodDA"),
+		RodDAIndex
 	);
 
-	DoubleSpringDoublePendulum.AddElement(
-		TEXT("PendulumRod2"),
-		PendulumRod2Index
+	SuspendedRodQuadrilateral.AddElement(
+		TEXT("DiagonalSpring"),
+		DiagonalSpringACIndex
 	);
 
-	DoubleSpringDoublePendulum.AddPort(
-		TEXT("End"),
-		Mass2Index
+	SuspendedRodQuadrilateral.AddElement(
+		TEXT("DiagonalSpringAC"),
+		DiagonalSpringACIndex
 	);
+
+
+	SuspendedRodQuadrilateral.AddElement(
+		TEXT("DiagonalSpringBD"),
+		DiagonalSpringBDIndex
+	);
+	
 
 	// Must be called after all bodies and elements have been added.
 	FullSys.Initialize();
