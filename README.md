@@ -4,6 +4,12 @@ A C++ / Unreal Engine project for developing and testing real-time physics simul
 
 The project follows a progressive approach: starting from basic Unreal Engine mechanics and moving towards increasingly general dynamic-system simulation.
 
+## Repository Structure
+
+- `Source/PhysicsSandbox/` — main C++ simulation code
+- `Content/` — Unreal Engine assets and project content
+- `Tools/` — Python and auxiliary analysis tools
+
 ## Projects
 
 ### DebugProbe
