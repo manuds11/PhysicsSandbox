@@ -5,14 +5,14 @@
 // -----------------------------------------------------------------------------
 
 FSpringDamper::FSpringDamper(
-	int32 InBodyA,
-	int32 InBodyB,
+	int32 InBodyAIndex,
+	int32 InBodyBIndex,
 	double InStiffness,
 	double InDamping,
 	double InRestLength
 )
-	: BodyA(InBodyA)
-	, BodyB(InBodyB)
+	: BodyAIndex(InBodyAIndex)
+	, BodyBIndex(InBodyBIndex)
 	, Stiffness(InStiffness)
 	, Damping(InDamping)
 	, RestLength(InRestLength)
@@ -33,8 +33,8 @@ bool FSpringDamper::GetConnectedBodies(
 	int32& OutBodyB
 ) const
 {
-	OutBodyA = BodyA;
-	OutBodyB = BodyB;
+	OutBodyA = BodyAIndex;
+	OutBodyB = BodyBIndex;
 
 	return true;
 }
@@ -45,13 +45,13 @@ bool FSpringDamper::GetConnectedBodies(
 
 void FSpringDamper::ApplyForces(TArray<FBody>& Bodies)
 {
-	if (!Bodies.IsValidIndex(BodyA) || !Bodies.IsValidIndex(BodyB))
+	if (!Bodies.IsValidIndex(BodyAIndex) || !Bodies.IsValidIndex(BodyBIndex))
 	{
 		return;
 	}
 
-	FBody& A = Bodies[BodyA];
-	FBody& B = Bodies[BodyB];
+	FBody& A = Bodies[BodyAIndex];
+	FBody& B = Bodies[BodyBIndex];
 
 	const FVector2D Delta = B.Position - A.Position;
 	const double Length = Delta.Size();				// Módulo de Delta
@@ -85,14 +85,14 @@ bool FSpringDamper::GetEquilibriumPoint(
 	FVector2D& OutPoint
 ) const
 {
-	if (!Bodies.IsValidIndex(BodyA) || !Bodies.IsValidIndex(BodyB))
+	if (!Bodies.IsValidIndex(BodyAIndex) || !Bodies.IsValidIndex(BodyBIndex))
 	{
 		OutPoint = FVector2D::ZeroVector;
 		return false;
 	}
 
-	const FBody& A = Bodies[BodyA];
-	const FBody& B = Bodies[BodyB];
+	const FBody& A = Bodies[BodyAIndex];
+	const FBody& B = Bodies[BodyBIndex];
 
 	const FVector2D Delta = B.Position - A.Position;
 	const double Length = Delta.Size();

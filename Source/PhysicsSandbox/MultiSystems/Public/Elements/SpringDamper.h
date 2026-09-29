@@ -7,8 +7,8 @@ class FSpringDamper : public ISysElement
 {
 public:
 	FSpringDamper(
-		int32 InBodyA,
-		int32 InBodyB,
+		int32 InBodyAIndex,
+		int32 InBodyBIndex,
 		double InStiffness,
 		double InDamping,
 		double InRestLength
@@ -34,8 +34,8 @@ public:
 	) const override;
 
 private:
-	int32 BodyA = INDEX_NONE;
-	int32 BodyB = INDEX_NONE;
+	int32 BodyAIndex = INDEX_NONE;
+	int32 BodyBIndex = INDEX_NONE;
 
 	double Stiffness = 20.0;	// N/m
 	double Damping = 1.0;		// N*s/m
