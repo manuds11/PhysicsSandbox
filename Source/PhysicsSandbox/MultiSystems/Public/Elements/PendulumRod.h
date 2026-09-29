@@ -237,8 +237,8 @@ private:
 	// Connectivity
 	// -------------------------------------------------------------------------
 
-	int32 PivotBody = INDEX_NONE;
-	int32 BobBody = INDEX_NONE;
+	int32 PivotIndex = INDEX_NONE;
+	int32 BobIndex = INDEX_NONE;
 
 	// -------------------------------------------------------------------------
 	// Runtime state

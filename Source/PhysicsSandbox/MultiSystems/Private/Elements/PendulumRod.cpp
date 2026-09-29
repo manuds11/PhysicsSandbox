@@ -8,8 +8,8 @@ FPendulumRod::FPendulumRod(
 	int32 InPivotBody,
 	int32 InBobBody
 )
-	: PivotBody(InPivotBody)
-	, BobBody(InBobBody)
+	: PivotIndex(InPivotBody)
+	, BobIndex(InBobBody)
 {
 }
 
@@ -27,8 +27,8 @@ bool FPendulumRod::GetConnectedBodies(
 	int32& OutBodyB
 ) const
 {
-	OutBodyA = PivotBody;
-	OutBodyB = BobBody;
+	OutBodyA = PivotIndex;
+	OutBodyB = BobIndex;
 
 	return true;
 }
@@ -107,18 +107,18 @@ void FPendulumRod::ApplyForces(
 )
 {
 	if (
-		!Bodies.IsValidIndex(PivotBody)
-		|| !Bodies.IsValidIndex(BobBody)
+		!Bodies.IsValidIndex(PivotIndex)
+		|| !Bodies.IsValidIndex(BobIndex)
 		)
 	{
 		return;
 	}
 
 	FBody& Pivot =
-		Bodies[PivotBody];
+		Bodies[PivotIndex];
 
 	FBody& Bob =
-		Bodies[BobBody];
+		Bodies[BobIndex];
 
 	// -------------------------------------------------------------------------
 	// Pivot constraint force
@@ -158,18 +158,18 @@ void FPendulumRod::ApplyImpulses2Bodies(
 )
 {
 	if (
-		!Bodies.IsValidIndex(PivotBody)
-		|| !Bodies.IsValidIndex(BobBody)
+		!Bodies.IsValidIndex(PivotIndex)
+		|| !Bodies.IsValidIndex(BobIndex)
 		)
 	{
 		return;
 	}
 
 	FBody& Pivot =
-		Bodies[PivotBody];
+		Bodies[PivotIndex];
 
 	FBody& Bob =
-		Bodies[BobBody];
+		Bodies[BobIndex];
 
 	// -------------------------------------------------------------------------
 	// Pivot impulse
@@ -225,18 +225,18 @@ void FPendulumRod::ApplyPosCorrections2Bodies(
 )
 {
 	if (
-		!Bodies.IsValidIndex(PivotBody)
-		|| !Bodies.IsValidIndex(BobBody)
+		!Bodies.IsValidIndex(PivotIndex)
+		|| !Bodies.IsValidIndex(BobIndex)
 		)
 	{
 		return;
 	}
 
 	FBody& Pivot =
-		Bodies[PivotBody];
+		Bodies[PivotIndex];
 
 	FBody& Bob =
-		Bodies[BobBody];
+		Bodies[BobIndex];
 
 	// -------------------------------------------------------------------------
 	// Pivot
@@ -314,8 +314,8 @@ void FPendulumRod::UpdateRodState(
 )
 {
 	if (
-		!Bodies.IsValidIndex(PivotBody)
-		|| !Bodies.IsValidIndex(BobBody)
+		!Bodies.IsValidIndex(PivotIndex)
+		|| !Bodies.IsValidIndex(BobIndex)
 		)
 	{
 		RodJacobian =
@@ -325,10 +325,10 @@ void FPendulumRod::UpdateRodState(
 	}
 
 	const FBody& Pivot =
-		Bodies[PivotBody];
+		Bodies[PivotIndex];
 
 	const FBody& Bob =
-		Bodies[BobBody];
+		Bodies[BobIndex];
 
 	// -------------------------------------------------------------------------
 	// Position state
