@@ -209,8 +209,8 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 RightSpringIndex =
 		FullSys.AddElement(
 			MakeUnique<FSpringDamper>(
+				RightAnchorIndex, 
 				Mass3Index,
-				RightAnchorIndex,
 				30.0,
 				0.05,
 				1.24
