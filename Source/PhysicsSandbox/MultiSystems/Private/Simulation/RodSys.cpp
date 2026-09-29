@@ -596,20 +596,20 @@ double FRodSys::ComputeA_ij(
 	const TArray<FBody>& Bodies
 ) const
 {
-	int32 BodyPivot_i = INDEX_NONE;
-	int32 BodyBob_i = INDEX_NONE;
+	int32 PivotIndex_i = INDEX_NONE;
+	int32 BobIndex_i = INDEX_NONE;
 
-	int32 BodyPivot_j = INDEX_NONE;
-	int32 BodyBob_j = INDEX_NONE;
+	int32 PivotIndex_j = INDEX_NONE;
+	int32 BobIndex_j = INDEX_NONE;
 
 	Rod_i.GetConnectedBodies(
-		BodyPivot_i,
-		BodyBob_i
+		PivotIndex_i,
+		BobIndex_i
 	);
 
 	Rod_j.GetConnectedBodies(
-		BodyPivot_j,
-		BodyBob_j
+		PivotIndex_j,
+		BobIndex_j
 	);
 
 	const FRodJacobian& Jacobian_i =
@@ -620,25 +620,25 @@ double FRodSys::ComputeA_ij(
 
 	const FRodExtreme Pivot_i
 	{
-		BodyPivot_i,
+		PivotIndex_i,
 		Jacobian_i.JPivot
 	};
 
 	const FRodExtreme Bob_i
 	{
-		BodyBob_i,
+		BobIndex_i,
 		Jacobian_i.JBob
 	};
 
 	const FRodExtreme Pivot_j
 	{
-		BodyPivot_j,
+		PivotIndex_j,
 		Jacobian_j.JPivot
 	};
 
 	const FRodExtreme Bob_j
 	{
-		BodyBob_j,
+		BobIndex_j,
 		Jacobian_j.JBob
 	};
 
@@ -757,12 +757,12 @@ double FRodSys::ComputeForceB_i(
 	const TArray<FBody>& Bodies
 ) const
 {
-	int32 BodyPivot_i = INDEX_NONE;
-	int32 BodyBob_i = INDEX_NONE;
+	int32 PivotIndex_i = INDEX_NONE;
+	int32 BobIndex_i = INDEX_NONE;
 
 	Rod_i.GetConnectedBodies(
-		BodyPivot_i,
-		BodyBob_i
+		PivotIndex_i,
+		BobIndex_i
 	);
 
 	const FRodJacobian& Jacobian_i =
@@ -770,13 +770,13 @@ double FRodSys::ComputeForceB_i(
 
 	const FRodExtreme Pivot_i
 	{
-		BodyPivot_i,
+		PivotIndex_i,
 		Jacobian_i.JPivot
 	};
 
 	const FRodExtreme Bob_i
 	{
-		BodyBob_i,
+		BobIndex_i,
 		Jacobian_i.JBob
 	};
 
