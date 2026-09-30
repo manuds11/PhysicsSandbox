@@ -3,9 +3,10 @@
 #include "Actors/MultiSystemsActor.h"
 #include "Math/Units.h"
 #include "Elements/PendulumRod.h"
-
 #include "Elements/SpringDamper.h"
 #include "DrawDebugHelpers.h"
+
+#include "Logging/PhysicsSandboxLog.h"
 
 // -----------------------------------------------------------------------------
 // Construction and lifecycle
@@ -321,13 +322,23 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		SimulationTimeDebt >= FixedTimeStep
 		&& SubStepCount < MaxSubSteps)
 	{
-		FullSys.Step(FixedTimeStep);
-		++FixedStepCount;
+		if (!FullSys.Step(FixedTimeStep))
+		{
+			bIsSimulationRunning = false;
 
+			UE_LOG(
+				LogPhysicsSandbox,
+				Error,
+				TEXT("Simulation step failed. Simulation has been paused.")
+			);
+
+			break;
+		}
+
+		++FixedStepCount;
 		SimuPhysicalTime += FixedTimeStep;
 		SimulationTimeDebt -= FixedTimeStep;
-
-		SubStepCount++;
+		++SubStepCount;
 
 		/*if (benablecsvlogging)
 		{
