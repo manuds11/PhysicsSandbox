@@ -106,19 +106,11 @@ void FPendulumRod::ApplyForces(
 	TArray<FBody>& Bodies
 )
 {
-	if (
-		!Bodies.IsValidIndex(PivotIndex)
-		|| !Bodies.IsValidIndex(BobIndex)
-		)
-	{
-		return;
-	}
+	check(Bodies.IsValidIndex(PivotIndex));
+	check(Bodies.IsValidIndex(BobIndex));
 
-	FBody& Pivot =
-		Bodies[PivotIndex];
-
-	FBody& Bob =
-		Bodies[BobIndex];
+	FBody& Pivot = Bodies[PivotIndex];
+	FBody& Bob = Bodies[BobIndex];
 
 	// -------------------------------------------------------------------------
 	// Pivot constraint force
@@ -126,14 +118,12 @@ void FPendulumRod::ApplyForces(
 
 	if (!Pivot.bXFixed)
 	{
-		Pivot.NetForce.X +=
-			RodConstraintForces.PivotForce.X;
+		Pivot.NetForce.X += RodConstraintForces.PivotForce.X;
 	}
 
 	if (!Pivot.bYFixed)
 	{
-		Pivot.NetForce.Y +=
-			RodConstraintForces.PivotForce.Y;
+		Pivot.NetForce.Y += RodConstraintForces.PivotForce.Y;
 	}
 
 	// -------------------------------------------------------------------------
@@ -142,14 +132,12 @@ void FPendulumRod::ApplyForces(
 
 	if (!Bob.bXFixed)
 	{
-		Bob.NetForce.X +=
-			RodConstraintForces.BobForce.X;
+		Bob.NetForce.X += RodConstraintForces.BobForce.X;
 	}
 
 	if (!Bob.bYFixed)
 	{
-		Bob.NetForce.Y +=
-			RodConstraintForces.BobForce.Y;
+		Bob.NetForce.Y += RodConstraintForces.BobForce.Y;
 	}
 }
 
@@ -157,66 +145,50 @@ void FPendulumRod::ApplyImpulses2Bodies(
 	TArray<FBody>& Bodies
 )
 {
-	if (
-		!Bodies.IsValidIndex(PivotIndex)
-		|| !Bodies.IsValidIndex(BobIndex)
-		)
-	{
-		return;
-	}
+	check(Bodies.IsValidIndex(PivotIndex));
+	check(Bodies.IsValidIndex(BobIndex));
 
-	FBody& Pivot =
-		Bodies[PivotIndex];
-
-	FBody& Bob =
-		Bodies[BobIndex];
+	FBody& Pivot = Bodies[PivotIndex];
+	FBody& Bob = Bodies[BobIndex];
 
 	// -------------------------------------------------------------------------
 	// Pivot impulse
 	// -------------------------------------------------------------------------
 
-	if (Pivot.Mass > UE_SMALL_NUMBER)
+	check(FMath::IsFinite(Pivot.Mass) && Pivot.Mass > UE_SMALL_NUMBER);
+
+	const double PivotInverseMass = 1.0 / Pivot.Mass;
+
+	if (!Pivot.bXFixed)
 	{
-		const double PivotInverseMass =
-			1.0 / Pivot.Mass;
+		Pivot.Velocity.X +=
+			RodConstraintImpulses.PivotImpulse.X * PivotInverseMass;
+	}
 
-		if (!Pivot.bXFixed)
-		{
-			Pivot.Velocity.X +=
-				RodConstraintImpulses.PivotImpulse.X
-				* PivotInverseMass;
-		}
-
-		if (!Pivot.bYFixed)
-		{
-			Pivot.Velocity.Y +=
-				RodConstraintImpulses.PivotImpulse.Y
-				* PivotInverseMass;
-		}
+	if (!Pivot.bYFixed)
+	{
+		Pivot.Velocity.Y +=
+			RodConstraintImpulses.PivotImpulse.Y * PivotInverseMass;
 	}
 
 	// -------------------------------------------------------------------------
 	// Bob impulse
 	// -------------------------------------------------------------------------
 
-	if (Bob.Mass > UE_SMALL_NUMBER)
+	check(FMath::IsFinite(Bob.Mass) && Bob.Mass > UE_SMALL_NUMBER);
+
+	const double BobInverseMass = 1.0 / Bob.Mass;
+
+	if (!Bob.bXFixed)
 	{
-		const double BobInverseMass =
-			1.0 / Bob.Mass;
+		Bob.Velocity.X +=
+			RodConstraintImpulses.BobImpulse.X * BobInverseMass;
+	}
 
-		if (!Bob.bXFixed)
-		{
-			Bob.Velocity.X +=
-				RodConstraintImpulses.BobImpulse.X
-				* BobInverseMass;
-		}
-
-		if (!Bob.bYFixed)
-		{
-			Bob.Velocity.Y +=
-				RodConstraintImpulses.BobImpulse.Y
-				* BobInverseMass;
-		}
+	if (!Bob.bYFixed)
+	{
+		Bob.Velocity.Y +=
+			RodConstraintImpulses.BobImpulse.Y * BobInverseMass;
 	}
 }
 
@@ -224,67 +196,52 @@ void FPendulumRod::ApplyPosCorrections2Bodies(
 	TArray<FBody>& Bodies
 )
 {
-	if (
-		!Bodies.IsValidIndex(PivotIndex)
-		|| !Bodies.IsValidIndex(BobIndex)
-		)
-	{
-		return;
-	}
+	check(Bodies.IsValidIndex(PivotIndex));
+	check(Bodies.IsValidIndex(BobIndex));
 
-	FBody& Pivot =
-		Bodies[PivotIndex];
-
-	FBody& Bob =
-		Bodies[BobIndex];
+	FBody& Pivot = Bodies[PivotIndex];
+	FBody& Bob = Bodies[BobIndex];
 
 	// -------------------------------------------------------------------------
 	// Pivot
 	// -------------------------------------------------------------------------
 
-	if (Pivot.Mass > UE_SMALL_NUMBER)
+	check(FMath::IsFinite(Pivot.Mass) && Pivot.Mass > UE_SMALL_NUMBER);
+
+	const double PivotInverseMass = 1.0 / Pivot.Mass;
+
+	if (!Pivot.bXFixed)
 	{
-		const double InverseMass =
-			1.0 / Pivot.Mass;
+		Pivot.Position.X +=
+			RodPositionCorrections.PivotCorrection.X * PivotInverseMass;
+	}
 
-		if (!Pivot.bXFixed)
-		{
-			Pivot.Position.X +=
-				RodPositionCorrections.PivotCorrection.X
-				* InverseMass;
-		}
-
-		if (!Pivot.bYFixed)
-		{
-			Pivot.Position.Y +=
-				RodPositionCorrections.PivotCorrection.Y
-				* InverseMass;
-		}
+	if (!Pivot.bYFixed)
+	{
+		Pivot.Position.Y +=
+			RodPositionCorrections.PivotCorrection.Y * PivotInverseMass;
 	}
 
 	// -------------------------------------------------------------------------
 	// Bob
 	// -------------------------------------------------------------------------
 
-	if (Bob.Mass > UE_SMALL_NUMBER)
+	check(FMath::IsFinite(Bob.Mass) && Bob.Mass > UE_SMALL_NUMBER);
+
+	const double BobInverseMass = 1.0 / Bob.Mass;
+
+	if (!Bob.bXFixed)
 	{
-		const double InverseMass =
-			1.0 / Bob.Mass;
-
-		if (!Bob.bXFixed)
-		{
-			Bob.Position.X +=
-				RodPositionCorrections.BobCorrection.X
-				* InverseMass;
-		}
-
-		if (!Bob.bYFixed)
-		{
-			Bob.Position.Y +=
-				RodPositionCorrections.BobCorrection.Y
-				* InverseMass;
-		}
+		Bob.Position.X +=
+			RodPositionCorrections.BobCorrection.X * BobInverseMass;
 	}
+
+	if (!Bob.bYFixed)
+	{
+		Bob.Position.Y +=
+			RodPositionCorrections.BobCorrection.Y * BobInverseMass;
+	}
+	
 }
 
 // -----------------------------------------------------------------------------
@@ -313,22 +270,11 @@ void FPendulumRod::UpdateRodState(
 	const TArray<FBody>& Bodies
 )
 {
-	if (
-		!Bodies.IsValidIndex(PivotIndex)
-		|| !Bodies.IsValidIndex(BobIndex)
-		)
-	{
-		RodJacobian =
-			FRodJacobian();
+	check(Bodies.IsValidIndex(PivotIndex));
+	check(Bodies.IsValidIndex(BobIndex));
 
-		return;
-	}
-
-	const FBody& Pivot =
-		Bodies[PivotIndex];
-
-	const FBody& Bob =
-		Bodies[BobIndex];
+	const FBody& Pivot = Bodies[PivotIndex];
+	const FBody& Bob = Bodies[BobIndex];
 
 	// -------------------------------------------------------------------------
 	// Position state

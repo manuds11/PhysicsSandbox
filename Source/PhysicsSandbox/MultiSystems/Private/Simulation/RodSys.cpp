@@ -92,6 +92,11 @@ bool FRodSys::RunConstraintCorrections(
 	// Position projection
 	// -------------------------------------------------------------------------
 
+	bool bPositionConverged =
+		RodSystemArray.IsEmpty();
+
+	double MaxPositionError = 0.0;
+
 	for (
 		int32 Iteration = 0;
 		Iteration < MaxPositionCorrectionIterations;
@@ -115,7 +120,7 @@ bool FRodSys::RunConstraintCorrections(
 			Bodies
 		);
 
-		const double MaxPositionError =
+		MaxPositionError =
 			ComputeMaxPositionConstraintError();
 
 		if (
@@ -123,8 +128,21 @@ bool FRodSys::RunConstraintCorrections(
 			<= PositionCorrectionTolerance
 			)
 		{
+			bPositionConverged = true;
 			break;
 		}
+	}
+
+	if (!ensureMsgf(
+		bPositionConverged,
+		TEXT(
+			"RodSys position correction did not converge. "
+			"Max error: %.3e m"
+		),
+		MaxPositionError
+	))
+	{
+		return false;
 	}
 
 	// -------------------------------------------------------------------------
@@ -159,10 +177,7 @@ void FRodSys::UpdateStatisticalErrorData()
 {
 	for (FPendulumRod* PendulumRod : RodSystemArray)
 	{
-		if (!PendulumRod)
-		{
-			continue;
-		}
+		check(PendulumRod);
 
 		PendulumRod->UpdateStatisticalErrorData();
 	}
@@ -180,10 +195,7 @@ void FRodSys::CollectRods(
 
 	for (const TUniquePtr<ISysElement>& Element : Elements)
 	{
-		if (!Element)
-		{
-			continue;
-		}
+		check(Element);
 
 		if (
 			Element->GetElementType()
@@ -198,6 +210,8 @@ void FRodSys::CollectRods(
 				Element.Get()
 				);
 
+		check(PendulumRod);
+
 		RodSystemArray.Add(
 			PendulumRod
 		);
@@ -210,10 +224,7 @@ void FRodSys::UpdateRodStates(
 {
 	for (FPendulumRod* PendulumRod : RodSystemArray)
 	{
-		if (!PendulumRod)
-		{
-			continue;
-		}
+		check(PendulumRod);
 
 		PendulumRod->UpdateRodState(Bodies);
 
@@ -381,11 +392,22 @@ bool FRodSys::SolveLambdaForce()
 		return true;
 	}
 
-	return DenseLinearSolver::Solve(
-		ARodSysMatrix,
-		ForceBVector,
-		LambdaVector
+	const bool bSolved =
+		DenseLinearSolver::Solve(
+			ARodSysMatrix,
+			ForceBVector,
+			LambdaVector
+		);
+
+	ensureMsgf(
+		bSolved,
+		TEXT(
+			"DenseLinearSolver failed "
+			"in RodSys force solve."
+		)
 	);
+
+	return bSolved;
 }
 
 bool FRodSys::SolveEtaVelCorrection()
@@ -395,11 +417,22 @@ bool FRodSys::SolveEtaVelCorrection()
 		return true;
 	}
 
-	return DenseLinearSolver::Solve(
-		ARodSysMatrix,
-		VelocityBVector,
-		ImpulseEtaVector
+	const bool bSolved =
+		DenseLinearSolver::Solve(
+			ARodSysMatrix,
+			VelocityBVector,
+			ImpulseEtaVector
+		);
+
+	ensureMsgf(
+		bSolved,
+		TEXT(
+			"DenseLinearSolver failed "
+			"in RodSys velocity correction."
+		)
 	);
+
+	return bSolved;
 }
 
 bool FRodSys::SolveMuPosCorrection()
@@ -409,11 +442,22 @@ bool FRodSys::SolveMuPosCorrection()
 		return true;
 	}
 
-	return DenseLinearSolver::Solve(
-		ARodSysMatrix,
-		PositionBVector,
-		PositionMuVector
+	const bool bSolved =
+		DenseLinearSolver::Solve(
+			ARodSysMatrix,
+			PositionBVector,
+			PositionMuVector
+		);
+
+	ensureMsgf(
+		bSolved,
+		TEXT(
+			"DenseLinearSolver failed "
+			"in RodSys position correction."
+		)
 	);
+
+	return bSolved;
 }
 
 // -----------------------------------------------------------------------------
@@ -652,21 +696,16 @@ double FRodSys::ComputeA_ij(
 				return 0.0;
 			}
 
-			const int32 SharedBodyIndex =
-				Rod_iExtreme.BodyIndex;
+			const int32 SharedBodyIndex = Rod_iExtreme.BodyIndex;
 
-			if (!Bodies.IsValidIndex(SharedBodyIndex))
-			{
-				return 0.0;
-			}
+			check(Bodies.IsValidIndex(SharedBodyIndex));
 
-			const FBody& SharedBody =
-				Bodies[SharedBodyIndex];
+			const FBody& SharedBody = Bodies[SharedBodyIndex];
 
-			if (SharedBody.Mass <= UE_SMALL_NUMBER)
-			{
-				return 0.0;
-			}
+			check(
+				FMath::IsFinite(SharedBody.Mass)
+				&& SharedBody.Mass > UE_SMALL_NUMBER
+			);
 
 			const double InverseMass =
 				1.0 / SharedBody.Mass;
@@ -782,25 +821,16 @@ double FRodSys::ComputeForceB_i(
 			const FRodExtreme& Rod_iExtreme
 			) -> double
 		{
-			if (
-				!Bodies.IsValidIndex(
-					Rod_iExtreme.BodyIndex
-				)
-				)
-			{
-				return 0.0;
-			}
+			check(Bodies.IsValidIndex(Rod_iExtreme.BodyIndex));
 
-			const FBody& Body =
-				Bodies[Rod_iExtreme.BodyIndex];
+			const FBody& Body = Bodies[Rod_iExtreme.BodyIndex];
 
-			if (Body.Mass <= UE_SMALL_NUMBER)
-			{
-				return 0.0;
-			}
+			check(
+				FMath::IsFinite(Body.Mass)
+				&& Body.Mass > UE_SMALL_NUMBER
+			);
 
-			const double InverseMass =
-				1.0 / Body.Mass;
+			const double InverseMass = 1.0 / Body.Mass;
 
 			double B_iComponent = 0.0;
 
@@ -824,16 +854,11 @@ double FRodSys::ComputeForceB_i(
 		};
 
 	const double JMinvF_i =
-		ComputeB_iComponent(
-			Pivot_i
-		)
+		ComputeB_iComponent(Pivot_i)
 		+
-		ComputeB_iComponent(
-			Bob_i
-		);
+		ComputeB_iComponent(Bob_i);
 
-	const double JDotV_i =
-		Rod_i.GetJDotV();
+	const double JDotV_i = Rod_i.GetJDotV();
 
 	/*
 	 * Acceleration-level constraint equation:
@@ -920,10 +945,7 @@ double FRodSys::ComputeMaxPositionConstraintError() const
 
 	for (const FPendulumRod* Rod_i : RodSystemArray)
 	{
-		if (!Rod_i)
-		{
-			continue;
-		}
+		check(Rod_i);
 
 		const double Error_i =
 			FMath::Abs(

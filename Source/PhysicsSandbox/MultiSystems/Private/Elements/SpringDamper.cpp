@@ -45,10 +45,8 @@ bool FSpringDamper::GetConnectedBodies(
 
 void FSpringDamper::ApplyForces(TArray<FBody>& Bodies)
 {
-	if (!Bodies.IsValidIndex(BodyAIndex) || !Bodies.IsValidIndex(BodyBIndex))
-	{
-		return;
-	}
+	check(Bodies.IsValidIndex(BodyAIndex));
+	check(Bodies.IsValidIndex(BodyBIndex));
 
 	FBody& A = Bodies[BodyAIndex];
 	FBody& B = Bodies[BodyBIndex];
