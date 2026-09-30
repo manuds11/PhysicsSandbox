@@ -703,6 +703,7 @@ double FRodSys::ComputeA_ij(
 	 * and another for its bob. Only blocks associated with
 	 * the same body produce a non-zero component.
 	 */
+
 	return
 		ComputeA_ijComponent(
 			Pivot_i,
@@ -726,7 +727,7 @@ double FRodSys::ComputeA_ij(
 }
 
 // -----------------------------------------------------------------------------
-// Vector B Forces, Velocity
+// Vector B: Forces, Velocity, Position
 // -----------------------------------------------------------------------------
 
 void FRodSys::UpdateForceBVector(

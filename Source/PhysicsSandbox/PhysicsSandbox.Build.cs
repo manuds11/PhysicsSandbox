@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class PhysicsSandbox : ModuleRules
 {
@@ -19,6 +20,22 @@ public class PhysicsSandbox : ModuleRules
             "PhysicsSandbox/Oscillator1D/Public",
             "PhysicsSandbox/MultiSystems/Public"
         });
+
+        // ---------------------------------------------------------------------
+        // Third-party libraries
+        // ---------------------------------------------------------------------
+
+        string EigenPath = Path.GetFullPath(
+            Path.Combine(
+                ModuleDirectory,
+                "..",
+                "ThirdParty",
+                "Eigen"
+            )
+        );
+
+        PublicSystemIncludePaths.Add(EigenPath);
+
 
         // Uncomment if you are using Slate UI
         // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
