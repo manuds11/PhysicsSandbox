@@ -101,16 +101,9 @@ namespace DenseLinearSolver
 			 * A zero or nearly-zero pivot means that the
 			 * system is singular or numerically degenerate.
 			 */
-			if (
-				MaxPivotMagnitude
-				<= UE_SMALL_NUMBER
-				)
+			if (!FMath::IsFinite(MaxPivotMagnitude) || MaxPivotMagnitude <= UE_SMALL_NUMBER)
 			{
-				OutSolution.Init(
-					0.0,
-					SystemSize
-				);
-
+				OutSolution.Init(0.0, SystemSize);
 				return false;
 			}
 
@@ -238,25 +231,20 @@ namespace DenseLinearSolver
 						+ Row
 				];
 
-			if (
-				FMath::Abs(DiagonalValue)
-				<= UE_SMALL_NUMBER
-				)
+			if (!FMath::IsFinite(DiagonalValue) || FMath::Abs(DiagonalValue) <= UE_SMALL_NUMBER)
 			{
-				OutSolution.Init(
-					0.0,
-					SystemSize
-				);
-
+				OutSolution.Init(0.0, SystemSize);
 				return false;
 			}
 
-			OutSolution[Row] =
-				(
-					WorkingVector[Row]
-					- KnownTerms
-					)
+			OutSolution[Row] = (WorkingVector[Row] - KnownTerms)
 				/ DiagonalValue;
+		
+			if (!FMath::IsFinite(OutSolution[Row]))
+			{
+				OutSolution.Init(0.0, SystemSize);
+				return false;
+			}
 		}
 
 		return true;

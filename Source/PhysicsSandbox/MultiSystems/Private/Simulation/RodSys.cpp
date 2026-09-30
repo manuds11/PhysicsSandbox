@@ -92,66 +92,40 @@ bool FRodSys::RunConstraintCorrections(
 	// Position projection
 	// -------------------------------------------------------------------------
 
-	bool bPositionConverged =
-		RodSystemArray.IsEmpty();
-
-	double MaxPositionError = 0.0;
-
 	for (
 		int32 Iteration = 0;
 		Iteration < MaxPositionCorrectionIterations;
 		++Iteration
 		)
 	{
-		PosCorrectionSysUpdate(
-			Bodies
-		);
+		PosCorrectionSysUpdate(Bodies);
 
 		if (!SolveMuPosCorrection())
 		{
 			return false;
 		}
 
-		ApplyAllPositionProjections(
-			Bodies
-		);
+		ApplyAllPositionProjections(Bodies);
+		UpdateRodStates(Bodies);
 
-		UpdateRodStates(
-			Bodies
-		);
+		const double MaxPositionError = ComputeMaxPositionConstraintError();
 
-		MaxPositionError =
-			ComputeMaxPositionConstraintError();
-
-		if (
-			MaxPositionError
-			<= PositionCorrectionTolerance
-			)
+		if (!FMath::IsFinite(MaxPositionError))
 		{
-			bPositionConverged = true;
+			return false;
+		}
+
+		if (MaxPositionError <= PositionCorrectionTolerance)
+		{
 			break;
 		}
-	}
-
-	if (!ensureMsgf(
-		bPositionConverged,
-		TEXT(
-			"RodSys position correction did not converge. "
-			"Max error: %.3e m"
-		),
-		MaxPositionError
-	))
-	{
-		return false;
 	}
 
 	// -------------------------------------------------------------------------
 	// Final velocity projection
 	// -------------------------------------------------------------------------
 
-	ImpulseCorrectionSysUpdate(
-		Bodies
-	);
+	ImpulseCorrectionSysUpdate(Bodies);
 
 	if (!SolveEtaVelCorrection())
 	{
