@@ -22,7 +22,7 @@ public:
 	int32 AddElement(TUniquePtr<ISysElement> Element);
 
 	void SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator);
-	void Step(double Dt);
+	bool Step(double Dt);
 
 	const TArray<FBody>& GetBodies() const;
 	const TArray<TUniquePtr<ISysElement>>& GetElements() const;
@@ -34,12 +34,16 @@ private:
 
 	TUniquePtr<ISysIntegrator> Integrator;
 
+	bool bInitialized = false;
+
 	void ClearForces();
 	void ApplyNonConstraintInteractions();
 	void ApplyGravity();
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();
+
+	bool IsStateFinite() const;
 
 	// -----------------------------------------------------------------------------
 	// MultiRod System

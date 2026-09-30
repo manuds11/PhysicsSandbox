@@ -18,18 +18,40 @@ FFullSys::FFullSys()
 
 void FFullSys::Initialize()
 {
+	check(!bInitialized);
+
 	RodSys.BuildEmptyStructure(
 		Elements
 	);
+
+	bInitialized = true;
 }
 
 int32 FFullSys::AddBody(const FBody& Body)
 {
+	check(!bInitialized);
+
+	checkf(
+		FMath::IsFinite(Body.Mass)
+		&& Body.Mass > UE_SMALL_NUMBER,
+		TEXT("FBody mass must be finite and positive.")
+	);
+
+	checkf(
+		FMath::IsFinite(Body.Position.X)
+		&& FMath::IsFinite(Body.Position.Y)
+		&& FMath::IsFinite(Body.Velocity.X)
+		&& FMath::IsFinite(Body.Velocity.Y),
+		TEXT("FBody initial state must be finite.")
+	);
+
 	return Bodies.Add(Body);
 }
 
 int32 FFullSys::AddElement(TUniquePtr<ISysElement> Element)
 {
+	check(!bInitialized);
+
 	if (!Element)
 	{
 		return INDEX_NONE;
@@ -50,10 +72,9 @@ FSubSys& FFullSys::CreateSubSys(FName Name)
 
 void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
 {
-	if (InIntegrator)
-	{
-		Integrator = MoveTemp(InIntegrator);
-	}
+	check(InIntegrator);
+
+	Integrator = MoveTemp(InIntegrator);
 }
 
 // -----------------------------------------------------------------------------
@@ -79,8 +100,15 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 // Simulation pipeline
 // -----------------------------------------------------------------------------
 
-void FFullSys::Step(double Dt)
+bool FFullSys::Step(double Dt)
 {
+	check(bInitialized);
+
+	checkf(
+		FMath::IsFinite(Dt) && Dt > 0.0,
+		TEXT("Simulation Dt must be finite and positive.")
+	);
+
 	ClearForces();
 	ApplyGravity();
 	ApplyNonConstraintInteractions();
@@ -89,11 +117,9 @@ void FFullSys::Step(double Dt)
 	// Constraint forces
 	// -------------------------------------------------------------------------
 
-	if (!RodSys.RunConstraintForces(
-		Bodies
-	))
+	if (!RodSys.RunConstraintForces(Bodies) )
 	{
-		return;
+		return false;
 	}
 
 	// -------------------------------------------------------------------------
@@ -105,15 +131,29 @@ void FFullSys::Step(double Dt)
 
 	ApplyFixedAxes();
 
+	if (!ensureMsgf(
+		IsStateFinite(),
+		TEXT("Simulation state became non-finite after integration.")
+	))
+	{
+		return false;
+	}
+
 	// -------------------------------------------------------------------------
 	// Constraint corrections
 	// -------------------------------------------------------------------------
 
-	if (!RodSys.RunConstraintCorrections(
-		Bodies
+	if (!RodSys.RunConstraintCorrections(Bodies) )
+	{
+		return false;
+	}
+
+	if (!ensureMsgf(
+		IsStateFinite(),
+		TEXT("Simulation state became non-finite after constraint correction.")
 	))
 	{
-		return;
+		return false;
 	}
 
 	// -------------------------------------------------------------------------
@@ -121,6 +161,8 @@ void FFullSys::Step(double Dt)
 	// -------------------------------------------------------------------------
 
 	RodSys.UpdateStatisticalErrorData();
+
+	return true;
 }
 
 // -----------------------------------------------------------------------------º
@@ -196,10 +238,7 @@ void FFullSys::ComputeAccelerations()
 
 void FFullSys::Integrate(double Dt)
 {
-	if (!Integrator)
-	{
-		return;
-	}
+	check(Integrator);
 
 	for (FBody& Body : Bodies)
 	{
@@ -243,4 +282,42 @@ void FFullSys::ApplyFixedAxes()		// Faltan reacciones
 			Body.NetForce.Y = 0.0;
 		}
 	}
+}
+
+// -----------------------------------------------------------------------------º
+// Debug helpers
+// -----------------------------------------------------------------------------
+
+bool FFullSys::IsStateFinite() const
+{
+	for (const FBody& Body : Bodies)
+	{
+		const bool bPositionFinite =
+			FMath::IsFinite(Body.Position.X)
+			&& FMath::IsFinite(Body.Position.Y);
+
+		const bool bVelocityFinite =
+			FMath::IsFinite(Body.Velocity.X)
+			&& FMath::IsFinite(Body.Velocity.Y);
+
+		const bool bAccelerationFinite =
+			FMath::IsFinite(Body.Acceleration.X)
+			&& FMath::IsFinite(Body.Acceleration.Y);
+
+		const bool bForceFinite =
+			FMath::IsFinite(Body.NetForce.X)
+			&& FMath::IsFinite(Body.NetForce.Y);
+
+		if (
+			!bPositionFinite
+			|| !bVelocityFinite
+			|| !bAccelerationFinite
+			|| !bForceFinite
+			)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
