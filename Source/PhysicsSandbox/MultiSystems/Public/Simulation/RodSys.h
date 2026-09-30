@@ -47,10 +47,10 @@ private:
 	// Non-owning pointers to rod elements stored in FFullSys::Elements.
 	TArray<FPendulumRod*> RodSystemArray;
 
-	TArray<double> AMatrix;
+	TArray<double> ARodSysMatrix;
 
 	// Forces - Acceleration
-	TArray<double> BVector;
+	TArray<double> ForceBVector;
 	TArray<double> LambdaVector;
 	
 	// Impulses - Velocities

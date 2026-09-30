@@ -18,11 +18,11 @@ void FRodSys::BuildEmptyStructure(
 	const int32 NumRods =
 		RodSystemArray.Num();
 
-	AMatrix.SetNumZeroed(
+	ARodSysMatrix.SetNumZeroed(
 		NumRods * NumRods
 	);
 
-	BVector.SetNumZeroed(
+	ForceBVector.SetNumZeroed(
 		NumRods
 	);
 
@@ -237,23 +237,23 @@ void FRodSys::ForcesSysUpdate(
 	const int32 NumRods = RodSystemArray.Num();
 
 	check(
-		AMatrix.Num() == NumRods * NumRods
+		ARodSysMatrix.Num() == NumRods * NumRods
 	);
 
 	check(
-		BVector.Num() == NumRods
+		ForceBVector.Num() == NumRods
 	);
 
 	check(
 		LambdaVector.Num() == NumRods
 	);
 
-	for (double& Value : AMatrix)
+	for (double& Value : ARodSysMatrix)
 	{
 		Value = 0.0;
 	}
 
-	for (double& Value : BVector)
+	for (double& Value : ForceBVector)
 	{
 		Value = 0.0;
 	}
@@ -283,7 +283,7 @@ void FRodSys::ImpulseCorrectionSysUpdate(
 		RodSystemArray.Num();
 
 	check(
-		AMatrix.Num() == NumRods * NumRods
+		ARodSysMatrix.Num() == NumRods * NumRods
 	);
 
 	check(
@@ -294,7 +294,7 @@ void FRodSys::ImpulseCorrectionSysUpdate(
 		ImpulseEtaVector.Num() == NumRods
 	);
 
-	for (double& Value : AMatrix)
+	for (double& Value : ARodSysMatrix)
 	{
 		Value = 0.0;
 	}
@@ -333,7 +333,7 @@ void FRodSys::PosCorrectionSysUpdate(
 		RodSystemArray.Num();
 
 	check(
-		AMatrix.Num()
+		ARodSysMatrix.Num()
 		== NumRods * NumRods
 	);
 
@@ -347,7 +347,7 @@ void FRodSys::PosCorrectionSysUpdate(
 		== NumRods
 	);
 
-	for (double& Value : AMatrix)
+	for (double& Value : ARodSysMatrix)
 	{
 		Value = 0.0;
 	}
@@ -362,13 +362,9 @@ void FRodSys::PosCorrectionSysUpdate(
 		Value = 0.0;
 	}
 
-	UpdateRodStates(
-		Bodies
-	);
+	UpdateRodStates(Bodies);
 
-	UpdateAMatrix(
-		Bodies
-	);
+	UpdateAMatrix(Bodies);
 
 	UpdatePositionBVector();
 }
@@ -386,8 +382,8 @@ bool FRodSys::SolveLambdaForce()
 	}
 
 	return DenseLinearSolver::Solve(
-		AMatrix,
-		BVector,
+		ARodSysMatrix,
+		ForceBVector,
 		LambdaVector
 	);
 }
@@ -400,7 +396,7 @@ bool FRodSys::SolveEtaVelCorrection()
 	}
 
 	return DenseLinearSolver::Solve(
-		AMatrix,
+		ARodSysMatrix,
 		VelocityBVector,
 		ImpulseEtaVector
 	);
@@ -414,7 +410,7 @@ bool FRodSys::SolveMuPosCorrection()
 	}
 
 	return DenseLinearSolver::Solve(
-		AMatrix,
+		ARodSysMatrix,
 		PositionBVector,
 		PositionMuVector
 	);
@@ -745,7 +741,7 @@ void FRodSys::UpdateForceBVector(
 	{
 		check(RodSystemArray[Row]);
 
-		BVector[Row] =
+		ForceBVector[Row] =
 			ComputeForceB_i(
 				*RodSystemArray[Row],
 				Bodies
@@ -959,7 +955,7 @@ double& FRodSys::MatrixIndex2ArrayIndex(
 	check(Row >= 0 && Row < NumRods);
 	check(Column >= 0 && Column < NumRods);
 
-	return AMatrix[
+	return ARodSysMatrix[
 		Row * NumRods + Column
 	];
 }
@@ -975,7 +971,7 @@ const double& FRodSys::MatrixIndex2ArrayIndex(
 	check(Row >= 0 && Row < NumRods);
 	check(Column >= 0 && Column < NumRods);
 
-	return AMatrix[
+	return ARodSysMatrix[
 		Row * NumRods + Column
 	];
 }
