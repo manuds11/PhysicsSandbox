@@ -163,7 +163,27 @@ void AMultiSystemsActor::BuildDemoSystem()
 				FVector2D(3.86, 1.20)
 			)
 		);
+
+	// -------------------------------------------------------------------------
+	// Force Inputs
+	// -------------------------------------------------------------------------
+
+	const int32 Mass1ForceInputIndex =
+		FullSys.AddForceInput(
+			FForceInput{
+				Mass1Index,
+				FVector2D(0.0, 20.0)
+			}
+		);
 	
+	const int32 Mass3ForceInputIndex =
+		FullSys.AddForceInput(
+			FForceInput{
+				Mass3Index,
+				FVector2D(20.0, 0.0)
+			}
+		);
+		
 	// -------------------------------------------------------------------------
 	// Rods
 	// -------------------------------------------------------------------------

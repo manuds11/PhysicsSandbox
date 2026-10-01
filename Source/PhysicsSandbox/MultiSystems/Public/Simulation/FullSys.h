@@ -22,6 +22,7 @@ public:
 
 	int32 AddBody(const FBody& Body);
 	int32 AddElement(TUniquePtr<ISysElement> Element);
+	int32 AddForceInput(const FForceInput& ForceInput);
 
 	void SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator);
 	bool Step(double Dt);
@@ -36,16 +37,19 @@ private:
 	TArray<FSubSys> SubSystems;
 	TArray<FBody> Bodies;
 	TArray<TUniquePtr<ISysElement>> Elements;
+	TArray<FForceInput> ForceInputs;
 
 	TUniquePtr<ISysIntegrator> Integrator;
 
 	bool bInitialized = false;
 
-	bool EvaluateDynamics();
+	Eigen::VectorXd BuildXDot_Full() const;
+	bool EvaluateDynamics(Eigen::VectorXd& OutXDot_Full);
 
 	void ClearForces();
 	void ApplyNonConstraintInteractions();
 	void ApplyGravity();
+	void ApplyForceInputs();
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();
@@ -56,14 +60,12 @@ private:
 	// MultiRod System
 	// -----------------------------------------------------------------------------
 public:
-	const TArray<FPendulumRod*>&
-		GetRodSystemArray() const
+	const TArray<FPendulumRod*>& GetRodSystemArray() const
 	{
 		return RodSys.GetRodSystemArray();
 	}
 
-	const TArray<double>&
-		GetRodSystemLambdaVector() const
+	const TArray<double>& GetRodSystemLambdaVector() const
 	{
 		return RodSys.GetSystemLambdaVector();
 	}

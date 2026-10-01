@@ -60,6 +60,20 @@ int32 FFullSys::AddElement(TUniquePtr<ISysElement> Element)
 	return Elements.Add(MoveTemp(Element));
 }
 
+int32 FFullSys::AddForceInput(const FForceInput& ForceInput)
+{
+	check(!bInitialized);
+
+	check(Bodies.IsValidIndex(ForceInput.BodyIndex));
+
+	check(
+		FMath::IsFinite(ForceInput.Force.X)
+		&& FMath::IsFinite(ForceInput.Force.Y)
+	);
+
+	return ForceInputs.Add(ForceInput);
+}
+
 FSubSys& FFullSys::CreateSubSys(FName Name)
 {
 	FSubSys NewSubSys;
@@ -103,6 +117,29 @@ FSysState FFullSys::BuildFullState() const
 	return State;
 }
 
+Eigen::VectorXd FFullSys::BuildXDot_Full() const
+{
+	const int32 NumCoordinates = 2 * Bodies.Num();
+
+	Eigen::VectorXd XDot_Full(2 * NumCoordinates);
+
+	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
+	{
+		const FBody& Body = Bodies[BodyIndex];
+
+		const int32 XIndex = 2 * BodyIndex;
+		const int32 YIndex = XIndex + 1;
+
+		XDot_Full(XIndex) = Body.Velocity.X;
+		XDot_Full(YIndex) = Body.Velocity.Y;
+
+		XDot_Full(NumCoordinates + XIndex) = Body.Acceleration.X;
+		XDot_Full(NumCoordinates + YIndex) = Body.Acceleration.Y;
+	}
+
+	return XDot_Full;
+}
+
 // -----------------------------------------------------------------------------
 // Getters
 // -----------------------------------------------------------------------------
@@ -126,10 +163,11 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 // Simulation pipeline
 // -----------------------------------------------------------------------------
 
-bool FFullSys::EvaluateDynamics()
+bool FFullSys::EvaluateDynamics(Eigen::VectorXd& OutXDot_Full)
 {
 	ClearForces();
 	ApplyGravity();
+	ApplyForceInputs(); 
 	ApplyNonConstraintInteractions();
 
 	if (!RodSys.RunConstraintForces(Bodies))
@@ -138,6 +176,8 @@ bool FFullSys::EvaluateDynamics()
 	}
 
 	ComputeAccelerations();
+
+	OutXDot_Full = BuildXDot_Full();
 
 	return true;
 }
@@ -151,7 +191,9 @@ bool FFullSys::Step(double Dt)
 		TEXT("Simulation Dt must be finite and positive.")
 	);
 
-	if (!EvaluateDynamics())
+	Eigen::VectorXd XDot_Full;
+
+	if (!EvaluateDynamics(XDot_Full))
 	{
 		return false;
 	}
@@ -210,6 +252,21 @@ void FFullSys::ApplyGravity()
 		}
 
 		Body.NetForce += Body.Mass * -Gravity;
+	}
+}
+
+void FFullSys::ApplyForceInputs()
+{
+	for (const FForceInput& Input : ForceInputs)
+	{
+		check(Bodies.IsValidIndex(Input.BodyIndex));
+
+		check(
+			FMath::IsFinite(Input.Force.X)
+			&& FMath::IsFinite(Input.Force.Y)
+		);
+
+		Bodies[Input.BodyIndex].NetForce += Input.Force;
 	}
 }
 
