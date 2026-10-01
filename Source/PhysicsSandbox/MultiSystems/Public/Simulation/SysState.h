@@ -4,6 +4,6 @@
 
 struct FSysState
 {
-    Eigen::VectorXd Q;
-    Eigen::VectorXd QDot;
+    Eigen::VectorXd Q_Full;
+    Eigen::VectorXd QDot_Full;
 };

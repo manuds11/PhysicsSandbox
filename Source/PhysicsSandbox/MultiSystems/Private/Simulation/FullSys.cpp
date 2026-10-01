@@ -77,6 +77,32 @@ void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
 	Integrator = MoveTemp(InIntegrator);
 }
 
+FSysState FFullSys::BuildFullState() const
+{
+	const int32 NumCoordinates = 2 * Bodies.Num();
+
+	FSysState State;
+
+	State.Q_Full.resize(NumCoordinates);
+	State.QDot_Full.resize(NumCoordinates);
+
+	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
+	{
+		const FBody& Body = Bodies[BodyIndex];
+
+		const int32 XIndex = 2 * BodyIndex;
+		const int32 YIndex = XIndex + 1;
+
+		State.Q_Full(XIndex) = Body.Position.X;
+		State.Q_Full(YIndex) = Body.Position.Y;
+
+		State.QDot_Full(XIndex) = Body.Velocity.X;
+		State.QDot_Full(YIndex) = Body.Velocity.Y;
+	}
+
+	return State;
+}
+
 // -----------------------------------------------------------------------------
 // Getters
 // -----------------------------------------------------------------------------
@@ -100,6 +126,22 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 // Simulation pipeline
 // -----------------------------------------------------------------------------
 
+bool FFullSys::EvaluateDynamics()
+{
+	ClearForces();
+	ApplyGravity();
+	ApplyNonConstraintInteractions();
+
+	if (!RodSys.RunConstraintForces(Bodies))
+	{
+		return false;
+	}
+
+	ComputeAccelerations();
+
+	return true;
+}
+
 bool FFullSys::Step(double Dt)
 {
 	check(bInitialized);
@@ -109,24 +151,11 @@ bool FFullSys::Step(double Dt)
 		TEXT("Simulation Dt must be finite and positive.")
 	);
 
-	ClearForces();
-	ApplyGravity();
-	ApplyNonConstraintInteractions();
-
-	// -------------------------------------------------------------------------
-	// Constraint forces
-	// -------------------------------------------------------------------------
-
-	if (!RodSys.RunConstraintForces(Bodies) )
+	if (!EvaluateDynamics())
 	{
 		return false;
 	}
 
-	// -------------------------------------------------------------------------
-	// Integration
-	// -------------------------------------------------------------------------
-
-	ComputeAccelerations();
 	Integrate(Dt);
 
 	ApplyFixedAxes();
@@ -139,11 +168,7 @@ bool FFullSys::Step(double Dt)
 		return false;
 	}
 
-	// -------------------------------------------------------------------------
-	// Constraint corrections
-	// -------------------------------------------------------------------------
-
-	if (!RodSys.RunConstraintCorrections(Bodies) )
+	if (!RodSys.RunConstraintCorrections(Bodies))
 	{
 		return false;
 	}
@@ -155,10 +180,6 @@ bool FFullSys::Step(double Dt)
 	{
 		return false;
 	}
-
-	// -------------------------------------------------------------------------
-	// Diagnostics
-	// -------------------------------------------------------------------------
 
 	RodSys.UpdateStatisticalErrorData();
 

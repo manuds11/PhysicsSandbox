@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Simulation/FullSysTypes.h"
+#include "Simulation/SysState.h"
+
 #include "Simulation/SysIntegrator.h"
 #include "Simulation/SubSys.h"
 #include "Simulation/RodSys.h"
@@ -27,6 +29,9 @@ public:
 	const TArray<FBody>& GetBodies() const;
 	const TArray<TUniquePtr<ISysElement>>& GetElements() const;
 
+	// Control
+	FSysState BuildFullState() const;
+
 private:
 	TArray<FSubSys> SubSystems;
 	TArray<FBody> Bodies;
@@ -35,6 +40,8 @@ private:
 	TUniquePtr<ISysIntegrator> Integrator;
 
 	bool bInitialized = false;
+
+	bool EvaluateDynamics();
 
 	void ClearForces();
 	void ApplyNonConstraintInteractions();
