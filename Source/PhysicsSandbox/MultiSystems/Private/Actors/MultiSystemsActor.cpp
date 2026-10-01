@@ -168,19 +168,19 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// Force Inputs
 	// -------------------------------------------------------------------------
 
-	const int32 Mass1ForceInputIndex =
+	FullSys.Mass1ForceInputArrayIndex =
 		FullSys.AddForceInput(
 			FForceInput{
 				Mass1Index,
-				FVector2D(0.0, 20.0)
+				FVector2D(0.0, 0.0)
 			}
 		);
 	
-	const int32 Mass3ForceInputIndex =
+	FullSys.Mass3ForceInputArrayIndex =
 		FullSys.AddForceInput(
 			FForceInput{
 				Mass3Index,
-				FVector2D(20.0, 0.0)
+				FVector2D(0.0, 0.0)
 			}
 		);
 		
@@ -237,6 +237,14 @@ void AMultiSystemsActor::BuildDemoSystem()
 				1.24
 			)
 		);
+	
+	// DEMO
+
+	FullSys.Mass1ReferenceY =
+		FullSys.GetBodies()[Mass1Index].Position.Y;
+
+	FullSys.Mass3ReferenceX = 
+		FullSys.GetBodies()[Mass3Index].Position.X;
 
 	// -------------------------------------------------------------------------
 	// Subsystem associations - Bodies

@@ -23,18 +23,42 @@ public:
 	int32 AddBody(const FBody& Body);
 	int32 AddElement(TUniquePtr<ISysElement> Element);
 	int32 AddForceInput(const FForceInput& ForceInput);
+	void SetForceInput(
+		int32 ForceInputIndex,
+		const FVector2D& Force
+	);
 
 	void SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator);
 	bool Step(double Dt);
 
 	const TArray<FBody>& GetBodies() const;
 	const TArray<TUniquePtr<ISysElement>>& GetElements() const;
+	const TArray<FPendulumRod*>& GetRodSystemArray() const {	return RodSys.GetRodSystemArray(); }
+	const TArray<double>& GetRodSystemLambdaVector() const {	return RodSys.GetSystemLambdaVector(); }
 
 	// Control
 	FSysState BuildFullState() const;
 
+	// ----------------------------------------------------------------------------- *****
+	// DEMO CONTROL
+	// -----------------------------------------------------------------------------
+	int32 Mass1ForceInputArrayIndex = INDEX_NONE;
+	int32 Mass3ForceInputArrayIndex = INDEX_NONE;
+
+	double Mass1ReferenceY = 0.0;
+	double Mass3ReferenceX = 0.0;
+
+	double Mass1KpY = 20.0;
+	double Mass3KpX = 20.0;
+
+	void UpdateDemoFeedbackControl();
+	// ----------------------------------------------------------------------------- *****
+
 private:
+	FRodSys RodSys;
+	
 	TArray<FSubSys> SubSystems;
+
 	TArray<FBody> Bodies;
 	TArray<TUniquePtr<ISysElement>> Elements;
 	TArray<FForceInput> ForceInputs;
@@ -54,24 +78,15 @@ private:
 	void Integrate(double Dt);
 	void ApplyFixedAxes();
 
+	// Debug Helpers
 	bool IsStateFinite() const;
 
 	// -----------------------------------------------------------------------------
 	// MultiRod System
 	// -----------------------------------------------------------------------------
 public:
-	const TArray<FPendulumRod*>& GetRodSystemArray() const
-	{
-		return RodSys.GetRodSystemArray();
-	}
-
-	const TArray<double>& GetRodSystemLambdaVector() const
-	{
-		return RodSys.GetSystemLambdaVector();
-	}
-
-private:
-	FRodSys RodSys;
+	
+	
 };
 
 

@@ -74,6 +74,24 @@ int32 FFullSys::AddForceInput(const FForceInput& ForceInput)
 	return ForceInputs.Add(ForceInput);
 }
 
+void FFullSys::SetForceInput(
+	int32 ForceInputIndex,
+	const FVector2D& Force
+)
+{
+	checkf(
+		ForceInputs.IsValidIndex(ForceInputIndex),
+		TEXT("Invalid ForceInputIndex %d."),
+		ForceInputIndex
+	);
+	check(
+		FMath::IsFinite(Force.X)
+		&& FMath::IsFinite(Force.Y)
+	);
+
+	ForceInputs[ForceInputIndex].Force = Force;
+}
+
 FSubSys& FFullSys::CreateSubSys(FName Name)
 {
 	FSubSys NewSubSys;
@@ -163,6 +181,46 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 // Simulation pipeline
 // -----------------------------------------------------------------------------
 
+void FFullSys::UpdateDemoFeedbackControl()
+{
+	check(ForceInputs.IsValidIndex(Mass1ForceInputArrayIndex));
+	check(ForceInputs.IsValidIndex(Mass3ForceInputArrayIndex));
+
+	const FForceInput& Mass1Input =
+		ForceInputs[Mass1ForceInputArrayIndex];
+
+	const FForceInput& Mass3Input =
+		ForceInputs[Mass3ForceInputArrayIndex];
+
+	check(Bodies.IsValidIndex(Mass1Input.BodyIndex));
+	check(Bodies.IsValidIndex(Mass3Input.BodyIndex));
+
+	const FBody& Mass1 = Bodies[Mass1Input.BodyIndex];
+	const FBody& Mass3 = Bodies[Mass3Input.BodyIndex];
+
+	const double Mass1ErrorY =
+		Mass1.Position.Y - Mass1ReferenceY;
+
+	const double Mass3ErrorX =
+		Mass3.Position.X - Mass3ReferenceX;
+
+	const double Mass1ForceY =
+		-Mass1KpY * Mass1ErrorY;
+
+	const double Mass3ForceX =
+		-Mass3KpX * Mass3ErrorX;
+
+	SetForceInput(
+		Mass1ForceInputArrayIndex,
+		FVector2D(0.0, Mass1ForceY)
+	);
+
+	SetForceInput(
+		Mass3ForceInputArrayIndex,
+		FVector2D(Mass3ForceX, 0.0)
+	);
+}
+
 bool FFullSys::EvaluateDynamics(Eigen::VectorXd& OutXDot_Full)
 {
 	ClearForces();
@@ -190,6 +248,8 @@ bool FFullSys::Step(double Dt)
 		FMath::IsFinite(Dt) && Dt > 0.0,
 		TEXT("Simulation Dt must be finite and positive.")
 	);
+
+	UpdateDemoFeedbackControl();
 
 	Eigen::VectorXd XDot_Full;
 
