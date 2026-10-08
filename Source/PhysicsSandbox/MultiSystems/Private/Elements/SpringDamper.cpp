@@ -78,6 +78,25 @@ void FSpringDamper::ApplyForces(TArray<FBody>& Bodies)
 // Visualization data
 // -----------------------------------------------------------------------------
 
+
+double FSpringDamper::ComputePotentialEnergy(
+	const TArray<FBody>& Bodies
+) const
+{
+	check(Bodies.IsValidIndex(BodyAIndex));
+	check(Bodies.IsValidIndex(BodyBIndex));
+
+	const FVector2D Delta =
+		Bodies[BodyBIndex].Position
+		- Bodies[BodyAIndex].Position;
+
+	const double Extension =
+		Delta.Size() - RestLength;
+
+	return 0.5 * Stiffness * FMath::Square(Extension);
+}
+
+
 bool FSpringDamper::GetEquilibriumPoint(
 	const TArray<FBody>& Bodies,
 	FVector2D& OutPoint

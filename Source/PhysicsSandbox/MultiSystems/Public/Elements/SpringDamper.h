@@ -23,6 +23,11 @@ public:
 
 	virtual void ApplyForces(TArray<FBody>& Bodies) override;
 
+	virtual double ComputePotentialEnergy(
+		const TArray<FBody>& Bodies
+	) const override;
+
+
 	virtual FColor GetDebugColor() const override
 	{
 		return FColor::Purple;

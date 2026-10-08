@@ -87,6 +87,13 @@ public:
 
 	virtual void ApplyForces(TArray<FBody>& Bodies) = 0;
 
+	virtual double ComputePotentialEnergy(
+		const TArray<FBody>& Bodies
+	) const
+	{
+		return 0.0;
+	}
+
 	virtual FColor GetDebugColor() const = 0;
 
 	virtual bool GetEquilibriumPoint(

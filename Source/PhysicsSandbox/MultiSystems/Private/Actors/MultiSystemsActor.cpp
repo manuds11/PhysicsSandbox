@@ -590,6 +590,24 @@ void AMultiSystemsActor::PrintInfo() const
 		);
 	}
 
+	const FSystemEnergyState Energy =
+		FullSys.ComputeSystemEnergy();
+
+	DebugText += FString::Printf(
+		TEXT(
+			"\nENERGY\n"
+			"Kinetic: %.6f J\n"
+			"Gravitational: %.6f J\n"
+			"Elastic: %.6f J\n"
+			"Mechanical: %.6f J\n"
+		),
+		Energy.Kinetic,
+		Energy.Gravitational,
+		Energy.Elastic,
+		Energy.Mechanical()
+	);
+
+
 	const FColor TextColor =
 		bIsSimulationRunning
 		? FColor::Green

@@ -249,7 +249,10 @@ bool FFullSys::Step(double Dt)
 		TEXT("Simulation Dt must be finite and positive.")
 	);
 
-	UpdateDemoFeedbackControl();
+	if (bEnableDemoFeedbackControl)
+	{
+		UpdateDemoFeedbackControl();
+	}
 
 	Eigen::VectorXd XDot_Full;
 
@@ -458,4 +461,54 @@ bool FFullSys::IsStateFinite() const
 	}
 
 	return true;
+}
+
+// -----------------------------------------------------------------------------º
+// Energy diagnostics
+// -----------------------------------------------------------------------------
+
+FSystemEnergyState FFullSys::ComputeSystemEnergy() const
+{
+	FSystemEnergyState Energy;
+
+	// -------------------------------------------------------------------------
+	// Bodies: kinetic and gravitational energy
+	// -------------------------------------------------------------------------
+
+	for (const FBody& Body : Bodies)
+	{
+		const double Vx =
+			Body.bXFixed ? 0.0 : Body.Velocity.X;
+
+		const double Vy =
+			Body.bYFixed ? 0.0 : Body.Velocity.Y;
+
+		Energy.Kinetic +=
+			0.5 * Body.Mass * (Vx * Vx + Vy * Vy);
+
+		// Gravity force currently applied as:
+		// F_gravity = -Mass * (0, PhysicsConsts::Gravity)
+		//
+		// Therefore V_gravity = Mass * PhysicsConsts::Gravity * Y
+
+		Energy.Gravitational +=
+			Body.Mass
+			* PhysicsConsts::Gravity
+			* Body.Position.Y;
+	}
+
+	// -------------------------------------------------------------------------
+	// Elements: potential energy
+	// -------------------------------------------------------------------------
+
+	for (const TUniquePtr<ISysElement>& Element : Elements)
+	{
+		if (Element)
+		{
+			Energy.Elastic += 
+				Element->ComputePotentialEnergy(Bodies);
+		}
+	}
+
+	return Energy;
 }

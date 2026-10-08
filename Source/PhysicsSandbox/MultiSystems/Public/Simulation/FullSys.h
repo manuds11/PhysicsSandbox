@@ -2,6 +2,7 @@
 
 #include "Simulation/FullSysTypes.h"
 #include "Simulation/SysState.h"
+#include "Simulation/SysDiagnostics.h"
 
 #include "Simulation/SysIntegrator.h"
 #include "Simulation/SubSys.h"
@@ -42,6 +43,8 @@ public:
 	// ----------------------------------------------------------------------------- *****
 	// DEMO CONTROL
 	// -----------------------------------------------------------------------------
+	bool bEnableDemoFeedbackControl = false;
+	
 	int32 Mass1ForceInputArrayIndex = INDEX_NONE;
 	int32 Mass3ForceInputArrayIndex = INDEX_NONE;
 
@@ -53,6 +56,7 @@ public:
 
 	void UpdateDemoFeedbackControl();
 	// ----------------------------------------------------------------------------- *****
+	FSystemEnergyState ComputeSystemEnergy() const;
 
 private:
 	FRodSys RodSys;
