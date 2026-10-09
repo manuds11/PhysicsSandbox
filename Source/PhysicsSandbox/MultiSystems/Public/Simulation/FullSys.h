@@ -30,6 +30,9 @@ public:
 	);
 
 	void SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator);
+	void SetVelocityCorrectionsEnabled(bool bEnabled) { RodSys.bEnableVelocityCorrections = bEnabled; }
+	void SetPositionCorrectionsEnabled(bool bEnabled) { RodSys.bEnablePositionCorrections = bEnabled; }
+
 	bool Step(double Dt);
 
 	const TArray<FBody>& GetBodies() const;

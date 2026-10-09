@@ -67,82 +67,68 @@ bool FRodSys::RunConstraintForces(
 	return true;
 }
 
-bool FRodSys::RunConstraintCorrections(
-	TArray<FBody>& Bodies
-)
+
+bool FRodSys::RunConstraintCorrections(TArray<FBody>& Bodies)
 {
-	// -------------------------------------------------------------------------
 	// Initial velocity projection
-	// -------------------------------------------------------------------------
-
-	ImpulseCorrectionSysUpdate(
-		Bodies
-	);
-
-	if (!SolveEtaVelCorrection())
+	// -----------------------------------------------------------------------------
+	if (bEnableVelocityCorrections)
 	{
-		return false;
+		ImpulseCorrectionSysUpdate(Bodies);
+
+		if (!SolveEtaVelCorrection())
+		{
+			return false;
+		}
+
+		ApplyAllVelocityProjections(Bodies);
 	}
 
-	ApplyAllVelocityProjections(
-		Bodies
-	);
-
-	// -------------------------------------------------------------------------
 	// Position projection
-	// -------------------------------------------------------------------------
-
-	for (
-		int32 Iteration = 0;
-		Iteration < MaxPositionCorrectionIterations;
-		++Iteration
-		)
+	// -----------------------------------------------------------------------------
+	if (bEnablePositionCorrections)
 	{
-		PosCorrectionSysUpdate(Bodies);
-
-		if (!SolveMuPosCorrection())
+		for (int32 Iteration = 0; Iteration < MaxPositionCorrectionIterations; ++Iteration)
 		{
-			return false;
-		}
+			PosCorrectionSysUpdate(Bodies);
 
-		ApplyAllPositionProjections(Bodies);
-		UpdateRodStates(Bodies);
+			if (!SolveMuPosCorrection())
+			{
+				return false;
+			}
 
-		const double MaxPositionError = ComputeMaxPositionConstraintError();
+			ApplyAllPositionProjections(Bodies);
+			UpdateRodStates(Bodies);
 
-		if (!FMath::IsFinite(MaxPositionError))
-		{
-			return false;
-		}
+			const double MaxPositionError = ComputeMaxPositionConstraintError();
 
-		if (MaxPositionError <= PositionCorrectionTolerance)
-		{
-			break;
+			if (!FMath::IsFinite(MaxPositionError))
+			{
+				return false;
+			}
+
+			if (MaxPositionError <= PositionCorrectionTolerance)
+			{
+				break;
+			}
 		}
 	}
 
-	// -------------------------------------------------------------------------
 	// Final velocity projection
-	// -------------------------------------------------------------------------
-
-	ImpulseCorrectionSysUpdate(Bodies);
-
-	if (!SolveEtaVelCorrection())
+	// -----------------------------------------------------------------------------
+	if (bEnableVelocityCorrections)
 	{
-		return false;
+		ImpulseCorrectionSysUpdate(Bodies);
+
+		if (!SolveEtaVelCorrection())
+		{
+			return false;
+		}
+
+		ApplyAllVelocityProjections(Bodies);
 	}
 
-	ApplyAllVelocityProjections(
-		Bodies
-	);
-
-	// -------------------------------------------------------------------------
-	// Final state update
-	// -------------------------------------------------------------------------
-
-	UpdateRodStates(
-		Bodies
-	);
+	UpdateRodStates(Bodies);
 
 	return true;
 }

@@ -26,6 +26,9 @@ void AMultiSystemsActor::BeginPlay()
 
 	ConfigureIntegrator();
 
+	FullSys.SetVelocityCorrectionsEnabled(true);
+	FullSys.SetPositionCorrectionsEnabled(true);
+
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
 		EnableInput(PC);
@@ -221,8 +224,8 @@ void AMultiSystemsActor::BuildDemoSystem()
 			MakeUnique<FSpringDamper>(
 				LeftAnchorIndex,
 				Mass3Index,
-				30.0,
-				0.05,
+				35.0,
+				0.1,
 				1.48
 			)
 		);
@@ -232,9 +235,9 @@ void AMultiSystemsActor::BuildDemoSystem()
 			MakeUnique<FSpringDamper>(
 				RightAnchorIndex, 
 				Mass3Index,
-				30.0,
-				0.05,
-				1.24
+				35.0,
+				0.1,
+				1.48
 			)
 		);
 	

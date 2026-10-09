@@ -38,6 +38,9 @@ public:
 		return LambdaVector;
 	}
 
+	bool bEnableVelocityCorrections = true;
+	bool bEnablePositionCorrections = true;
+
 private:
 
 	// -------------------------------------------------------------------------
