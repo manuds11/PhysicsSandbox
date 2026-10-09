@@ -225,7 +225,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 				LeftAnchorIndex,
 				Mass3Index,
 				35.0,
-				0.1,
+				0.01,
 				1.48
 			)
 		);
@@ -236,7 +236,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 				RightAnchorIndex, 
 				Mass3Index,
 				35.0,
-				0.1,
+				0.01,
 				1.48
 			)
 		);
@@ -593,23 +593,32 @@ void AMultiSystemsActor::PrintInfo() const
 		);
 	}
 
-	const FSystemEnergyState Energy =
-		FullSys.ComputeSystemEnergy();
+	const FSystemEnergyBalance& Balance = FullSys.GetEnergyBalance();
+	const FSystemEnergyState& CurrentEnergyState = Balance.Current;
 
 	DebugText += FString::Printf(
 		TEXT(
 			"\nENERGY\n"
+			"Initial Mechanical: %.6f J\n"
+			"Mechanical: %.6f J\n"
 			"Kinetic: %.6f J\n"
 			"Gravitational: %.6f J\n"
 			"Elastic: %.6f J\n"
-			"Mechanical: %.6f J\n"
+			"\n"
+			"Delta Mechanical: %+.6f J\n"
+			"TotalDissipated: %.6f J\n"
+			"EnergyResidual: %+.6f J\n"
 		),
-		Energy.Kinetic,
-		Energy.Gravitational,
-		Energy.Elastic,
-		Energy.Mechanical()
+		Balance.Initial.Mechanical(),
+		CurrentEnergyState.Mechanical(),
+		CurrentEnergyState.Kinetic,
+		CurrentEnergyState.Gravitational,
+		CurrentEnergyState.Elastic,
+		
+		Balance.MechanicalVariationSinceStart(),
+		CurrentEnergyState.TotalDissipated,
+		Balance.EnergyResidualSinceStart()
 	);
-
 
 	const FColor TextColor =
 		bIsSimulationRunning

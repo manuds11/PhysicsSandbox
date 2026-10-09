@@ -20,9 +20,10 @@ void FFullSys::Initialize()
 {
 	check(!bInitialized);
 
-	RodSys.BuildEmptyStructure(
-		Elements
-	);
+	RodSys.BuildEmptyStructure(Elements);
+
+	EnergyBalance.Initial = ComputeSystemEnergy();
+	EnergyBalance.Current = EnergyBalance.Initial;
 
 	bInitialized = true;
 }
@@ -249,6 +250,8 @@ bool FFullSys::Step(double Dt)
 		TEXT("Simulation Dt must be finite and positive.")
 	);
 
+	const double DissipatedPowerBefore = ComputeDissipatedPower();
+
 	if (bEnableDemoFeedbackControl)
 	{
 		UpdateDemoFeedbackControl();
@@ -287,6 +290,7 @@ bool FFullSys::Step(double Dt)
 	}
 
 	RodSys.UpdateStatisticalErrorData();
+	UpdateEnergyBalance(Dt, DissipatedPowerBefore);
 
 	return true;
 }
@@ -511,4 +515,35 @@ FSystemEnergyState FFullSys::ComputeSystemEnergy() const
 	}
 
 	return Energy;
+}
+
+
+double FFullSys::ComputeDissipatedPower() const
+{
+	double TotalPower = 0.0;
+
+	for (const TUniquePtr<ISysElement>& Element : Elements)
+	{
+		if (Element)
+		{
+			TotalPower += Element->ComputeDissipatedPower(Bodies);
+		}
+	}
+
+	return TotalPower;
+}
+
+void FFullSys::UpdateEnergyBalance(double Dt, double DissipatedPowerBefore)
+{
+	const double DissipatedPowerAfter = ComputeDissipatedPower();
+
+	const double DissipatedIncrement =
+		0.5 * Dt * (DissipatedPowerBefore + DissipatedPowerAfter);
+
+	const double PreviousDissipated = EnergyBalance.Current.TotalDissipated;
+
+	EnergyBalance.Current = ComputeSystemEnergy();
+
+	EnergyBalance.Current.TotalDissipated =
+		PreviousDissipated + DissipatedIncrement;
 }

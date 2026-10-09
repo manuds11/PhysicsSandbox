@@ -96,6 +96,32 @@ double FSpringDamper::ComputePotentialEnergy(
 	return 0.5 * Stiffness * FMath::Square(Extension);
 }
 
+double FSpringDamper::ComputeDissipatedPower(const TArray<FBody>& Bodies) const
+{
+	check(Bodies.IsValidIndex(BodyAIndex));
+	check(Bodies.IsValidIndex(BodyBIndex));
+
+	const FBody& A = Bodies[BodyAIndex];
+	const FBody& B = Bodies[BodyBIndex];
+
+	const FVector2D Delta = B.Position - A.Position;
+	const double Length = Delta.Size();
+
+	if (Length <= UE_SMALL_NUMBER)
+	{
+		return 0.0;
+	}
+
+	const FVector2D Direction = Delta / Length;
+	const FVector2D RelativeVelocity = B.Velocity - A.Velocity;
+
+	const double RelativeSpeed =
+		FVector2D::DotProduct(RelativeVelocity, Direction);
+
+	return Damping * FMath::Square(RelativeSpeed);
+}
+
+
 
 bool FSpringDamper::GetEquilibriumPoint(
 	const TArray<FBody>& Bodies,

@@ -58,7 +58,11 @@ public:
 	double Mass3KpX = 20.0;
 
 	void UpdateDemoFeedbackControl();
+	
 	// ----------------------------------------------------------------------------- *****
+	// Energy Balance
+	// -----------------------------------------------------------------------------
+	const FSystemEnergyBalance& GetEnergyBalance() const { return EnergyBalance; }
 	FSystemEnergyState ComputeSystemEnergy() const;
 
 private:
@@ -88,12 +92,10 @@ private:
 	// Debug Helpers
 	bool IsStateFinite() const;
 
-	// -----------------------------------------------------------------------------
-	// MultiRod System
-	// -----------------------------------------------------------------------------
-public:
-	
-	
+	// Energy Diagnostics
+	FSystemEnergyBalance EnergyBalance;
+	double ComputeDissipatedPower() const;
+	void UpdateEnergyBalance(double Dt, double DissipatedPowerBefore);
 };
 
 

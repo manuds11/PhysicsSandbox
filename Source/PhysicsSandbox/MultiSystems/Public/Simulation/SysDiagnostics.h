@@ -12,6 +12,7 @@ struct FSystemEnergyState
     double Kinetic = 0.0;
     double Gravitational = 0.0;
     double Elastic = 0.0;
+    double TotalDissipated = 0.0;
 
     double Potential() const
     {
@@ -22,6 +23,11 @@ struct FSystemEnergyState
     {
         return Kinetic + Gravitational + Elastic;
     }
+
+    double Total() const
+    {
+        return Mechanical() + TotalDissipated;
+    }
 };
 
 // -----------------------------------------------------------------------------
@@ -30,8 +36,8 @@ struct FSystemEnergyState
 
 struct FCorrectionDiagnostics
 {
-    FSystemEnergyState Before;
-    FSystemEnergyState After;
+    FSystemEnergyState BeforeStep;
+    FSystemEnergyState AfterStep;
 
     double PositionCorrectionRMS = 0.0;
     double PositionCorrectionMax = 0.0;
@@ -41,22 +47,22 @@ struct FCorrectionDiagnostics
 
     double DeltaKinetic() const
     {
-        return After.Kinetic - Before.Kinetic;
+        return AfterStep.Kinetic - BeforeStep.Kinetic;
     }
 
     double DeltaGravitational() const
     {
-        return After.Gravitational - Before.Gravitational;
+        return AfterStep.Gravitational - BeforeStep.Gravitational;
     }
 
     double DeltaElastic() const
     {
-        return After.Elastic - Before.Elastic;
+        return AfterStep.Elastic - BeforeStep.Elastic;
     }
 
     double DeltaMechanical() const
     {
-        return After.Mechanical() - Before.Mechanical();
+        return AfterStep.Mechanical() - BeforeStep.Mechanical();
     }
 };
 
@@ -69,4 +75,24 @@ struct FConstraintCorrectionDiagnostics
     FCorrectionDiagnostics InitialVelocityProjection;
     FCorrectionDiagnostics PositionProjection;
     FCorrectionDiagnostics FinalVelocityProjection;
+};
+
+// -----------------------------------------------------------------------------
+// Global energy diagnostics
+// -----------------------------------------------------------------------------
+
+struct FSystemEnergyBalance
+{
+    FSystemEnergyState Initial;
+    FSystemEnergyState Current;
+
+    double MechanicalVariationSinceStart() const
+    {
+        return Current.Mechanical() - Initial.Mechanical();
+    }
+
+    double EnergyResidualSinceStart() const
+    {
+        return Current.Total() - Initial.Total();
+    }
 };

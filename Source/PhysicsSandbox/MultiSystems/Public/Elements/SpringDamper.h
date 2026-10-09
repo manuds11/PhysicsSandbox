@@ -27,6 +27,7 @@ public:
 		const TArray<FBody>& Bodies
 	) const override;
 
+	virtual double ComputeDissipatedPower(const TArray<FBody>& Bodies) const override;
 
 	virtual FColor GetDebugColor() const override
 	{

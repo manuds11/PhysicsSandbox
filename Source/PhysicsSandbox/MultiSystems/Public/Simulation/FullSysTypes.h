@@ -94,6 +94,11 @@ public:
 		return 0.0;
 	}
 
+	virtual double ComputeDissipatedPower(const TArray<FBody>& Bodies) const
+	{
+		return 0.0;
+	}
+
 	virtual FColor GetDebugColor() const = 0;
 
 	virtual bool GetEquilibriumPoint(
