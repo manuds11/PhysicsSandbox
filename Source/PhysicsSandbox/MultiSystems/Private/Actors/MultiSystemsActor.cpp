@@ -225,7 +225,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 				LeftAnchorIndex,
 				Mass3Index,
 				35.0,
-				0.01,
+				1.0,
 				1.48
 			)
 		);
@@ -236,7 +236,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 				RightAnchorIndex, 
 				Mass3Index,
 				35.0,
-				0.01,
+				1.0,
 				1.48
 			)
 		);
@@ -527,14 +527,13 @@ void AMultiSystemsActor::PrintInfo() const
 			? TEXT("1Axis")
 			: TEXT("Free");
 	}
-
+	/*
 	DebugText += FString::Printf(
 		TEXT(
 			"SPACE Start/Stop\n"
 			"Key 'C' Camera Toggle: %s\n"
-			"\n"
 			"SimulTime: %.2f s | FixedSteps: %llu\n"
-			"Delay: %.3f s | AvgDt: %.3f s | FixedDt: %.4f s\n\n"
+			"Delay: %.3f s | AvgDt: %.3f s | FixedDt: %.4f s\n"
 		),
 		CameraMode,
 		SimuPhysicalTime,
@@ -543,7 +542,7 @@ void AMultiSystemsActor::PrintInfo() const
 		AverageDeltaTime,
 		FixedTimeStep
 	);
-
+	*/
 	const TArray<FPendulumRod*>& RodSystemArray =
 		FullSys.GetRodSystemArray();
 
@@ -578,10 +577,11 @@ void AMultiSystemsActor::PrintInfo() const
 		const double Lambda_i =
 			RodSystemLambda[Rod_iIndex];
 
+		/*
 		DebugText += FString::Printf(
 			TEXT(
 				"--------------------------------------------------\n"
-				"ROD %d\n\n"
+				"ROD %d\n"
 
 				"L Rel Error: %.3e   ||   Radial Vel: %.3e m/s\n"
 			),
@@ -590,15 +590,19 @@ void AMultiSystemsActor::PrintInfo() const
 
 			InstantErrorData_i.LengthRelError,
 			InstantErrorData_i.RadialVelocityError
-		);
+		); */
 	}
 
 	const FSystemEnergyBalance& Balance = FullSys.GetEnergyBalance();
 	const FSystemEnergyState& CurrentEnergyState = Balance.Current;
+	const FDeltaEnergy& IntegrationBalance = FullSys.GetIntegrationEnergy();
+	const FConstraintCorrectionEnergyDiagnostics& CorrectionBalance = FullSys.GetCorrectionEnergyDiagnostics();
 
 	DebugText += FString::Printf(
 		TEXT(
-			"\nENERGY\n"
+			"\n==================================================\n"
+			"ENERGY BALANCE\n\n"
+
 			"Initial Mechanical: %.6f J\n"
 			"Mechanical: %.6f J\n"
 			"Kinetic: %.6f J\n"
@@ -606,18 +610,61 @@ void AMultiSystemsActor::PrintInfo() const
 			"Elastic: %.6f J\n"
 			"\n"
 			"Delta Mechanical: %+.6f J\n"
-			"TotalDissipated: %.6f J\n"
-			"EnergyResidual: %+.6f J\n"
+			"Total Dissipated: %.6f J\n"
+			"Energy Residual: %+.6f J\n"
 		),
 		Balance.Initial.Mechanical(),
 		CurrentEnergyState.Mechanical(),
 		CurrentEnergyState.Kinetic,
 		CurrentEnergyState.Gravitational,
 		CurrentEnergyState.Elastic,
-		
+
 		Balance.MechanicalVariationSinceStart(),
 		CurrentEnergyState.TotalDissipated,
 		Balance.EnergyResidualSinceStart()
+	);
+
+	DebugText += FString::Printf(
+		TEXT(
+			"\n--------------------------------------------------\n"
+			"STEP ENERGY INCREMENTS\n\n"
+
+			"Integration: %+.6f J\n"
+			"1º Vel Correction: %+.6f J\n"
+			"Pos Correction: %+.6f J\n"
+			"2º Vel Correction: %+.6f J\n"
+			"Total Correction: %+.6f J\n"
+			"Total Step: %+.6f J\n"
+		),
+		IntegrationBalance.DeltaMechanical(),
+		CorrectionBalance.InitialVelocityProjection.DeltaMechanical(),
+		CorrectionBalance.PositionProjection.DeltaMechanical(),
+		CorrectionBalance.FinalVelocityProjection.DeltaMechanical(),
+		CorrectionBalance.StepProjectionEnergyIncrement(),
+
+		IntegrationBalance.DeltaMechanical()
+		+ CorrectionBalance.StepProjectionEnergyIncrement()
+	);
+
+	DebugText += FString::Printf(
+		TEXT(
+			"\n--------------------------------------------------\n"
+			"ACCUMULATED CORRECTION ENERGY\n\n"
+
+			"1º Vel Correction: %+.6f J\n"
+			"Pos Correction: %+.6f J\n"
+			"2º Vel Correction: %+.6f J\n"
+			"Total Correction: %+.6f J\n"
+			"\n"
+			"Residual Excluding Projections: %+.6f J\n"
+		),
+		CorrectionBalance.AccumulatedInitialVelocity.Mechanical(),
+		CorrectionBalance.AccumulatedPosition.Mechanical(),
+		CorrectionBalance.AccumulatedFinalVelocity.Mechanical(),
+		CorrectionBalance.AccumulatedProjectionEnergy(),
+
+		Balance.EnergyResidualSinceStart()
+		- CorrectionBalance.AccumulatedProjectionEnergy()
 	);
 
 	const FColor TextColor =

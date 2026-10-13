@@ -68,26 +68,37 @@ bool FRodSys::RunConstraintForces(
 }
 
 
-bool FRodSys::RunConstraintCorrections(TArray<FBody>& Bodies)
+bool FRodSys::RunConstraintCorrections(
+	TArray<FBody>& Bodies, 
+	TFunctionRef<FSystemEnergyState()> ComputeEnergy
+)
 {
+	CorrectionEnergyDiagnostics.InitialVelocityProjection = FDeltaEnergy{};
+	CorrectionEnergyDiagnostics.PositionProjection = FDeltaEnergy{};
+	CorrectionEnergyDiagnostics.FinalVelocityProjection = FDeltaEnergy{};
+
 	// Initial velocity projection
 	// -----------------------------------------------------------------------------
 	if (bEnableVelocityCorrections)
 	{
+		CorrectionEnergyDiagnostics.InitialVelocityProjection.Before = ComputeEnergy();
+		
 		ImpulseCorrectionSysUpdate(Bodies);
-
 		if (!SolveEtaVelCorrection())
 		{
 			return false;
 		}
-
 		ApplyAllVelocityProjections(Bodies);
+
+		CorrectionEnergyDiagnostics.InitialVelocityProjection.After = ComputeEnergy();
 	}
 
 	// Position projection
 	// -----------------------------------------------------------------------------
 	if (bEnablePositionCorrections)
 	{
+		CorrectionEnergyDiagnostics.PositionProjection.Before = ComputeEnergy();
+
 		for (int32 Iteration = 0; Iteration < MaxPositionCorrectionIterations; ++Iteration)
 		{
 			PosCorrectionSysUpdate(Bodies);
@@ -112,23 +123,29 @@ bool FRodSys::RunConstraintCorrections(TArray<FBody>& Bodies)
 				break;
 			}
 		}
+
+		CorrectionEnergyDiagnostics.PositionProjection.After = ComputeEnergy();
 	}
 
 	// Final velocity projection
 	// -----------------------------------------------------------------------------
 	if (bEnableVelocityCorrections)
 	{
-		ImpulseCorrectionSysUpdate(Bodies);
+		CorrectionEnergyDiagnostics.FinalVelocityProjection.Before = ComputeEnergy();
 
+		ImpulseCorrectionSysUpdate(Bodies);
 		if (!SolveEtaVelCorrection())
 		{
 			return false;
 		}
-
 		ApplyAllVelocityProjections(Bodies);
-	}
 
+		CorrectionEnergyDiagnostics.FinalVelocityProjection.After = ComputeEnergy();
+	}
+	
 	UpdateRodStates(Bodies);
+
+	CorrectionEnergyDiagnostics.AccumulateStepEnergy();
 
 	return true;
 }

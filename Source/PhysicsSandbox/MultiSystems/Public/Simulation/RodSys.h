@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Simulation/FullSysTypes.h"
+#include "Simulation/SysDiagnostics.h"
 
 class FPendulumRod;
 
@@ -13,16 +14,13 @@ public:
 	// Public API
 	// -------------------------------------------------------------------------
 
-	void BuildEmptyStructure(
-		const TArray<TUniquePtr<ISysElement>>& Elements
-	);
+	void BuildEmptyStructure(const TArray<TUniquePtr<ISysElement>>& Elements);
 
-	bool RunConstraintForces(
-		TArray<FBody>& Bodies
-	);
+	bool RunConstraintForces(TArray<FBody>& Bodies);
 
 	bool RunConstraintCorrections(
-		TArray<FBody>& Bodies
+		TArray<FBody>& Bodies, 
+		TFunctionRef<FSystemEnergyState()> ComputeEnergy
 	);
 
 	void UpdateStatisticalErrorData();
@@ -40,6 +38,13 @@ public:
 
 	bool bEnableVelocityCorrections = true;
 	bool bEnablePositionCorrections = true;
+
+
+	void ResetEnergyDiagnostics()	{ CorrectionEnergyDiagnostics = {}; }
+	const FConstraintCorrectionEnergyDiagnostics& GetCorrectionEnergyDiagnostics() const
+	{
+		return CorrectionEnergyDiagnostics;
+	}
 
 private:
 
@@ -64,9 +69,11 @@ private:
 	TArray<double> PositionBVector;
 	TArray<double> PositionMuVector;
 
-
 	static constexpr int32 MaxPositionCorrectionIterations = 5;
 	static constexpr double PositionCorrectionTolerance = 1.0e-6; // m
+
+	// Energy diagnostics for constraint corrections
+	FConstraintCorrectionEnergyDiagnostics CorrectionEnergyDiagnostics;
 
 	// -------------------------------------------------------------------------
 	// Helpers

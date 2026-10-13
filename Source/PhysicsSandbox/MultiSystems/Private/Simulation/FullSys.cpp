@@ -20,6 +20,9 @@ void FFullSys::Initialize()
 {
 	check(!bInitialized);
 
+	IntegrationEnergy = {};
+	RodSys.ResetEnergyDiagnostics();
+
 	RodSys.BuildEmptyStructure(Elements);
 
 	EnergyBalance.Initial = ComputeSystemEnergy();
@@ -264,9 +267,12 @@ bool FFullSys::Step(double Dt)
 		return false;
 	}
 
-	Integrate(Dt);
+	IntegrationEnergy.Before = ComputeSystemEnergy();
 
+	Integrate(Dt);
 	ApplyFixedAxes();
+
+	IntegrationEnergy.After = ComputeSystemEnergy();
 
 	if (!ensureMsgf(
 		IsStateFinite(),
@@ -276,7 +282,7 @@ bool FFullSys::Step(double Dt)
 		return false;
 	}
 
-	if (!RodSys.RunConstraintCorrections(Bodies))
+	if (!RodSys.RunConstraintCorrections(Bodies, [this]() { return ComputeSystemEnergy(); }))
 	{
 		return false;
 	}

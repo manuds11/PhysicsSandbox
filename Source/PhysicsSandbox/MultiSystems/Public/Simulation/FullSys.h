@@ -65,6 +65,12 @@ public:
 	const FSystemEnergyBalance& GetEnergyBalance() const { return EnergyBalance; }
 	FSystemEnergyState ComputeSystemEnergy() const;
 
+	const FDeltaEnergy& GetIntegrationEnergy() const { return IntegrationEnergy; }
+	const FConstraintCorrectionEnergyDiagnostics& GetCorrectionEnergyDiagnostics() const
+	{
+		return RodSys.GetCorrectionEnergyDiagnostics();
+	}
+
 private:
 	FRodSys RodSys;
 	
@@ -94,6 +100,7 @@ private:
 
 	// Energy Diagnostics
 	FSystemEnergyBalance EnergyBalance;
+	FDeltaEnergy IntegrationEnergy;
 	double ComputeDissipatedPower() const;
 	void UpdateEnergyBalance(double Dt, double DissipatedPowerBefore);
 };
