@@ -113,14 +113,13 @@ void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
 	Integrator = MoveTemp(InIntegrator);
 }
 
+
 FSysState FFullSys::BuildFullState() const
 {
 	const int32 NumCoordinates = 2 * Bodies.Num();
 
-	FSysState State;
-
-	State.Q_Full.resize(NumCoordinates);
-	State.QDot_Full.resize(NumCoordinates);
+	Eigen::VectorXd Q_Full(NumCoordinates);
+	Eigen::VectorXd QDot_Full(NumCoordinates);
 
 	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
 	{
@@ -129,21 +128,28 @@ FSysState FFullSys::BuildFullState() const
 		const int32 XIndex = 2 * BodyIndex;
 		const int32 YIndex = XIndex + 1;
 
-		State.Q_Full(XIndex) = Body.Position.X;
-		State.Q_Full(YIndex) = Body.Position.Y;
+		Q_Full(XIndex) = Body.Position.X;
+		Q_Full(YIndex) = Body.Position.Y;
 
-		State.QDot_Full(XIndex) = Body.Velocity.X;
-		State.QDot_Full(YIndex) = Body.Velocity.Y;
+		QDot_Full(XIndex) = Body.Velocity.X;
+		QDot_Full(YIndex) = Body.Velocity.Y;
 	}
 
-	return State;
+	return FSysState(
+		MoveTemp(Q_Full),
+		MoveTemp(QDot_Full)
+	);
 }
 
-Eigen::VectorXd FFullSys::BuildXDot_Full() const
+FSysStateDerivative FFullSys::BuildFullStateDerivative(
+	const Eigen::VectorXd& InQDot_Full
+) const
 {
 	const int32 NumCoordinates = 2 * Bodies.Num();
 
-	Eigen::VectorXd XDot_Full(2 * NumCoordinates);
+	check(InQDot_Full.size() == NumCoordinates);
+
+	Eigen::VectorXd QDotDot_Full(NumCoordinates);
 
 	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
 	{
@@ -152,14 +158,14 @@ Eigen::VectorXd FFullSys::BuildXDot_Full() const
 		const int32 XIndex = 2 * BodyIndex;
 		const int32 YIndex = XIndex + 1;
 
-		XDot_Full(XIndex) = Body.Velocity.X;
-		XDot_Full(YIndex) = Body.Velocity.Y;
-
-		XDot_Full(NumCoordinates + XIndex) = Body.Acceleration.X;
-		XDot_Full(NumCoordinates + YIndex) = Body.Acceleration.Y;
+		QDotDot_Full(XIndex) = Body.Acceleration.X;
+		QDotDot_Full(YIndex) = Body.Acceleration.Y;
 	}
 
-	return XDot_Full;
+	return FSysStateDerivative(
+		InQDot_Full,
+		MoveTemp(QDotDot_Full)
+	);
 }
 
 // -----------------------------------------------------------------------------
@@ -185,51 +191,11 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 // Simulation pipeline
 // -----------------------------------------------------------------------------
 
-void FFullSys::UpdateDemoFeedbackControl()
-{
-	check(ForceInputs.IsValidIndex(Mass1ForceInputArrayIndex));
-	check(ForceInputs.IsValidIndex(Mass3ForceInputArrayIndex));
-
-	const FForceInput& Mass1Input =
-		ForceInputs[Mass1ForceInputArrayIndex];
-
-	const FForceInput& Mass3Input =
-		ForceInputs[Mass3ForceInputArrayIndex];
-
-	check(Bodies.IsValidIndex(Mass1Input.BodyIndex));
-	check(Bodies.IsValidIndex(Mass3Input.BodyIndex));
-
-	const FBody& Mass1 = Bodies[Mass1Input.BodyIndex];
-	const FBody& Mass3 = Bodies[Mass3Input.BodyIndex];
-
-	const double Mass1ErrorY =
-		Mass1.Position.Y - Mass1ReferenceY;
-
-	const double Mass3ErrorX =
-		Mass3.Position.X - Mass3ReferenceX;
-
-	const double Mass1ForceY =
-		-Mass1KpY * Mass1ErrorY;
-
-	const double Mass3ForceX =
-		-Mass3KpX * Mass3ErrorX;
-
-	SetForceInput(
-		Mass1ForceInputArrayIndex,
-		FVector2D(0.0, Mass1ForceY)
-	);
-
-	SetForceInput(
-		Mass3ForceInputArrayIndex,
-		FVector2D(Mass3ForceX, 0.0)
-	);
-}
-
-bool FFullSys::EvaluateDynamics(Eigen::VectorXd& OutXDot_Full)
+bool FFullSys::EvaluateDynamics()
 {
 	ClearForces();
 	ApplyGravity();
-	ApplyForceInputs(); 
+	ApplyForceInputs();
 	ApplyNonConstraintInteractions();
 
 	if (!RodSys.RunConstraintForces(Bodies))
@@ -238,8 +204,6 @@ bool FFullSys::EvaluateDynamics(Eigen::VectorXd& OutXDot_Full)
 	}
 
 	ComputeAccelerations();
-
-	OutXDot_Full = BuildXDot_Full();
 
 	return true;
 }
@@ -253,50 +217,61 @@ bool FFullSys::Step(double Dt)
 		TEXT("Simulation Dt must be finite and positive.")
 	);
 
-	const double DissipatedPowerBefore = ComputeDissipatedPower();
+	const double DissipatedPowerBefore =
+		ComputeDissipatedPower();
 
-	if (bEnableDemoFeedbackControl)
-	{
-		UpdateDemoFeedbackControl();
-	}
-
-	Eigen::VectorXd XDot_Full;
-
-	if (!EvaluateDynamics(XDot_Full))
+	if (!EvaluateDynamics())
 	{
 		return false;
 	}
 
-	IntegrationEnergy.Before = ComputeSystemEnergy();
+	IntegrationEnergy.Before =
+		ComputeSystemEnergy();
 
 	Integrate(Dt);
+
 	ApplyFixedAxes();
 
-	IntegrationEnergy.After = ComputeSystemEnergy();
+	IntegrationEnergy.After =
+		ComputeSystemEnergy();
 
 	if (!ensureMsgf(
 		IsStateFinite(),
-		TEXT("Simulation state became non-finite after integration.")
+		TEXT(
+			"Simulation state became non-finite after constraint correction."
+		)
 	))
 	{
 		return false;
 	}
 
-	if (!RodSys.RunConstraintCorrections(Bodies, [this]() { return ComputeSystemEnergy(); }))
+	if (!RodSys.RunConstraintCorrections(
+		Bodies,
+		[this]()
+		{
+			return ComputeSystemEnergy();
+		}
+	))
 	{
 		return false;
 	}
 
 	if (!ensureMsgf(
 		IsStateFinite(),
-		TEXT("Simulation state became non-finite after constraint correction.")
+		TEXT(
+			"Simulation state became non-finite after constraint correction."
+		)
 	))
 	{
 		return false;
 	}
 
 	RodSys.UpdateStatisticalErrorData();
-	UpdateEnergyBalance(Dt, DissipatedPowerBefore);
+
+	UpdateEnergyBalance(
+		Dt,
+		DissipatedPowerBefore
+	);
 
 	return true;
 }

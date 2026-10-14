@@ -39,7 +39,7 @@ private:
 	FFullSys FullSys;
 
 	// =========================
-	// Camera Control Instnace
+	// Camera Control Instance
 	// =========================
 	UPROPERTY(
 		EditInstanceOnly,
@@ -88,10 +88,6 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Visualization")
 	FVector VisualizationOffset = FVector(-100.0, 0.0, 250.0); // in cm
 
-	// =========================
-	// AUX - Remove after debugging
-	// =========================
-	int32 PendulumIndexForDebug = INDEX_NONE;
 
 	void BuildDemoSystem();
 

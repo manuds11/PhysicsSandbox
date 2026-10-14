@@ -30,8 +30,9 @@ public:
 	);
 
 	void SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator);
-	void SetVelocityCorrectionsEnabled(bool bEnabled) { RodSys.bEnableVelocityCorrections = bEnabled; }
-	void SetPositionCorrectionsEnabled(bool bEnabled) { RodSys.bEnablePositionCorrections = bEnabled; }
+	void SetVelocityCorrection1Enabled(bool bEnabled) { RodSys.bEnableVelocityCorrection1 = bEnabled; }
+	void SetPositionCorrectionsEnabled(bool bEnabled) { RodSys.bEnablePositionCorrection = bEnabled; }
+	void SetVelocityCorrection2Enabled(bool bEnabled) { RodSys.bEnableVelocityCorrection2 = bEnabled; }
 
 	bool Step(double Dt);
 
@@ -42,24 +43,11 @@ public:
 
 	// Control
 	FSysState BuildFullState() const;
+	FSysStateDerivative BuildFullStateDerivative(
+		const Eigen::VectorXd& InQDot_Full
+	) const;
 
-	// ----------------------------------------------------------------------------- *****
-	// DEMO CONTROL
 	// -----------------------------------------------------------------------------
-	bool bEnableDemoFeedbackControl = false;
-	
-	int32 Mass1ForceInputArrayIndex = INDEX_NONE;
-	int32 Mass3ForceInputArrayIndex = INDEX_NONE;
-
-	double Mass1ReferenceY = 0.0;
-	double Mass3ReferenceX = 0.0;
-
-	double Mass1KpY = 20.0;
-	double Mass3KpX = 20.0;
-
-	void UpdateDemoFeedbackControl();
-	
-	// ----------------------------------------------------------------------------- *****
 	// Energy Balance
 	// -----------------------------------------------------------------------------
 	const FSystemEnergyBalance& GetEnergyBalance() const { return EnergyBalance; }
@@ -84,8 +72,7 @@ private:
 
 	bool bInitialized = false;
 
-	Eigen::VectorXd BuildXDot_Full() const;
-	bool EvaluateDynamics(Eigen::VectorXd& OutXDot_Full);
+	bool EvaluateDynamics();
 
 	void ClearForces();
 	void ApplyNonConstraintInteractions();

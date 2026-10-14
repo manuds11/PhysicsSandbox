@@ -26,8 +26,9 @@ void AMultiSystemsActor::BeginPlay()
 
 	ConfigureIntegrator();
 
-	FullSys.SetVelocityCorrectionsEnabled(true);
+	FullSys.SetVelocityCorrection1Enabled(false);
 	FullSys.SetPositionCorrectionsEnabled(true);
+	FullSys.SetVelocityCorrection2Enabled(true);
 
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
@@ -171,6 +172,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// Force Inputs
 	// -------------------------------------------------------------------------
 
+	/*
 	FullSys.Mass1ForceInputArrayIndex =
 		FullSys.AddForceInput(
 			FForceInput{
@@ -186,7 +188,8 @@ void AMultiSystemsActor::BuildDemoSystem()
 				FVector2D(0.0, 0.0)
 			}
 		);
-		
+		*/
+
 	// -------------------------------------------------------------------------
 	// Rods
 	// -------------------------------------------------------------------------
@@ -225,7 +228,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 				LeftAnchorIndex,
 				Mass3Index,
 				35.0,
-				1.0,
+				0.15,
 				1.48
 			)
 		);
@@ -236,18 +239,19 @@ void AMultiSystemsActor::BuildDemoSystem()
 				RightAnchorIndex, 
 				Mass3Index,
 				35.0,
-				1.0,
+				0.15,
 				1.48
 			)
 		);
 	
 	// DEMO
-
+	/*
 	FullSys.Mass1ReferenceY =
 		FullSys.GetBodies()[Mass1Index].Position.Y;
 
 	FullSys.Mass3ReferenceX = 
 		FullSys.GetBodies()[Mass3Index].Position.X;
+	*/
 
 	// -------------------------------------------------------------------------
 	// Subsystem associations - Bodies
@@ -527,6 +531,7 @@ void AMultiSystemsActor::PrintInfo() const
 			? TEXT("1Axis")
 			: TEXT("Free");
 	}
+
 	/*
 	DebugText += FString::Printf(
 		TEXT(
@@ -543,6 +548,15 @@ void AMultiSystemsActor::PrintInfo() const
 		FixedTimeStep
 	);
 	*/
+
+	
+	DebugText += FString::Printf(
+		TEXT("SimulTime: %.2f s | FixedSteps: %llu\n"),
+
+		SimuPhysicalTime, FixedStepCount
+	);
+	
+
 	const TArray<FPendulumRod*>& RodSystemArray =
 		FullSys.GetRodSystemArray();
 

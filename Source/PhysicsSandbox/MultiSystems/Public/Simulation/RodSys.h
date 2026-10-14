@@ -36,8 +36,9 @@ public:
 		return LambdaVector;
 	}
 
-	bool bEnableVelocityCorrections = true;
-	bool bEnablePositionCorrections = true;
+	bool bEnableVelocityCorrection1 = true;
+	bool bEnablePositionCorrection = true;
+	bool bEnableVelocityCorrection2 = true;
 
 
 	void ResetEnergyDiagnostics()	{ CorrectionEnergyDiagnostics = {}; }

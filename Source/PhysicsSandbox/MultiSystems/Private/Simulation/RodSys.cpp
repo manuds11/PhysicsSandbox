@@ -79,7 +79,7 @@ bool FRodSys::RunConstraintCorrections(
 
 	// Initial velocity projection
 	// -----------------------------------------------------------------------------
-	if (bEnableVelocityCorrections)
+	if (bEnableVelocityCorrection1)
 	{
 		CorrectionEnergyDiagnostics.InitialVelocityProjection.Before = ComputeEnergy();
 		
@@ -95,7 +95,7 @@ bool FRodSys::RunConstraintCorrections(
 
 	// Position projection
 	// -----------------------------------------------------------------------------
-	if (bEnablePositionCorrections)
+	if (bEnablePositionCorrection)
 	{
 		CorrectionEnergyDiagnostics.PositionProjection.Before = ComputeEnergy();
 
@@ -129,7 +129,7 @@ bool FRodSys::RunConstraintCorrections(
 
 	// Final velocity projection
 	// -----------------------------------------------------------------------------
-	if (bEnableVelocityCorrections)
+	if (bEnableVelocityCorrection2)
 	{
 		CorrectionEnergyDiagnostics.FinalVelocityProjection.Before = ComputeEnergy();
 
