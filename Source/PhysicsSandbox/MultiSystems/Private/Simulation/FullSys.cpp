@@ -113,9 +113,10 @@ void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
 	Integrator = MoveTemp(InIntegrator);
 }
 
-
 FSysState FFullSys::BuildFullState() const
 {
+	// Builds an independent snapshot of the current full system state from Bodies, copying its values.
+
 	const int32 NumCoordinates = 2 * Bodies.Num();
 
 	Eigen::VectorXd Q_Full(NumCoordinates);
@@ -145,6 +146,9 @@ FSysStateDerivative FFullSys::BuildFullStateDerivative(
 	const Eigen::VectorXd& InQDot_Full
 ) const
 {
+	// Builds an independent snapshot of the full state derivative.
+	// QDot_Full is provided explicitly to keep it consistent with its associated state.
+
 	const int32 NumCoordinates = 2 * Bodies.Num();
 
 	check(InQDot_Full.size() == NumCoordinates);
@@ -166,6 +170,30 @@ FSysStateDerivative FFullSys::BuildFullStateDerivative(
 		InQDot_Full,
 		MoveTemp(QDotDot_Full)
 	);
+}
+
+void FFullSys::SetXState2Bodies(
+	const FSysState& InputX_Full
+)
+{
+	const int32 NumCoordinates = 2 * Bodies.Num();
+
+	check(InputX_Full.Q_Full.size() == NumCoordinates);
+	check(InputX_Full.QDot_Full.size() == NumCoordinates);
+
+	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
+	{
+		FBody& Body = Bodies[BodyIndex];
+
+		const int32 XIndex = 2 * BodyIndex;
+		const int32 YIndex = XIndex + 1;
+
+		Body.Position.X = InputX_Full.Q_Full(XIndex);
+		Body.Position.Y = InputX_Full.Q_Full(YIndex);
+
+		Body.Velocity.X = InputX_Full.QDot_Full(XIndex);
+		Body.Velocity.Y = InputX_Full.QDot_Full(YIndex);
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -208,6 +236,28 @@ bool FFullSys::EvaluateDynamics()
 	return true;
 }
 
+bool FFullSys::EvaluateDynamics(
+	const FSysState& InputX_Full,
+	FSysStateDerivative& OutputXDot_Full
+)
+{
+	// Control interface: X_Full -> XDot_Full
+
+	SetXState2Bodies(InputX_Full);
+
+	if (!EvaluateDynamics())
+	{
+		return false;
+	}
+
+	OutputXDot_Full =
+		BuildFullStateDerivative(
+			InputX_Full.QDot_Full
+		);
+
+	return true;
+}
+
 bool FFullSys::Step(double Dt)
 {
 	check(bInitialized);
@@ -238,7 +288,7 @@ bool FFullSys::Step(double Dt)
 	if (!ensureMsgf(
 		IsStateFinite(),
 		TEXT(
-			"Simulation state became non-finite after constraint correction."
+			"Simulation state became non-finite after integration."
 		)
 	))
 	{

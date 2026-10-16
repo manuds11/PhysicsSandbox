@@ -57,12 +57,13 @@ struct FSysStateDerivative
 	{
 		check(QDot_Full.size() == QDotDot_Full.size());
 
-		Eigen::VectorXd X_DotState(
+		Eigen::VectorXd XDot(
 			QDot_Full.size() + QDotDot_Full.size()
 		);
 
-		X_DotState << QDot_Full, QDotDot_Full;
+		XDot << QDot_Full, QDotDot_Full;
 
-		return X_DotState;
+		return XDot;
 	}
 };
+ 

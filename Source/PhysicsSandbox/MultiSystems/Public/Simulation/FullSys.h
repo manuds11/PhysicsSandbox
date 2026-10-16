@@ -41,11 +41,22 @@ public:
 	const TArray<FPendulumRod*>& GetRodSystemArray() const {	return RodSys.GetRodSystemArray(); }
 	const TArray<double>& GetRodSystemLambdaVector() const {	return RodSys.GetSystemLambdaVector(); }
 
+	// -----------------------------------------------------------------------------
 	// Control
+	// -----------------------------------------------------------------------------
 	FSysState BuildFullState() const;
 	FSysStateDerivative BuildFullStateDerivative(
 		const Eigen::VectorXd& InQDot_Full
 	) const;
+
+	void SetXState2Bodies(
+		const FSysState& InputX_Full
+	);
+
+	bool EvaluateDynamics(
+		const FSysState& InputX_Full,
+		FSysStateDerivative& OutputXDot_Full
+	);
 
 	// -----------------------------------------------------------------------------
 	// Energy Balance
