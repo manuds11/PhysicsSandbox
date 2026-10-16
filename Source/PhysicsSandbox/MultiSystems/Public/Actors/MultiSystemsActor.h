@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Simulation/FullSys.h"
+#include "Control/ControlSys.h"
 #include "Actors/SimuCameraController.h"
 
 #include "CoreMinimal.h"
@@ -37,6 +38,7 @@ public:
 
 private:
 	FFullSys FullSys;
+	FControlSys ControlSys;
 
 	// =========================
 	// Camera Control Instance
@@ -101,4 +103,13 @@ private:
 	void PrintInfo() const;
 
 	double ComputeBodyDebugRadius(double Mass) const;
+
+	// TEST
+	bool TestStateJacobianColumn();
+
+	UPROPERTY(EditAnywhere, Category = "Control|Linearization Test")
+	int32 PerturbationIndexX = 2;
+
+	UPROPERTY(EditAnywhere, Category = "Control|Linearization Test")
+	double LinearizationEpsilon = 1.0e-6;
 };

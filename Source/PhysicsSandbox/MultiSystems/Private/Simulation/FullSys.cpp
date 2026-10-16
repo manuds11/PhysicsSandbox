@@ -113,6 +113,29 @@ void FFullSys::SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator)
 	Integrator = MoveTemp(InIntegrator);
 }
 
+// -----------------------------------------------------------------------------
+// Getters
+// -----------------------------------------------------------------------------
+
+const TArray<FBody>& FFullSys::GetBodies() const
+{
+	return Bodies;
+}
+
+const TArray<TUniquePtr<ISysElement>>& FFullSys::GetElements() const
+{
+	return Elements;
+}
+
+const TArray<FSubSys>& FFullSys::GetSubSystems() const
+{
+	return SubSystems;
+}
+
+// -----------------------------------------------------------------------------
+// State-space adaptators
+// -----------------------------------------------------------------------------
+
 FSysState FFullSys::BuildFullState() const
 {
 	// Builds an independent snapshot of the current full system state from Bodies, copying its values.
@@ -178,8 +201,8 @@ void FFullSys::SetXState2Bodies(
 {
 	const int32 NumCoordinates = 2 * Bodies.Num();
 
-	check(InputX_Full.Q_Full.size() == NumCoordinates);
-	check(InputX_Full.QDot_Full.size() == NumCoordinates);
+	check(InputX_Full.Q.size() == NumCoordinates);
+	check(InputX_Full.QDot.size() == NumCoordinates);
 
 	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
 	{
@@ -188,31 +211,12 @@ void FFullSys::SetXState2Bodies(
 		const int32 XIndex = 2 * BodyIndex;
 		const int32 YIndex = XIndex + 1;
 
-		Body.Position.X = InputX_Full.Q_Full(XIndex);
-		Body.Position.Y = InputX_Full.Q_Full(YIndex);
+		Body.Position.X = InputX_Full.Q(XIndex);
+		Body.Position.Y = InputX_Full.Q(YIndex);
 
-		Body.Velocity.X = InputX_Full.QDot_Full(XIndex);
-		Body.Velocity.Y = InputX_Full.QDot_Full(YIndex);
+		Body.Velocity.X = InputX_Full.QDot(XIndex);
+		Body.Velocity.Y = InputX_Full.QDot(YIndex);
 	}
-}
-
-// -----------------------------------------------------------------------------
-// Getters
-// -----------------------------------------------------------------------------
-
-const TArray<FBody>& FFullSys::GetBodies() const
-{
-	return Bodies;
-}
-
-const TArray<TUniquePtr<ISysElement>>& FFullSys::GetElements() const
-{
-	return Elements;
-}
-
-const TArray<FSubSys>& FFullSys::GetSubSystems() const
-{
-	return SubSystems;
 }
 
 // -----------------------------------------------------------------------------
@@ -250,10 +254,7 @@ bool FFullSys::EvaluateDynamics(
 		return false;
 	}
 
-	OutputXDot_Full =
-		BuildFullStateDerivative(
-			InputX_Full.QDot_Full
-		);
+	OutputXDot_Full = BuildFullStateDerivative(InputX_Full.QDot);
 
 	return true;
 }

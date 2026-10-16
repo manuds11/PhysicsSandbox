@@ -4,66 +4,90 @@
 
 #include <Eigen/Dense>
 
+
 struct FSysState
 {
-	Eigen::VectorXd Q_Full;
-	Eigen::VectorXd QDot_Full;
+	Eigen::VectorXd Q;
+	Eigen::VectorXd QDot;
 
 	FSysState() = default;
 
 	FSysState(
-		Eigen::VectorXd InQ_Full,
-		Eigen::VectorXd InQDot_Full
+		Eigen::VectorXd InQ,
+		Eigen::VectorXd InQDot
 	)
-		: Q_Full(MoveTemp(InQ_Full))
-		, QDot_Full(MoveTemp(InQDot_Full))
+		: Q(MoveTemp(InQ))
+		, QDot(MoveTemp(InQDot))
 	{
-		check(Q_Full.size() == QDot_Full.size());
+		check(Q.size() == QDot.size());
 	}
 
 	Eigen::VectorXd ToVector() const
 	{
-		check(Q_Full.size() == QDot_Full.size());
+		check(Q.size() == QDot.size());
 
-		Eigen::VectorXd XState(
-			Q_Full.size() + QDot_Full.size()
-		);
+		Eigen::VectorXd XState(Q.size() + QDot.size());
 
-		XState << Q_Full, QDot_Full;
+		XState << Q, QDot;
 
 		return XState;
+	}
+
+	static FSysState ToStruct(
+		const Eigen::VectorXd& XState
+	)
+	{
+		check(XState.size() % 2 == 0);
+
+		const Eigen::Index NumCoordinates = XState.size() / 2;
+
+		return FSysState(
+			XState.head(NumCoordinates),
+			XState.tail(NumCoordinates)
+		);
 	}
 };
 
 
 struct FSysStateDerivative
 {
-	Eigen::VectorXd QDot_Full;
-	Eigen::VectorXd QDotDot_Full;
+	Eigen::VectorXd QDot;
+	Eigen::VectorXd QDotDot;
 
 	FSysStateDerivative() = default;
 
 	FSysStateDerivative(
-		const Eigen::VectorXd& InQDot_Full,
-		Eigen::VectorXd InQDotDot_Full
+		const Eigen::VectorXd& InQDot,
+		Eigen::VectorXd InQDotDot
 	)
-		: QDot_Full(InQDot_Full)
-		, QDotDot_Full(MoveTemp(InQDotDot_Full))
+		: QDot(InQDot)
+		, QDotDot(MoveTemp(InQDotDot))
 	{
-		check(QDot_Full.size() == QDotDot_Full.size());
+		check(QDot.size() == QDotDot.size());
 	}
 
 	Eigen::VectorXd ToVector() const
 	{
-		check(QDot_Full.size() == QDotDot_Full.size());
+		check(QDot.size() == QDotDot.size());
 
-		Eigen::VectorXd XDot(
-			QDot_Full.size() + QDotDot_Full.size()
+		Eigen::VectorXd XDotState(QDot.size() + QDotDot.size());
+
+		XDotState << QDot, QDotDot;
+
+		return XDotState;
+	}
+
+	static FSysStateDerivative ToStruct(
+		const Eigen::VectorXd& XDotState
+	)
+	{
+		check(XDotState.size() % 2 == 0);
+
+		const Eigen::Index NumCoordinates = XDotState.size() / 2;
+
+		return FSysStateDerivative(
+			XDotState.head(NumCoordinates),
+			XDotState.tail(NumCoordinates)
 		);
-
-		XDot << QDot_Full, QDotDot_Full;
-
-		return XDot;
 	}
 };
- 

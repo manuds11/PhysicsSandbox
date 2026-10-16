@@ -26,9 +26,11 @@ void AMultiSystemsActor::BeginPlay()
 
 	ConfigureIntegrator();
 
-	FullSys.SetVelocityCorrection1Enabled(false);
+	FullSys.SetVelocityCorrection1Enabled(true);
 	FullSys.SetPositionCorrectionsEnabled(true);
 	FullSys.SetVelocityCorrection2Enabled(true);
+
+	TestStateJacobianColumn();
 
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
@@ -330,6 +332,14 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		SimulationTimeDebt >= FixedTimeStep
 		&& SubStepCount < MaxSubSteps)
 	{
+		// test
+		if (!TestStateJacobianColumn())
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
+		// End test
+
 		if (!FullSys.Step(FixedTimeStep))
 		{
 			bIsSimulationRunning = false;
@@ -695,4 +705,75 @@ double AMultiSystemsActor::ComputeBodyDebugRadius(
 		4.0,
 		20.0
 	);
+}
+
+
+
+
+// TEST
+
+bool AMultiSystemsActor::TestStateJacobianColumn()
+{
+	const FSysState NominalX_Full = FullSys.BuildFullState();
+
+	Eigen::VectorXd A_iColumn;
+
+	if (!ControlSys.ComputeStateJacobianColumn(
+		FullSys,
+		NominalX_Full,
+		PerturbationIndexX,
+		LinearizationEpsilon,
+		A_iColumn
+	))
+	{
+		UE_LOG(
+			LogPhysicsSandbox,
+			Error,
+			TEXT("State Jacobian column computation failed.")
+		);
+
+		return false;
+	}
+
+	// Restore the complete nominal instantaneous dynamics.
+	FSysStateDerivative XDotNominal_Full;
+
+	if (!FullSys.EvaluateDynamics(
+		NominalX_Full,
+		XDotNominal_Full
+	))
+	{
+		UE_LOG(
+			LogPhysicsSandbox,
+			Error,
+			TEXT("Failed to restore nominal dynamics after Jacobian test.")
+		);
+
+		return false;
+	}
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT(
+			"Jacobian column %d | Step %llu | t = %.6f"
+		),
+		PerturbationIndexX,
+		FixedStepCount,
+		SimuPhysicalTime
+	);
+
+	for (Eigen::Index Row = 0; Row < A_iColumn.size(); ++Row)
+	{
+		UE_LOG(
+			LogPhysicsSandbox,
+			Display,
+			TEXT("A(%lld, %d) = %.12g"),
+			static_cast<int64>(Row),
+			PerturbationIndexX,
+			A_iColumn(Row)
+		);
+	}
+
+	return true;
 }
