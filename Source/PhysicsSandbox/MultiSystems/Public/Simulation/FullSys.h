@@ -37,6 +37,8 @@ public:
 	bool Step(double Dt);
 
 	const TArray<FBody>& GetBodies() const;
+	const FStateDOFIndexMap& GetStateIndexMap() const {	return StateIndexMap;	}
+
 	const TArray<TUniquePtr<ISysElement>>& GetElements() const;
 	const TArray<FPendulumRod*>& GetRodSystemArray() const {	return RodSys.GetRodSystemArray(); }
 	const TArray<double>& GetRodSystemLambdaVector() const {	return RodSys.GetSystemLambdaVector(); }
@@ -76,13 +78,18 @@ private:
 	TArray<FSubSys> SubSystems;
 
 	TArray<FBody> Bodies;
+	FStateDOFIndexMap StateIndexMap;
+
+	
 	TArray<TUniquePtr<ISysElement>> Elements;
 	TArray<FForceInput> ForceInputs;
 
 	TUniquePtr<ISysIntegrator> Integrator;
 
 	bool bInitialized = false;
-
+	
+	void BuildStateIndexMap();
+	
 	bool EvaluateDynamics();
 
 	void ClearForces();

@@ -4,6 +4,16 @@
 
 #include <Eigen/Dense>
 
+struct FStateDOFIndexMap
+{
+	int32 SizeQ_Full = 0;
+
+	TArray<int32> QFreeIndices;
+	TArray<int32> QFixedIndices;
+
+	TArray<int32> XStateFreeIndices;
+	TArray<int32> XStateFixedIndices;
+};
 
 struct FSysState
 {

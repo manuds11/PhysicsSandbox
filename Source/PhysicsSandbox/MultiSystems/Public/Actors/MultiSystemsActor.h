@@ -104,11 +104,10 @@ private:
 
 	double ComputeBodyDebugRadius(double Mass) const;
 
-	// TEST
-	bool TestStateJacobianColumn();
 
-	UPROPERTY(EditAnywhere, Category = "Control|Linearization Test")
-	int32 PerturbationIndexX = 2;
+
+	// TEST
+	bool TestAStateJacobian();
 
 	UPROPERTY(EditAnywhere, Category = "Control|Linearization Test")
 	double LinearizationEpsilon = 1.0e-6;

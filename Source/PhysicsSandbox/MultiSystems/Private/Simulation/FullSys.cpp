@@ -25,6 +25,8 @@ void FFullSys::Initialize()
 
 	RodSys.BuildEmptyStructure(Elements);
 
+	BuildStateIndexMap();
+
 	EnergyBalance.Initial = ComputeSystemEnergy();
 	EnergyBalance.Current = EnergyBalance.Initial;
 
@@ -135,6 +137,68 @@ const TArray<FSubSys>& FFullSys::GetSubSystems() const
 // -----------------------------------------------------------------------------
 // State-space adaptators
 // -----------------------------------------------------------------------------
+
+void FFullSys::BuildStateIndexMap()
+{
+	StateIndexMap = {};
+
+	StateIndexMap.SizeQ_Full = 2 * Bodies.Num();
+
+	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
+	{
+		const FBody& Body = Bodies[BodyIndex];
+
+		const int32 XIndex = 2 * BodyIndex;
+		const int32 YIndex = XIndex + 1;
+
+		if (Body.bXFixed)
+		{
+			StateIndexMap.QFixedIndices.Add(XIndex);
+		}
+		else
+		{
+			StateIndexMap.QFreeIndices.Add(XIndex);
+		}
+
+		if (Body.bYFixed)
+		{
+			StateIndexMap.QFixedIndices.Add(YIndex);
+		}
+		else
+		{
+			StateIndexMap.QFreeIndices.Add(YIndex);
+		}
+	}
+
+	const int32 SizeQ_Full = StateIndexMap.SizeQ_Full;
+
+	// X = [Q ; QDot]
+	for (const int32 QIndex : StateIndexMap.QFreeIndices)
+	{
+		StateIndexMap.XStateFreeIndices.Add(QIndex);
+	}
+
+	for (const int32 QIndex : StateIndexMap.QFreeIndices)
+	{
+		StateIndexMap.XStateFreeIndices.Add(SizeQ_Full + QIndex);
+	}
+
+	for (const int32 QIndex : StateIndexMap.QFixedIndices)
+	{
+		StateIndexMap.XStateFixedIndices.Add(QIndex);
+	}
+
+	for (const int32 QIndex : StateIndexMap.QFixedIndices)
+	{
+		StateIndexMap.XStateFixedIndices.Add(SizeQ_Full + QIndex);
+	}
+
+	check(
+		StateIndexMap.QFreeIndices.Num()
+		+ StateIndexMap.QFixedIndices.Num()
+		== SizeQ_Full
+	);
+}
 
 FSysState FFullSys::BuildFullState() const
 {

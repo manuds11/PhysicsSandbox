@@ -30,8 +30,6 @@ void AMultiSystemsActor::BeginPlay()
 	FullSys.SetPositionCorrectionsEnabled(true);
 	FullSys.SetVelocityCorrection2Enabled(true);
 
-	TestStateJacobianColumn();
-
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
 		EnableInput(PC);
@@ -333,7 +331,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		&& SubStepCount < MaxSubSteps)
 	{
 		// test
-		if (!TestStateJacobianColumn())
+		if (!TestAStateJacobian())
 		{
 			bIsSimulationRunning = false;
 			break;
@@ -710,69 +708,90 @@ double AMultiSystemsActor::ComputeBodyDebugRadius(
 
 
 
+
+
 // TEST
 
-bool AMultiSystemsActor::TestStateJacobianColumn()
+bool AMultiSystemsActor::TestAStateJacobian()
 {
 	const FSysState NominalX_Full = FullSys.BuildFullState();
 
-	Eigen::VectorXd A_iColumn;
+	Eigen::MatrixXd A_FreeRedundant;
+	Eigen::MatrixXd A_FullDisplay;
 
-	if (!ControlSys.ComputeStateJacobianColumn(
+	if (!ControlSys.ComputeAFreeRedundant(
 		FullSys,
 		NominalX_Full,
-		PerturbationIndexX,
 		LinearizationEpsilon,
-		A_iColumn
+		A_FreeRedundant
 	))
 	{
 		UE_LOG(
 			LogPhysicsSandbox,
 			Error,
-			TEXT("State Jacobian column computation failed.")
+			TEXT("A_FreeRedundant computation failed.")
 		);
 
 		return false;
 	}
 
-	// Restore the complete nominal instantaneous dynamics.
-	FSysStateDerivative XDotNominal_Full;
+	ControlSys.BuildAFreeRedundantInFullDisplay(
+		FullSys.GetStateIndexMap(),
+		A_FreeRedundant,
+		A_FullDisplay
+	);
 
-	if (!FullSys.EvaluateDynamics(
-		NominalX_Full,
-		XDotNominal_Full
-	))
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("A_FreeRedundant | %lld x %lld | Epsilon = %.3e"),
+		static_cast<int64>(A_FreeRedundant.rows()),
+		static_cast<int64>(A_FreeRedundant.cols()),
+		LinearizationEpsilon
+	);
+
+	for (Eigen::Index Row = 0; Row < A_FreeRedundant.rows(); ++Row)
 	{
-		UE_LOG(
-			LogPhysicsSandbox,
-			Error,
-			TEXT("Failed to restore nominal dynamics after Jacobian test.")
+		FString RowText = FString::Printf(
+			TEXT("A_FR(%lld,:) = "),
+			static_cast<int64>(Row)
 		);
 
-		return false;
+		for (Eigen::Index Column = 0; Column < A_FreeRedundant.cols(); ++Column)
+		{
+			RowText += FString::Printf(
+				TEXT("%+.6g  "),
+				A_FreeRedundant(Row, Column)
+			);
+		}
+
+		UE_LOG(LogPhysicsSandbox, Display, TEXT("%s"), *RowText);
 	}
 
 	UE_LOG(
 		LogPhysicsSandbox,
 		Display,
-		TEXT(
-			"Jacobian column %d | Step %llu | t = %.6f"
-		),
-		PerturbationIndexX,
-		FixedStepCount,
-		SimuPhysicalTime
+		TEXT("A_FullDisplay | %lld x %lld"),
+		static_cast<int64>(A_FullDisplay.rows()),
+		static_cast<int64>(A_FullDisplay.cols())
 	);
 
-	for (Eigen::Index Row = 0; Row < A_iColumn.size(); ++Row)
+	for (Eigen::Index Row = 0; Row < A_FullDisplay.rows(); ++Row)
 	{
-		UE_LOG(
-			LogPhysicsSandbox,
-			Display,
-			TEXT("A(%lld, %d) = %.12g"),
-			static_cast<int64>(Row),
-			PerturbationIndexX,
-			A_iColumn(Row)
+		FString RowText = FString::Printf(
+			TEXT("A_FullDisplay(%lld,:) = "),
+			static_cast<int64>(Row)
 		);
+
+		for (Eigen::Index Column = 0; Column < A_FullDisplay.cols(); ++Column)
+		{
+			RowText += FString::Printf(
+				TEXT("%+.6g  "),
+				A_FullDisplay(Row, Column)
+			);
+		}
+
+		UE_LOG(LogPhysicsSandbox, Display, TEXT("%s"), *RowText);
 	}
 
 	return true;
