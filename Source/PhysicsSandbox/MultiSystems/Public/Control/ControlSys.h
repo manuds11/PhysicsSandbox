@@ -22,7 +22,7 @@ public:
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
 		double Epsilon,
-		Eigen::MatrixXd& OutA_FreeRedundant
+		Eigen::MatrixXd& OutA_FR
 	);
 
 	void BuildAFreeRedundantInFullDisplay(
@@ -32,7 +32,7 @@ public:
 	);
 
 private:
-	bool ComputeAStateJacobianColumn(
+	bool ComputeA_FullColumn(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
 		int32 PerturbationIndexX,

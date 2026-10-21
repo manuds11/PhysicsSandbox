@@ -19,7 +19,7 @@ bool FControlSys::ComputeAStateJacobian(
 	{
 		Eigen::VectorXd A_iColumn;
 
-		if (!ComputeAStateJacobianColumn(
+		if (!ComputeA_FullColumn(
 			FullSys,
 			NominalX_Full,
 			Column,
@@ -50,7 +50,7 @@ bool FControlSys::ComputeAStateJacobian(
 }
 
 
-bool FControlSys::ComputeAStateJacobianColumn(
+bool FControlSys::ComputeA_FullColumn(
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
 	int32 PerturbationIndexX,
@@ -99,34 +99,34 @@ bool FControlSys::ComputeAFreeRedundant(
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
 	double Epsilon,
-	Eigen::MatrixXd& OutA_FreeRedundant
+	Eigen::MatrixXd& OutA_FR
 )
 {
 	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 
-	const int32 SizeXState_full = static_cast<int32>(NominalX_Full.ToVector().size());
+	const int32 SizeX_Full = static_cast<int32>(NominalX_Full.ToVector().size());
 
-	const int32 SizeXState_FreeRedundant = IndexMap.XStateFreeIndices.Num();
+	const int32 SizeX_FR = IndexMap.XStateFreeIndices.Num();
 
 	check(Epsilon > 0.0);
 
-	OutA_FreeRedundant.resize(
-		SizeXState_FreeRedundant,
-		SizeXState_FreeRedundant
+	OutA_FR.resize(
+		SizeX_FR,
+		SizeX_FR
 	);
 
 	for (
-		int32 ColumnAFreeRedundant = 0;
-		ColumnAFreeRedundant < SizeXState_FreeRedundant;
-		++ColumnAFreeRedundant
+		int32 ColumnA_FR = 0;
+		ColumnA_FR < SizeX_FR;
+		++ColumnA_FR
 		)
 	{
 		const int32 PerturbationIndexX_Full = 
-			IndexMap.XStateFreeIndices[ColumnAFreeRedundant];
+			IndexMap.XStateFreeIndices[ColumnA_FR];
 
 		Eigen::VectorXd A_iColumn_Full;
 
-		if (!ComputeAStateJacobianColumn(
+		if (!ComputeA_FullColumn(
 			FullSys,
 			NominalX_Full,
 			PerturbationIndexX_Full,
@@ -143,18 +143,18 @@ bool FControlSys::ComputeAFreeRedundant(
 			return false;
 		}
 
-		check(A_iColumn_Full.size() == SizeXState_full);
+		check(A_iColumn_Full.size() == SizeX_Full);
 
 		for (
 			int32 RowAFreeRedundant = 0;
-			RowAFreeRedundant < SizeXState_FreeRedundant;
+			RowAFreeRedundant < SizeX_FR;
 			++RowAFreeRedundant
 			)
 		{
 			const int32 RowFull =
 				IndexMap.XStateFreeIndices[RowAFreeRedundant];
 
-			OutA_FreeRedundant(RowAFreeRedundant, ColumnAFreeRedundant) =
+			OutA_FR(RowAFreeRedundant, ColumnA_FR) =
 				A_iColumn_Full(RowFull);
 		}
 	}
@@ -178,39 +178,36 @@ void FControlSys::BuildAFreeRedundantInFullDisplay(
 	Eigen::MatrixXd& OutA_FullDisplay
 )
 {
-	const int32 SizeXState_full = 2 * IndexMap.SizeQ_Full;
+	const int32 SizeX_Full = 2 * IndexMap.SizeQ_Full;
 
-	const int32 SizeXState_FreeRedundant = IndexMap.XStateFreeIndices.Num();
+	const int32 SizeX_FR = IndexMap.XStateFreeIndices.Num();
 
-	check(A_FreeRedundant.rows() == SizeXState_FreeRedundant);
+	check(A_FreeRedundant.rows() == SizeX_FR);
 
-	check(A_FreeRedundant.cols() == SizeXState_FreeRedundant);
+	check(A_FreeRedundant.cols() == SizeX_FR);
 
 	OutA_FullDisplay =
 		Eigen::MatrixXd::Zero(
-			SizeXState_full,
-			SizeXState_full
+			SizeX_Full,
+			SizeX_Full
 		);
 
 	for (
 		int32 RowAFreeRedundant = 0;
-		RowAFreeRedundant < SizeXState_FreeRedundant;
+		RowAFreeRedundant < SizeX_FR;
 		++RowAFreeRedundant
 		)
 	{
 		const int32 RowFull = IndexMap.XStateFreeIndices[RowAFreeRedundant];
 
 		for (
-			int32 ColumnAFreeRedundant = 0;
-			ColumnAFreeRedundant < SizeXState_FreeRedundant;
-			++ColumnAFreeRedundant
+			int32 ColumnA_FR = 0;
+			ColumnA_FR < SizeX_FR;
+			++ColumnA_FR
 			)
 		{
-			const int32 PerturbationIndexX_Full =
-				IndexMap.XStateFreeIndices[ColumnAFreeRedundant];
-
-			OutA_FullDisplay(RowFull, PerturbationIndexX_Full) = 
-				A_FreeRedundant(RowAFreeRedundant, ColumnAFreeRedundant);
+			OutA_FullDisplay(RowFull, IndexMap.XStateFreeIndices[ColumnA_FR]) =
+				A_FreeRedundant(RowAFreeRedundant, ColumnA_FR);
 		}
 	}
 }
