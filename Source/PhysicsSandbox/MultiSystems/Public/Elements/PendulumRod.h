@@ -36,6 +36,8 @@ struct FPendulumPositions
 	double InitialLength = 0.0;
 	double ComputedLength = 0.0;
 
+	double Theta = 0.0;
+
 	bool bLengthInitialized = false;
 };
 
@@ -49,11 +51,16 @@ struct FPendulumVelocities
 	double ThetaDot = 0.0;
 };
 
-struct FRodAccelerationKinematics
+struct FPendulumAccelerations
 {
-	FVector2D RelativeAcceleration = FVector2D::ZeroVector;
+	FVector2D RelBob2Pivot =
+		FVector2D::ZeroVector;
+	FVector2D TangentialBob2Pivot =
+		FVector2D::ZeroVector;
+	FVector2D RadialBob2Pivot =
+		FVector2D::ZeroVector;
 
-	double TangentialAcceleration = 0.0;
+	double RhoDotDot = 0.0;
 	double ThetaDotDot = 0.0;
 };
 
@@ -116,69 +123,42 @@ public:
 	// Construction
 	// -------------------------------------------------------------------------
 
-	FPendulumRod(
-		int32 InPivotBody,
-		int32 InBobBody
-	);
+	FPendulumRod(int32 InPivotBody,	int32 InBobBody);
 
 	// -------------------------------------------------------------------------
 	// ISysElement interface
 	// -------------------------------------------------------------------------
 
 	virtual ESysElementType GetElementType() const override;
+	virtual bool GetConnectedBodies(int32& OutBodyA, int32& OutBodyB) const override;
 
-	virtual bool GetConnectedBodies(
-		int32& OutBodyA,
-		int32& OutBodyB
-	) const override;
-
-	virtual FColor GetDebugColor() const override
-	{
-		return FColor::Yellow;
-	}
+	virtual FColor GetDebugColor() const override {	return FColor::Yellow;	}
 
 	// -------------------------------------------------------------------------
 	// Rod state update
 	// -------------------------------------------------------------------------
 
-	void UpdateRodState(
-		const TArray<FBody>& Bodies
-	);
+	void UpdateRodState(const TArray<FBody>& Bodies);
+	void UpdateAccelerationDependentKinematics(const TArray<FBody>& Bodies);
 
-	void UpdateConstraintForces(
-		double Lambda
-	);
+	void UpdateConstraintForces(double Lambda);
 
-	void UpdateConstraintImpulses(
-		double Eta
-	);
-
-	void UpdatePositionCorrections(
-		double Mu
-	);
+	void UpdateConstraintImpulses(double);
+	void UpdatePositionCorrections(double Mu);
 
 	// -------------------------------------------------------------------------
 	// Action Application
 	// -------------------------------------------------------------------------
 
-	virtual void ApplyForces(
-		TArray<FBody>& Bodies
-	) override;
-
-	void ApplyImpulses2Bodies(
-		TArray<FBody>& Bodies
-	);
-
-	void ApplyPosCorrections2Bodies(
-		TArray<FBody>& Bodies
-	);
+	virtual void ApplyForces(TArray<FBody>& Bodies) override;
+	void ApplyImpulses2Bodies(TArray<FBody>& Bodies);
+	void ApplyPosCorrections2Bodies(TArray<FBody>& Bodies);
 
 	// -------------------------------------------------------------------------
 	// Error data computation and retrieval
 	// -------------------------------------------------------------------------
 
 	void ComputeInstantErrorData();
-
 	void UpdateStatisticalErrorData();
 
 	// -------------------------------------------------------------------------
@@ -242,9 +222,6 @@ private:
 	// -------------------------------------------------------------------------
 
 	void InitializePendulumLength();
-	void UpdateAccelerationDependentKinematics(
-		const TArray<FBody>& Bodies
-	);
 	FRodPolarBase ComputePolarBase() const;
 
 	// -------------------------------------------------------------------------
@@ -263,7 +240,7 @@ private:
 
 	FPendulumPositions PendulumPos;
 	FPendulumVelocities PendulumVel;
-	FRodAccelerationKinematics PendulumAccelerations;
+	FPendulumAccelerations PendulumAccelerations;
 
 	FRodConstraintForces RodConstraintForces;
 	FRodConstraintImpulses RodConstraintImpulses;

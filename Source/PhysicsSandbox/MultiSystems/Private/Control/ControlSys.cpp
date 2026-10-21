@@ -1,6 +1,11 @@
 #include "Control/ControlSys.h"
 
 #include "Simulation/FullSys.h"
+#include "Elements/PendulumRod.h"
+
+// -------------------------------------------------------------------------
+// Finite Difference 
+// -------------------------------------------------------------------------
 
 bool FControlSys::ComputeA_FullColumn(
 	FFullSys& FullSys,
@@ -157,4 +162,54 @@ void FControlSys::BuildA_FRInFullDisplay(
 				A_FR(RowA_FR, ColumnA_FR);
 		}
 	}
+}
+
+
+
+bool FControlSys::BuildJandJDot_FreeRedundant(
+	const FFullSys& FullSys,
+	Eigen::MatrixXd& OutJ_FR,
+	Eigen::MatrixXd& OutJDot_FR
+)
+{
+	const TArray<FPendulumRod*>& Rods = FullSys.GetRodSystemArray();
+	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
+
+	const int32 NumRods = Rods.Num();
+	const int32 SizeQ_FR = IndexMap.QFreeIndices.Num();
+
+	OutJ_FR = Eigen::MatrixXd::Zero(NumRods, SizeQ_FR);
+	OutJDot_FR = Eigen::MatrixXd::Zero(NumRods, SizeQ_FR);
+
+	for (int32 Row = 0; Row < NumRods; ++Row)
+	{
+		const FPendulumRod* Rod = Rods[Row];
+		check(Rod);
+
+		int32 PivotIndex = INDEX_NONE;
+		int32 BobIndex = INDEX_NONE;
+		Rod->GetConnectedBodies(PivotIndex, BobIndex);
+
+		const FRodJacobian& Jacobian = Rod->GetRodJacobian();
+
+		for (int32 Column_FR = 0; Column_FR < SizeQ_FR; ++Column_FR)
+		{
+			const int32 QIndex_Full = IndexMap.QFreeIndices[Column_FR];
+			const int32 BodyIndex = QIndex_Full / 2; 
+			const bool bXAxis = (QIndex_Full % 2) == 0;
+
+			if (BodyIndex == PivotIndex)
+			{
+				OutJ_FR(Row, Column_FR) = bXAxis ? Jacobian.JPivot.X : Jacobian.JPivot.Y;
+				OutJDot_FR(Row, Column_FR) = bXAxis ? Jacobian.JDotPivot.X : Jacobian.JDotPivot.Y;
+			}
+			else if (BodyIndex == BobIndex)
+			{
+				OutJ_FR(Row, Column_FR) = bXAxis ? Jacobian.JBob.X : Jacobian.JBob.Y;
+				OutJDot_FR(Row, Column_FR) = bXAxis ? Jacobian.JDotBob.X : Jacobian.JDotBob.Y;
+			}
+		}
+	}
+
+	return true;
 }

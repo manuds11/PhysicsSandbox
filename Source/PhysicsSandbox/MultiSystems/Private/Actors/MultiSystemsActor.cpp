@@ -331,7 +331,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		&& SubStepCount < MaxSubSteps)
 	{
 		// test
-		if (!TestAStateJacobian())
+		if (!TestBuildJandJDot_FreeRedundant())
 		{
 			bIsSimulationRunning = false;
 			break;
@@ -793,6 +793,48 @@ bool AMultiSystemsActor::TestAStateJacobian()
 
 		UE_LOG(LogPhysicsSandbox, Display, TEXT("%s"), *RowText);
 	}
+
+	return true;
+}
+
+bool AMultiSystemsActor::TestBuildJandJDot_FreeRedundant()
+{
+	Eigen::MatrixXd J_FR;
+	Eigen::MatrixXd JDot_FR;
+
+	if (!ControlSys.BuildJandJDot_FreeRedundant(FullSys, J_FR, JDot_FR))
+	{
+		UE_LOG(LogPhysicsSandbox, Warning, TEXT("BuildJandJDot_FreeRedundant failed."));
+		return false;
+	}
+
+	const auto LogMatrix =
+		[](const TCHAR* MatrixName, const Eigen::MatrixXd& Matrix)
+		{
+			UE_LOG(
+				LogPhysicsSandbox,
+				Display,
+				TEXT("%s (%lld x %lld)"),
+				MatrixName,
+				Matrix.rows(),
+				Matrix.cols()
+			);
+
+			for (int32 Row = 0; Row < Matrix.rows(); ++Row)
+			{
+				FString RowString;
+
+				for (int32 Column = 0; Column < Matrix.cols(); ++Column)
+				{
+					RowString += FString::Printf(TEXT("% .6f  "), Matrix(Row, Column));
+				}
+
+				UE_LOG(LogPhysicsSandbox, Display, TEXT("[%s]"), *RowString);
+			}
+		};
+
+	LogMatrix(TEXT("J_FR"), J_FR);
+	LogMatrix(TEXT("JDot_FR"), JDot_FR);
 
 	return true;
 }

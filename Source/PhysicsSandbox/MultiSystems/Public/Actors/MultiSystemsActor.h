@@ -85,6 +85,12 @@ private:
 	uint64 FixedStepCount = 0;
 
 	// =========================
+	// ControlSystem
+	// =========================
+	UPROPERTY(EditAnywhere, Category = "Control|Linearization Test")
+	double LinearizationEpsilon = 1.0e-6;
+
+	// =========================
 	// Visualization
 	// =========================
 	UPROPERTY(EditAnywhere, Category = "Visualization")
@@ -108,7 +114,5 @@ private:
 
 	// TEST
 	bool TestAStateJacobian();
-
-	UPROPERTY(EditAnywhere, Category = "Control|Linearization Test")
-	double LinearizationEpsilon = 1.0e-6;
+	bool TestBuildJandJDot_FreeRedundant();
 };

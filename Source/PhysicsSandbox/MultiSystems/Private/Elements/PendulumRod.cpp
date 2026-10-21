@@ -287,6 +287,9 @@ void FPendulumRod::UpdateRodState(
 	PendulumPos.ComputedLength =
 		PendulumPos.Bob2Pivot.Size();
 
+	PendulumPos.Theta = 
+		FMath::Atan2(PendulumPos.Bob2Pivot.Y, PendulumPos.Bob2Pivot.X);
+
 	if (!PendulumPos.bLengthInitialized)
 	{
 		InitializePendulumLength();
@@ -374,12 +377,24 @@ void FPendulumRod::UpdateAccelerationDependentKinematics(
 	check(Bodies.IsValidIndex(BobIndex));
 	check(PendulumPos.ComputedLength > UE_SMALL_NUMBER);
 
-	PendulumAccelerations.RelativeAcceleration = 
+	PendulumAccelerations.RelBob2Pivot =
 		Bodies[BobIndex].Acceleration - Bodies[PivotIndex].Acceleration;
-	PendulumAccelerations.TangentialAcceleration = 
-		FVector2D::DotProduct(PendulumAccelerations.RelativeAcceleration, PolarBase.e_Theta);
-	PendulumAccelerations.ThetaDotDot = 
-		PendulumAccelerations.TangentialAcceleration / PendulumPos.ComputedLength
+
+	PendulumAccelerations.TangentialBob2Pivot =
+		FVector2D::DotProduct(PendulumAccelerations.RelBob2Pivot, PolarBase.e_Theta)
+		* PolarBase.e_Theta;
+
+	PendulumAccelerations.RadialBob2Pivot =
+		FVector2D::DotProduct(PendulumAccelerations.RelBob2Pivot, PolarBase.e_Radial)
+		* PolarBase.e_Radial;
+
+	PendulumAccelerations.RhoDotDot =
+		FVector2D::DotProduct(PendulumAccelerations.RelBob2Pivot, PolarBase.e_Radial)
+		+ FMath::Square(PendulumVel.Bob2PivotTangential) / PendulumPos.ComputedLength;
+
+	PendulumAccelerations.ThetaDotDot =
+		FVector2D::DotProduct(PendulumAccelerations.TangentialBob2Pivot, PolarBase.e_Theta)
+		/ PendulumPos.ComputedLength
 		- 2.0 * PendulumVel.Bob2PivotRadial * PendulumVel.Bob2PivotTangential
 		/ FMath::Square(PendulumPos.ComputedLength);
 
@@ -394,6 +409,7 @@ void FPendulumRod::UpdateAccelerationDependentKinematics(
 	RodJacobian.JDotDotPivot = -PolarBase.eDotDot_Radial;
 	RodJacobian.JDotDotBob = PolarBase.eDotDot_Radial;
 }
+
 
 FRodPolarBase FPendulumRod::ComputePolarBase() const
 {
