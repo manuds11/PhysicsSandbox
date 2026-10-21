@@ -716,52 +716,52 @@ bool AMultiSystemsActor::TestAStateJacobian()
 {
 	const FSysState NominalX_Full = FullSys.BuildFullState();
 
-	Eigen::MatrixXd A_FreeRedundant;
+	Eigen::MatrixXd A_FR;
 	Eigen::MatrixXd A_FullDisplay;
 
-	if (!ControlSys.ComputeAFreeRedundant(
+	if (!ControlSys.ComputeA_FreeRedundant(
 		FullSys,
 		NominalX_Full,
 		LinearizationEpsilon,
-		A_FreeRedundant
+		A_FR
 	))
 	{
 		UE_LOG(
 			LogPhysicsSandbox,
 			Error,
-			TEXT("A_FreeRedundant computation failed.")
+			TEXT("A_FR computation failed.")
 		);
 
 		return false;
 	}
 
-	ControlSys.BuildAFreeRedundantInFullDisplay(
+	ControlSys.BuildA_FRInFullDisplay(
 		FullSys.GetStateIndexMap(),
-		A_FreeRedundant,
+		A_FR,
 		A_FullDisplay
 	);
 
 	UE_LOG(
 		LogPhysicsSandbox,
 		Display,
-		TEXT("A_FreeRedundant | %lld x %lld | Epsilon = %.3e"),
-		static_cast<int64>(A_FreeRedundant.rows()),
-		static_cast<int64>(A_FreeRedundant.cols()),
+		TEXT("A_FR | %lld x %lld | Epsilon = %.3e"),
+		static_cast<int64>(A_FR.rows()),
+		static_cast<int64>(A_FR.cols()),
 		LinearizationEpsilon
 	);
 
-	for (Eigen::Index Row = 0; Row < A_FreeRedundant.rows(); ++Row)
+	for (Eigen::Index Row = 0; Row < A_FR.rows(); ++Row)
 	{
 		FString RowText = FString::Printf(
 			TEXT("A_FR(%lld,:) = "),
 			static_cast<int64>(Row)
 		);
 
-		for (Eigen::Index Column = 0; Column < A_FreeRedundant.cols(); ++Column)
+		for (Eigen::Index Column = 0; Column < A_FR.cols(); ++Column)
 		{
 			RowText += FString::Printf(
 				TEXT("%+.6g  "),
-				A_FreeRedundant(Row, Column)
+				A_FR(Row, Column)
 			);
 		}
 

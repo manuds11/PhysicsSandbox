@@ -5,28 +5,33 @@
 
 struct FRodPolarBase
 {
-	FVector2D e_Radial =
-		FVector2D::ZeroVector;
+	FVector2D e_Radial = FVector2D::ZeroVector;	// Also constraint normal direction, positive from pivot to bob.
+	FVector2D e_Theta = FVector2D::ZeroVector;
 
-	FVector2D e_Theta =
-		FVector2D::ZeroVector;
+	FVector2D eDot_Radial = FVector2D::ZeroVector;
+	FVector2D eDot_Theta = FVector2D::ZeroVector;
+
+	FVector2D eDotDot_Radial = FVector2D::ZeroVector;
+	FVector2D eDotDot_Theta = FVector2D::ZeroVector;
 };
 
 struct FRodJacobian
 {
-	FVector2D JPivot =
-		FVector2D::ZeroVector;
-		
-	FVector2D JBob =
-		FVector2D::ZeroVector;
+	FVector2D JPivot = FVector2D::ZeroVector;
+	FVector2D JBob = FVector2D::ZeroVector;
+
+	FVector2D JDotPivot = FVector2D::ZeroVector;
+	FVector2D JDotBob = FVector2D::ZeroVector;
+
+	FVector2D JDotDotPivot = FVector2D::ZeroVector;
+	FVector2D JDotDotBob = FVector2D::ZeroVector;
 
 	double JDotVel = 0.0;
 };
 
 struct FPendulumPositions
 {
-	FVector2D Bob2Pivot =
-		FVector2D::ZeroVector;
+	FVector2D Bob2Pivot = FVector2D::ZeroVector;
 
 	double InitialLength = 0.0;
 	double ComputedLength = 0.0;
@@ -36,20 +41,27 @@ struct FPendulumPositions
 
 struct FPendulumVelocities
 {
-	FVector2D Bob2Pivot =
-		FVector2D::ZeroVector;
+	FVector2D Bob2Pivot = FVector2D::ZeroVector;
 
 	double Bob2PivotRadial = 0.0;
 	double Bob2PivotTangential = 0.0;
+
+	double ThetaDot = 0.0;
+};
+
+struct FRodAccelerationKinematics
+{
+	FVector2D RelativeAcceleration = FVector2D::ZeroVector;
+
+	double TangentialAcceleration = 0.0;
+	double ThetaDotDot = 0.0;
 };
 
 struct FRodConstraintForces
 {
-	FVector2D PivotForce =
-		FVector2D::ZeroVector;
+	FVector2D PivotForce = FVector2D::ZeroVector;
 
-	FVector2D BobForce =
-		FVector2D::ZeroVector;
+	FVector2D BobForce = FVector2D::ZeroVector;
 };
 
 struct FRodConstraintImpulses
@@ -230,7 +242,9 @@ private:
 	// -------------------------------------------------------------------------
 
 	void InitializePendulumLength();
-
+	void UpdateAccelerationDependentKinematics(
+		const TArray<FBody>& Bodies
+	);
 	FRodPolarBase ComputePolarBase() const;
 
 	// -------------------------------------------------------------------------
@@ -249,6 +263,7 @@ private:
 
 	FPendulumPositions PendulumPos;
 	FPendulumVelocities PendulumVel;
+	FRodAccelerationKinematics PendulumAccelerations;
 
 	FRodConstraintForces RodConstraintForces;
 	FRodConstraintImpulses RodConstraintImpulses;

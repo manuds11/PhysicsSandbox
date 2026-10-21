@@ -297,14 +297,9 @@ void FPendulumRod::UpdateRodState(
 		<= UE_SMALL_NUMBER
 		)
 	{
-		PolarBase =
-			FRodPolarBase();
-
-		RodJacobian =
-			FRodJacobian();
-
-		PendulumVel =
-			FPendulumVelocities();
+		PolarBase = FRodPolarBase();
+		RodJacobian = FRodJacobian();
+		PendulumVel = FPendulumVelocities();
 
 		return;
 	}
@@ -337,15 +332,27 @@ void FPendulumRod::UpdateRodState(
 		);
 
 	// -------------------------------------------------------------------------
-	// Constraint Jacobian
+	// Polar base time derivative
+	// -------------------------------------------------------------------------
+
+	PendulumVel.ThetaDot =
+		PendulumVel.Bob2PivotTangential
+		/ PendulumPos.ComputedLength;
+
+	PolarBase.eDot_Radial = PendulumVel.ThetaDot * PolarBase.e_Theta;
+	PolarBase.eDot_Theta = -PendulumVel.ThetaDot * PolarBase.e_Radial;
+
+
+	// -------------------------------------------------------------------------
+	// Constraint Jacobian and JacobianDot
 	// -------------------------------------------------------------------------
 
 	// e_Radial is the constraint normal pointing from pivot to bob.
-	RodJacobian.JPivot =
-		-PolarBase.e_Radial;
+	RodJacobian.JPivot = -PolarBase.e_Radial;
+	RodJacobian.JBob = PolarBase.e_Radial;
 
-	RodJacobian.JBob =
-		PolarBase.e_Radial;
+	RodJacobian.JDotPivot = -PolarBase.eDot_Radial;
+	RodJacobian.JDotBob = PolarBase.eDot_Radial;
 
 	/*
 	 * JDotVel = v_t² / |r|
@@ -355,11 +362,37 @@ void FPendulumRod::UpdateRodState(
 	 *
 	 * Omega = v_t / |r|
 	 */
-	RodJacobian.JDotVel =
-		FMath::Square(
-			PendulumVel.Bob2PivotTangential
-		)
-		/ PendulumPos.ComputedLength;
+	
+	RodJacobian.JDotVel = FVector2D::DotProduct(RodJacobian.JDotBob, PendulumVel.Bob2Pivot);
+}
+
+void FPendulumRod::UpdateAccelerationDependentKinematics(
+	const TArray<FBody>& Bodies
+)
+{
+	check(Bodies.IsValidIndex(PivotIndex));
+	check(Bodies.IsValidIndex(BobIndex));
+	check(PendulumPos.ComputedLength > UE_SMALL_NUMBER);
+
+	PendulumAccelerations.RelativeAcceleration = 
+		Bodies[BobIndex].Acceleration - Bodies[PivotIndex].Acceleration;
+	PendulumAccelerations.TangentialAcceleration = 
+		FVector2D::DotProduct(PendulumAccelerations.RelativeAcceleration, PolarBase.e_Theta);
+	PendulumAccelerations.ThetaDotDot = 
+		PendulumAccelerations.TangentialAcceleration / PendulumPos.ComputedLength
+		- 2.0 * PendulumVel.Bob2PivotRadial * PendulumVel.Bob2PivotTangential
+		/ FMath::Square(PendulumPos.ComputedLength);
+
+	PolarBase.eDotDot_Radial =
+		PendulumAccelerations.ThetaDotDot * PolarBase.e_Theta
+		- FMath::Square(PendulumVel.ThetaDot) * PolarBase.e_Radial;
+
+	PolarBase.eDotDot_Theta =
+		-PendulumAccelerations.ThetaDotDot * PolarBase.e_Radial
+		- FMath::Square(PendulumVel.ThetaDot) * PolarBase.e_Theta;
+
+	RodJacobian.JDotDotPivot = -PolarBase.eDotDot_Radial;
+	RodJacobian.JDotDotBob = PolarBase.eDotDot_Radial;
 }
 
 FRodPolarBase FPendulumRod::ComputePolarBase() const

@@ -11,23 +11,16 @@ class FControlSys
 public:
 	FControlSys() = default;
 
-	bool ComputeAStateJacobian(
-		FFullSys& FullSys,
-		const FSysState& NominalX_Full,
-		double Epsilon,
-		Eigen::MatrixXd& OutA_Full
-	);
-
-	bool ComputeAFreeRedundant(
+	bool ComputeA_FreeRedundant(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
 		double Epsilon,
 		Eigen::MatrixXd& OutA_FR
 	);
 
-	void BuildAFreeRedundantInFullDisplay(
+	void BuildA_FRInFullDisplay(
 		const FStateDOFIndexMap& IndexMap,
-		const Eigen::MatrixXd& A_FreeRedundant,
+		const Eigen::MatrixXd& A_FR,
 		Eigen::MatrixXd& OutA_FullDisplay
 	);
 

@@ -2,54 +2,6 @@
 
 #include "Simulation/FullSys.h"
 
-bool FControlSys::ComputeAStateJacobian(
-	FFullSys& FullSys,
-	const FSysState& NominalX_Full,
-	double Epsilon,
-	Eigen::MatrixXd& OutA_Full
-)
-{
-	const int32 NumStates = static_cast<int32>(NominalX_Full.ToVector().size());
-
-	check(Epsilon > 0.0);
-
-	OutA_Full.resize(NumStates, NumStates);
-
-	for (int32 Column = 0; Column < NumStates; ++Column)
-	{
-		Eigen::VectorXd A_iColumn;
-
-		if (!ComputeA_FullColumn(
-			FullSys,
-			NominalX_Full,
-			Column,
-			Epsilon,
-			A_iColumn
-		))
-		{
-			FSysStateDerivative XDotNominal_Full;
-			FullSys.EvaluateDynamics(NominalX_Full, XDotNominal_Full);
-
-			return false;
-		}
-
-		OutA_Full.col(Column) = A_iColumn;
-	}
-
-	FSysStateDerivative XDotNominal_Full;
-
-	if (!FullSys.EvaluateDynamics(
-		NominalX_Full,
-		XDotNominal_Full
-	))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-
 bool FControlSys::ComputeA_FullColumn(
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
@@ -95,7 +47,7 @@ bool FControlSys::ComputeA_FullColumn(
 	return true;
 }
 
-bool FControlSys::ComputeAFreeRedundant(
+bool FControlSys::ComputeA_FreeRedundant(	// FR = Free-Redundant
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
 	double Epsilon,
@@ -110,10 +62,7 @@ bool FControlSys::ComputeAFreeRedundant(
 
 	check(Epsilon > 0.0);
 
-	OutA_FR.resize(
-		SizeX_FR,
-		SizeX_FR
-	);
+	OutA_FR.resize(	SizeX_FR, SizeX_FR);
 
 	for (
 		int32 ColumnA_FR = 0;
@@ -133,7 +82,7 @@ bool FControlSys::ComputeAFreeRedundant(
 			Epsilon,
 			A_iColumn_Full
 		))
-		{
+		{	
 			FSysStateDerivative XDotNominal_Full;
 			FullSys.EvaluateDynamics(
 				NominalX_Full,
@@ -146,22 +95,22 @@ bool FControlSys::ComputeAFreeRedundant(
 		check(A_iColumn_Full.size() == SizeX_Full);
 
 		for (
-			int32 RowAFreeRedundant = 0;
-			RowAFreeRedundant < SizeX_FR;
-			++RowAFreeRedundant
+			int32 RowA_FR = 0;
+			RowA_FR < SizeX_FR;
+			++RowA_FR
 			)
 		{
 			const int32 RowFull =
-				IndexMap.XStateFreeIndices[RowAFreeRedundant];
+				IndexMap.XStateFreeIndices[RowA_FR];
 
-			OutA_FR(RowAFreeRedundant, ColumnA_FR) =
+			OutA_FR(RowA_FR, ColumnA_FR) =
 				A_iColumn_Full(RowFull);
 		}
 	}
 
 	FSysStateDerivative XDotNominal_Full;
 
-	if (!FullSys.EvaluateDynamics(
+	if (!FullSys.EvaluateDynamics(	// Return to Nominal state  after perturbations
 		NominalX_Full,
 		XDotNominal_Full
 	))
@@ -172,9 +121,9 @@ bool FControlSys::ComputeAFreeRedundant(
 	return true;
 }
 
-void FControlSys::BuildAFreeRedundantInFullDisplay(
+void FControlSys::BuildA_FRInFullDisplay(
 	const FStateDOFIndexMap& IndexMap,
-	const Eigen::MatrixXd& A_FreeRedundant,
+	const Eigen::MatrixXd& A_FR,
 	Eigen::MatrixXd& OutA_FullDisplay
 )
 {
@@ -182,9 +131,9 @@ void FControlSys::BuildAFreeRedundantInFullDisplay(
 
 	const int32 SizeX_FR = IndexMap.XStateFreeIndices.Num();
 
-	check(A_FreeRedundant.rows() == SizeX_FR);
+	check(A_FR.rows() == SizeX_FR);
 
-	check(A_FreeRedundant.cols() == SizeX_FR);
+	check(A_FR.cols() == SizeX_FR);
 
 	OutA_FullDisplay =
 		Eigen::MatrixXd::Zero(
@@ -193,21 +142,19 @@ void FControlSys::BuildAFreeRedundantInFullDisplay(
 		);
 
 	for (
-		int32 RowAFreeRedundant = 0;
-		RowAFreeRedundant < SizeX_FR;
-		++RowAFreeRedundant
+		int32 RowA_FR = 0;
+		RowA_FR < SizeX_FR;
+		++RowA_FR
 		)
 	{
-		const int32 RowFull = IndexMap.XStateFreeIndices[RowAFreeRedundant];
-
 		for (
 			int32 ColumnA_FR = 0;
 			ColumnA_FR < SizeX_FR;
 			++ColumnA_FR
 			)
 		{
-			OutA_FullDisplay(RowFull, IndexMap.XStateFreeIndices[ColumnA_FR]) =
-				A_FreeRedundant(RowAFreeRedundant, ColumnA_FR);
+			OutA_FullDisplay(IndexMap.XStateFreeIndices[RowA_FR], IndexMap.XStateFreeIndices[ColumnA_FR]) =
+				A_FR(RowA_FR, ColumnA_FR);
 		}
 	}
 }
