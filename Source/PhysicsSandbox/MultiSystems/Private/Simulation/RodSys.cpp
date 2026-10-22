@@ -67,6 +67,9 @@ bool FRodSys::RunConstraintForces(
 	return true;
 }
 
+// -----------------------------------------------------------------------------
+// Private Helpers
+// -----------------------------------------------------------------------------
 
 bool FRodSys::RunConstraintCorrections(
 	TArray<FBody>& Bodies, 

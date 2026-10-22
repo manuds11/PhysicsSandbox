@@ -719,7 +719,7 @@ bool AMultiSystemsActor::TestAStateJacobian()
 	Eigen::MatrixXd A_FR;
 	Eigen::MatrixXd A_FullDisplay;
 
-	if (!ControlSys.ComputeA_FreeRedundant(
+	if (!ControlSys.ComputeA_FR(
 		FullSys,
 		NominalX_Full,
 		LinearizationEpsilon,
@@ -801,10 +801,23 @@ bool AMultiSystemsActor::TestBuildJandJDot_FreeRedundant()
 {
 	Eigen::MatrixXd J_FR;
 	Eigen::MatrixXd JDot_FR;
+	Eigen::MatrixXd H_X_FR;
 
-	if (!ControlSys.BuildJandJDot_FreeRedundant(FullSys, J_FR, JDot_FR))
+	if (!ControlSys.BuildJandJDot_FR(
+		FullSys,
+		J_FR,
+		JDot_FR
+	))
 	{
-		UE_LOG(LogPhysicsSandbox, Warning, TEXT("BuildJandJDot_FreeRedundant failed."));
+		return false;
+	}
+
+	if (!ControlSys.BuildH_FR(
+		J_FR,
+		JDot_FR,
+		H_X_FR
+	))
+	{
 		return false;
 	}
 
@@ -835,6 +848,7 @@ bool AMultiSystemsActor::TestBuildJandJDot_FreeRedundant()
 
 	LogMatrix(TEXT("J_FR"), J_FR);
 	LogMatrix(TEXT("JDot_FR"), JDot_FR);
+	LogMatrix(TEXT("H_X_FR"), H_X_FR);
 
 	return true;
 }

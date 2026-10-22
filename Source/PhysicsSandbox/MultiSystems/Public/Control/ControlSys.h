@@ -11,13 +11,7 @@ class FControlSys
 public:
 	FControlSys() = default;
 
-	bool BuildJandJDot_FreeRedundant(
-		const FFullSys& FullSys,
-		Eigen::MatrixXd& OutJ_FR,
-		Eigen::MatrixXd& OutJDot_FR
-	);
-
-	bool ComputeA_FreeRedundant(
+	bool ComputeA_FR(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
 		double Epsilon,
@@ -28,6 +22,18 @@ public:
 		const FStateDOFIndexMap& IndexMap,
 		const Eigen::MatrixXd& A_FR,
 		Eigen::MatrixXd& OutA_FullDisplay
+	);
+
+	bool BuildJandJDot_FR(
+		const FFullSys& FullSys,
+		Eigen::MatrixXd& OutJ_FR,
+		Eigen::MatrixXd& OutJDot_FR
+	);
+
+	bool BuildH_FR(
+		const Eigen::MatrixXd& J_FR,
+		const Eigen::MatrixXd& JDot_FR,
+		Eigen::MatrixXd& OutH_X_FR
 	);
 
 private:

@@ -7,52 +7,7 @@
 // Finite Difference 
 // -------------------------------------------------------------------------
 
-bool FControlSys::ComputeA_FullColumn(
-	FFullSys& FullSys,
-	const FSysState& NominalX_Full,
-	int32 PerturbationIndexX,
-	double Epsilon,
-	Eigen::VectorXd& OutA_iColumn
-)
-{
-	const Eigen::VectorXd NominalXVector_Full = NominalX_Full.ToVector();
-
-	const int32 NumStates = static_cast<int32>(NominalXVector_Full.size());
-
-	check(PerturbationIndexX >= 0);
-	check(PerturbationIndexX < NumStates);
-	check(Epsilon > 0.0);
-
-	Eigen::VectorXd XPlusVector_Full = NominalXVector_Full;
-	Eigen::VectorXd XMinusVector_Full = NominalXVector_Full;
-
-	XPlusVector_Full(PerturbationIndexX) += Epsilon;
-	XMinusVector_Full(PerturbationIndexX) -= Epsilon;
-
-	const FSysState XPlus_Full = FSysState::ToStruct(XPlusVector_Full);
-	const FSysState XMinus_Full = FSysState::ToStruct(XMinusVector_Full);
-
-	FSysStateDerivative XDotPlus_Full;
-	FSysStateDerivative XDotMinus_Full;
-
-	if (!FullSys.EvaluateDynamics(XPlus_Full, XDotPlus_Full))
-	{
-		return false;
-	}
-
-	if (!FullSys.EvaluateDynamics(XMinus_Full, XDotMinus_Full))
-	{
-		return false;
-	}
-
-	OutA_iColumn =
-		(XDotPlus_Full.ToVector() - XDotMinus_Full.ToVector())
-		/ (2.0 * Epsilon);
-
-	return true;
-}
-
-bool FControlSys::ComputeA_FreeRedundant(	// FR = Free-Redundant
+bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
 	double Epsilon,
@@ -164,9 +119,11 @@ void FControlSys::BuildA_FRInFullDisplay(
 	}
 }
 
+// -------------------------------------------------------------------------
+// Rod Jacobian, time derivative, Assemblies 
+// -------------------------------------------------------------------------
 
-
-bool FControlSys::BuildJandJDot_FreeRedundant(
+bool FControlSys::BuildJandJDot_FR(
 	const FFullSys& FullSys,
 	Eigen::MatrixXd& OutJ_FR,
 	Eigen::MatrixXd& OutJDot_FR
@@ -210,6 +167,87 @@ bool FControlSys::BuildJandJDot_FreeRedundant(
 			}
 		}
 	}
+
+	return true;
+}
+
+bool FControlSys::BuildH_FR(
+	const Eigen::MatrixXd& J_FR,
+	const Eigen::MatrixXd& JDot_FR,
+	Eigen::MatrixXd& OutH_X_FR
+)
+{
+	if (
+		J_FR.rows() != JDot_FR.rows()
+		|| J_FR.cols() != JDot_FR.cols()
+		|| !J_FR.allFinite()
+		|| !JDot_FR.allFinite()
+		)
+	{
+		OutH_X_FR.resize(0, 0);
+		return false;
+	}
+
+	const Eigen::Index NumRods = J_FR.rows();
+	const Eigen::Index SizeQ_FR = J_FR.cols();
+
+	OutH_X_FR = Eigen::MatrixXd::Zero(
+		2 * NumRods,
+		2 * SizeQ_FR
+	);
+
+	OutH_X_FR.block(0, 0, NumRods, SizeQ_FR) = J_FR;
+	OutH_X_FR.block(NumRods, 0, NumRods, SizeQ_FR) = JDot_FR;
+	OutH_X_FR.block(NumRods, SizeQ_FR, NumRods, SizeQ_FR) = J_FR;
+
+	return true;
+}
+
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+bool FControlSys::ComputeA_FullColumn(
+	FFullSys& FullSys,
+	const FSysState& NominalX_Full,
+	int32 PerturbationIndexX,
+	double Epsilon,
+	Eigen::VectorXd& OutA_iColumn
+)
+{
+	const Eigen::VectorXd NominalXVector_Full = NominalX_Full.ToVector();
+
+	const int32 NumStates = static_cast<int32>(NominalXVector_Full.size());
+
+	check(PerturbationIndexX >= 0);
+	check(PerturbationIndexX < NumStates);
+	check(Epsilon > 0.0);
+
+	Eigen::VectorXd XPlusVector_Full = NominalXVector_Full;
+	Eigen::VectorXd XMinusVector_Full = NominalXVector_Full;
+
+	XPlusVector_Full(PerturbationIndexX) += Epsilon;
+	XMinusVector_Full(PerturbationIndexX) -= Epsilon;
+
+	const FSysState XPlus_Full = FSysState::ToStruct(XPlusVector_Full);
+	const FSysState XMinus_Full = FSysState::ToStruct(XMinusVector_Full);
+
+	FSysStateDerivative XDotPlus_Full;
+	FSysStateDerivative XDotMinus_Full;
+
+	if (!FullSys.EvaluateDynamics(XPlus_Full, XDotPlus_Full))
+	{
+		return false;
+	}
+
+	if (!FullSys.EvaluateDynamics(XMinus_Full, XDotMinus_Full))
+	{
+		return false;
+	}
+
+	OutA_iColumn =
+		(XDotPlus_Full.ToVector() - XDotMinus_Full.ToVector())
+		/ (2.0 * Epsilon);
 
 	return true;
 }
