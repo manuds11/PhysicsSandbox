@@ -330,14 +330,6 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		SimulationTimeDebt >= FixedTimeStep
 		&& SubStepCount < MaxSubSteps)
 	{
-		// test
-		if (!TestBuildJandJDot_FreeRedundant())
-		{
-			bIsSimulationRunning = false;
-			break;
-		}
-		// End test
-
 		if (!FullSys.Step(FixedTimeStep))
 		{
 			bIsSimulationRunning = false;
@@ -350,6 +342,20 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 
 			break;
 		}
+
+		// TEST - Run once after the first valid physical step
+		if (FixedStepCount == 0)
+		{
+			if (!TestKernelBasis_FR())
+			{
+				bIsSimulationRunning = false;
+				break;
+			}
+		}
+
+		// Kernel visualization
+		DrawKernelBasisColumn(4);
+		// END TEST
 
 		++FixedStepCount;
 		SimuPhysicalTime += FixedTimeStep;
@@ -705,10 +711,135 @@ double AMultiSystemsActor::ComputeBodyDebugRadius(
 	);
 }
 
+void AMultiSystemsActor::DrawStatePerturbation(
+	const Eigen::VectorXd& DeltaX_Full,
+	double PositionScale,
+	double VelocityScale
+) const
+{
+	const TArray<FBody>& Bodies = FullSys.GetBodies();
+	const int32 SizeQ_Full = FullSys.GetStateIndexMap().SizeQ_Full;
 
+	check(DeltaX_Full.size() == 2 * SizeQ_Full);
 
+	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
+	{
+		const FBody& Body = Bodies[BodyIndex];
 
+		const int32 QXIndex = 2 * BodyIndex;
+		const int32 QYIndex = 2 * BodyIndex + 1;
 
+		const int32 VXIndex = SizeQ_Full + QXIndex;
+		const int32 VYIndex = SizeQ_Full + QYIndex;
+
+		const FVector2D BodyDeltaPos(
+			DeltaX_Full(QXIndex),
+			DeltaX_Full(QYIndex)
+		);
+
+		const FVector2D BodyDeltaVel(
+			DeltaX_Full(VXIndex),
+			DeltaX_Full(VYIndex)
+		);
+
+		const FVector2D DeltaPosEscaled =
+			Body.Position + PositionScale * BodyDeltaPos;
+
+		const FVector2D DeltaVelEscaled =
+			Body.Position + VelocityScale * BodyDeltaVel;
+
+		// Position perturbation
+		DrawDebugDirectionalArrow(
+			GetWorld(),
+			ToWorld(Body.Position),
+			ToWorld(DeltaPosEscaled),
+			8.0f,
+			FColor::Yellow,
+			false,
+			0.0f,
+			0,
+			2.0f
+		);
+
+		// Perturbed position
+		DrawDebugSphere(
+			GetWorld(),
+			ToWorld(DeltaPosEscaled),
+			4.0f,
+			12,
+			FColor::Yellow,
+			false,
+			0.0f
+		);
+
+		// Velocity perturbation
+		DrawDebugDirectionalArrow(
+			GetWorld(),
+			ToWorld(Body.Position),
+			ToWorld(DeltaVelEscaled),
+			8.0f,
+			FColor::Cyan,
+			false,
+			0.0f,
+			0,
+			2.0f
+		);
+	}
+}
+
+void AMultiSystemsActor::DrawKernelBasisColumn(
+	int32 BasisIndex
+) const
+{
+	Eigen::MatrixXd J_FR;
+	Eigen::MatrixXd JDot_FR;
+	Eigen::MatrixXd H_X_FR;
+	Eigen::MatrixXd T_kerToFR;
+
+	if (!ControlSys.BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
+	{
+		return;
+	}
+
+	if (!ControlSys.BuildH_FR(J_FR, JDot_FR, H_X_FR))
+	{
+		return;
+	}
+
+	if (!ControlSys.BuildKernelBasis_FR(H_X_FR, T_kerToFR))
+	{
+		return;
+	}
+
+	check(BasisIndex >= 0);
+	check(BasisIndex < T_kerToFR.cols());
+
+	Eigen::VectorXd DeltaX_ker =
+		Eigen::VectorXd::Zero(T_kerToFR.cols());
+
+	DeltaX_ker(BasisIndex) = 1.0;
+
+	const Eigen::VectorXd DeltaX_FR =
+		ControlSys.TransformDeltaX_ker2FR(
+			T_kerToFR,
+			DeltaX_ker
+		);
+
+	const Eigen::VectorXd DeltaX_Full =
+		ControlSys.ExpandDeltaX_FRToFull(
+			FullSys.GetStateIndexMap(),
+			DeltaX_FR
+		);
+
+	constexpr double PositionScale = 0.5;
+	constexpr double VelocityScale = 0.5;
+
+	DrawStatePerturbation(
+		DeltaX_Full,
+		PositionScale,
+		VelocityScale
+	);
+}
 
 // TEST
 
@@ -797,58 +928,170 @@ bool AMultiSystemsActor::TestAStateJacobian()
 	return true;
 }
 
-bool AMultiSystemsActor::TestBuildJandJDot_FreeRedundant()
+bool AMultiSystemsActor::TestKernelBasis_FR()
 {
 	Eigen::MatrixXd J_FR;
 	Eigen::MatrixXd JDot_FR;
 	Eigen::MatrixXd H_X_FR;
+	Eigen::MatrixXd T_kerToFR;
 
-	if (!ControlSys.BuildJandJDot_FR(
-		FullSys,
-		J_FR,
-		JDot_FR
-	))
+	if (!ControlSys.BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
 	{
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("BuildJandJDot_FR failed."));
 		return false;
 	}
 
-	if (!ControlSys.BuildH_FR(
-		J_FR,
-		JDot_FR,
-		H_X_FR
-	))
+	if (!ControlSys.BuildH_FR(J_FR, JDot_FR, H_X_FR))
 	{
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("BuildH_FR failed."));
 		return false;
 	}
 
-	const auto LogMatrix =
-		[](const TCHAR* MatrixName, const Eigen::MatrixXd& Matrix)
+	if (!ControlSys.BuildKernelBasis_FR(H_X_FR, T_kerToFR))
+	{
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("BuildKernelBasis_FR failed."));
+		return false;
+	}
+
+	// -------------------------------------------------------------------------
+	// Kernel condition: H * T = 0
+	// -------------------------------------------------------------------------
+
+	const Eigen::MatrixXd KernelResidual = H_X_FR * T_kerToFR;
+	const double MaxKernelResidual = KernelResidual.cwiseAbs().maxCoeff();
+
+	// -------------------------------------------------------------------------
+	// Orthonormality: T^T * T = I
+	// -------------------------------------------------------------------------
+
+	const Eigen::MatrixXd Identity =
+		Eigen::MatrixXd::Identity(T_kerToFR.cols(), T_kerToFR.cols());
+
+	const Eigen::MatrixXd OrthonormalityResidual =
+		T_kerToFR.transpose() * T_kerToFR - Identity;
+
+	const double MaxOrthonormalityResidual =
+		OrthonormalityResidual.cwiseAbs().maxCoeff();
+
+	// -------------------------------------------------------------------------
+	// Coordinate round trip: ker -> FR -> ker
+	// -------------------------------------------------------------------------
+
+	Eigen::VectorXd DeltaX_ker(T_kerToFR.cols());
+
+	for (Eigen::Index i = 0; i < DeltaX_ker.size(); ++i)
+	{
+		DeltaX_ker(i) = static_cast<double>(i + 1);
+	}
+
+	const Eigen::VectorXd DeltaX_FR =
+		T_kerToFR * DeltaX_ker;
+
+	const Eigen::VectorXd ConstraintResidual =
+		H_X_FR * DeltaX_FR;
+
+	const Eigen::VectorXd DeltaX_kerRecovered =
+		T_kerToFR.transpose() * DeltaX_FR;
+
+	const double RoundTripError =
+		(DeltaX_kerRecovered - DeltaX_ker).norm();
+
+	// -------------------------------------------------------------------------
+	// Log
+	// -------------------------------------------------------------------------
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("==================================================")
+	);
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("KERNEL TEST")
+	);
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("H_X_FR      : %lld x %lld"),
+		H_X_FR.rows(),
+		H_X_FR.cols()
+	);
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("T_kerToFR   : %lld x %lld"),
+		T_kerToFR.rows(),
+		T_kerToFR.cols()
+	);
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("Max |H*T|               = %.3e"),
+		MaxKernelResidual
+	);
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("Max |T^T*T - I|         = %.3e"),
+		MaxOrthonormalityResidual
+	);
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("|H * DeltaX_FR|         = %.3e"),
+		ConstraintResidual.norm()
+	);
+
+	UE_LOG(
+		LogPhysicsSandbox,
+		Display,
+		TEXT("Kernel round-trip error = %.3e"),
+		RoundTripError
+	);
+
+	// -------------------------------------------------------------------------
+	// Print T_kerToFR
+	// -------------------------------------------------------------------------
+
+	for (Eigen::Index Row = 0; Row < T_kerToFR.rows(); ++Row)
+	{
+		FString RowText = FString::Printf(
+			TEXT("T_kerToFR(%lld,:) = "),
+			static_cast<int64>(Row)
+		);
+
+		for (Eigen::Index Column = 0; Column < T_kerToFR.cols(); ++Column)
 		{
-			UE_LOG(
-				LogPhysicsSandbox,
-				Display,
-				TEXT("%s (%lld x %lld)"),
-				MatrixName,
-				Matrix.rows(),
-				Matrix.cols()
+			RowText += FString::Printf(
+				TEXT("%+.6f  "),
+				T_kerToFR(Row, Column)
 			);
+		}
 
-			for (int32 Row = 0; Row < Matrix.rows(); ++Row)
-			{
-				FString RowString;
+		UE_LOG(LogPhysicsSandbox, Display, TEXT("%s"), *RowText);
+	}
 
-				for (int32 Column = 0; Column < Matrix.cols(); ++Column)
-				{
-					RowString += FString::Printf(TEXT("% .6f  "), Matrix(Row, Column));
-				}
+	constexpr double TestTolerance = 1.0e-10;
 
-				UE_LOG(LogPhysicsSandbox, Display, TEXT("[%s]"), *RowString);
-			}
-		};
+	if (
+		MaxKernelResidual > TestTolerance
+		|| MaxOrthonormalityResidual > TestTolerance
+		|| ConstraintResidual.norm() > TestTolerance
+		|| RoundTripError > TestTolerance
+		)
+	{
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Kernel validation FAILED."));
+		return false;
+	}
 
-	LogMatrix(TEXT("J_FR"), J_FR);
-	LogMatrix(TEXT("JDot_FR"), JDot_FR);
-	LogMatrix(TEXT("H_X_FR"), H_X_FR);
+	UE_LOG(LogPhysicsSandbox, Display, TEXT("Kernel validation PASSED."));
 
 	return true;
 }

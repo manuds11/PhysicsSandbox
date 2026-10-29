@@ -110,9 +110,17 @@ private:
 
 	double ComputeBodyDebugRadius(double Mass) const;
 
+	void DrawStatePerturbation(
+		const Eigen::VectorXd& DeltaX_Full,
+		double PositionScale,
+		double VelocityScale
+	) const;
 
+	void DrawKernelBasisColumn(
+		int32 BasisIndex
+	) const;
 
 	// TEST
 	bool TestAStateJacobian();
-	bool TestBuildJandJDot_FreeRedundant();
+	bool TestKernelBasis_FR();
 };

@@ -3,6 +3,9 @@
 #include "Simulation/FullSys.h"
 #include "Elements/PendulumRod.h"
 
+#include <Eigen/SVD>
+#include <limits>
+
 // -------------------------------------------------------------------------
 // Finite Difference 
 // -------------------------------------------------------------------------
@@ -120,14 +123,59 @@ void FControlSys::BuildA_FRInFullDisplay(
 }
 
 // -------------------------------------------------------------------------
-// Rod Jacobian, time derivative, Assemblies 
+// Kernel operations
 // -------------------------------------------------------------------------
+
+bool FControlSys::BuildKernelBasis_FR(
+	const Eigen::MatrixXd& H_X_FR,
+	Eigen::MatrixXd& OutT_kerToFR
+) const
+{
+	if (
+		H_X_FR.rows() <= 0
+		|| H_X_FR.cols() <= 0
+		|| !H_X_FR.allFinite()
+		)
+	{
+		OutT_kerToFR.resize(0, 0);
+		return false;
+	}
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> SVD(H_X_FR, Eigen::ComputeFullV);
+
+	const Eigen::VectorXd& SingularValues = SVD.singularValues();
+
+	const double MaxSingularValue = SingularValues.maxCoeff();
+
+	const double Tolerance =
+		static_cast<double>(FMath::Max(H_X_FR.rows(), H_X_FR.cols()))
+		* std::numeric_limits<double>::epsilon()
+		* MaxSingularValue;
+
+	int32 Rank = 0;
+
+	for (Eigen::Index i = 0; i < SingularValues.size(); ++i)
+	{
+		if (SingularValues(i) > Tolerance)
+		{
+			++Rank;
+		}
+	}
+
+	const int32 KernelDimension =
+		static_cast<int32>(H_X_FR.cols()) - Rank;
+
+	OutT_kerToFR =
+		SVD.matrixV().rightCols(KernelDimension);
+
+	return true;
+}
 
 bool FControlSys::BuildJandJDot_FR(
 	const FFullSys& FullSys,
 	Eigen::MatrixXd& OutJ_FR,
 	Eigen::MatrixXd& OutJDot_FR
-)
+) const
 {
 	const TArray<FPendulumRod*>& Rods = FullSys.GetRodSystemArray();
 	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
@@ -175,7 +223,7 @@ bool FControlSys::BuildH_FR(
 	const Eigen::MatrixXd& J_FR,
 	const Eigen::MatrixXd& JDot_FR,
 	Eigen::MatrixXd& OutH_X_FR
-)
+) const
 {
 	if (
 		J_FR.rows() != JDot_FR.rows()
@@ -203,6 +251,44 @@ bool FControlSys::BuildH_FR(
 	return true;
 }
 
+// -------------------------------------------------------------------------
+// Vector Transformations
+// -------------------------------------------------------------------------
+
+Eigen::VectorXd FControlSys::TransformDeltaX_ker2FR(
+	const Eigen::MatrixXd& T_kerToFR,
+	const Eigen::VectorXd& DeltaX_ker
+) const
+{
+	check(T_kerToFR.cols() == DeltaX_ker.size());
+	check(T_kerToFR.allFinite());
+	check(DeltaX_ker.allFinite());
+
+	return T_kerToFR * DeltaX_ker;
+}
+
+Eigen::VectorXd FControlSys::ExpandDeltaX_FRToFull(
+	const FStateDOFIndexMap& IndexMap,
+	const Eigen::VectorXd& DeltaX_FR
+) const
+{
+	const int32 SizeX_FR = IndexMap.XStateFreeIndices.Num();
+	const int32 SizeX_Full = 2 * IndexMap.SizeQ_Full;
+
+	check(DeltaX_FR.size() == SizeX_FR);
+	check(DeltaX_FR.allFinite());
+
+	Eigen::VectorXd DeltaX_Full = Eigen::VectorXd::Zero(SizeX_Full);
+
+	for (int32 Index_FR = 0; Index_FR < SizeX_FR; ++Index_FR)
+	{
+		const int32 Index_Full = IndexMap.XStateFreeIndices[Index_FR];
+		DeltaX_Full(Index_Full) = DeltaX_FR(Index_FR);
+	}
+
+	return DeltaX_Full;
+}
+
 // -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
@@ -226,7 +312,7 @@ bool FControlSys::ComputeA_FullColumn(
 	Eigen::VectorXd XPlusVector_Full = NominalXVector_Full;
 	Eigen::VectorXd XMinusVector_Full = NominalXVector_Full;
 
-	XPlusVector_Full(PerturbationIndexX) += Epsilon;
+	XPlusVector_Full(PerturbationIndexX) += Epsilon;   // e_1 = (0, 1, 0, 0, ...) Thus, 1 * Epsilon = Epsilon
 	XMinusVector_Full(PerturbationIndexX) -= Epsilon;
 
 	const FSysState XPlus_Full = FSysState::ToStruct(XPlusVector_Full);
