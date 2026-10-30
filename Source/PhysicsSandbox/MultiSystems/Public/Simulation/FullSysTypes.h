@@ -64,7 +64,7 @@ enum class ESysElementType : uint8
 	PendulumRod
 };
 
-struct FU_ExtForce
+struct FForceInput
 {
 	int32 BodyIndex = INDEX_NONE;
 	FVector2D Force = FVector2D::ZeroVector;

@@ -84,6 +84,11 @@ private:
 
 	uint64 FixedStepCount = 0;
 
+	// =========================
+	// ControlSystem
+	// =========================
+	UPROPERTY(EditAnywhere, Category = "Control|Linearization Test")
+	double LinearizationEpsilon = 1.0e-6;
 
 	// =========================
 	// Visualization
@@ -104,4 +109,18 @@ private:
 	void PrintInfo() const;
 
 	double ComputeBodyDebugRadius(double Mass) const;
+
+	void DrawStatePerturbation(
+		const Eigen::VectorXd& DeltaX_Full,
+		double PositionScale,
+		double VelocityScale
+	) const;
+
+	void DrawKernelBasisColumn(
+		int32 BasisIndex
+	) const;
+
+	// TEST
+	bool TestAStateJacobian();
+	bool TestKernelBasis_FR();
 };

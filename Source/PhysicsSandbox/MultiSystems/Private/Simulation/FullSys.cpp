@@ -66,36 +66,36 @@ int32 FFullSys::AddElement(TUniquePtr<ISysElement> Element)
 	return Elements.Add(MoveTemp(Element));
 }
 
-int32 FFullSys::AddU_ExtForce(const FU_ExtForce& U_ExtForce)
+int32 FFullSys::AddForceInput(const FForceInput& ForceInput)
 {
 	check(!bInitialized);
 
-	check(Bodies.IsValidIndex(U_ExtForce.BodyIndex));
+	check(Bodies.IsValidIndex(ForceInput.BodyIndex));
 
 	check(
-		FMath::IsFinite(U_ExtForce.Force.X)
-		&& FMath::IsFinite(U_ExtForce.Force.Y)
+		FMath::IsFinite(ForceInput.Force.X)
+		&& FMath::IsFinite(ForceInput.Force.Y)
 	);
 
-	return U_ExtForces.Add(U_ExtForce);
+	return ForceInputs.Add(ForceInput);
 }
 
-void FFullSys::SetU_ExtForce(
-	int32 U_ExtForceIndex,
+void FFullSys::SetForceInput(
+	int32 ForceInputIndex,
 	const FVector2D& Force
 )
 {
 	checkf(
-		U_ExtForces.IsValidIndex(U_ExtForceIndex),
-		TEXT("Invalid U_ExtForceIndex %d."),
-		U_ExtForceIndex
+		ForceInputs.IsValidIndex(ForceInputIndex),
+		TEXT("Invalid ForceInputIndex %d."),
+		ForceInputIndex
 	);
 	check(
 		FMath::IsFinite(Force.X)
 		&& FMath::IsFinite(Force.Y)
 	);
 
-	U_ExtForces[U_ExtForceIndex].Force = Force;
+	ForceInputs[ForceInputIndex].Force = Force;
 }
 
 FSubSys& FFullSys::CreateSubSys(FName Name)
@@ -291,7 +291,7 @@ bool FFullSys::EvaluateDynamics()
 {
 	ClearForces();
 	ApplyGravity();
-	ApplyU_ExtForces();
+	ApplyForceInputs();
 	ApplyNonConstraintInteractions();
 
 	if (!RodSys.RunConstraintForces(Bodies))
@@ -391,7 +391,7 @@ bool FFullSys::Step(double Dt)
 	return true;
 }
 
-// -----------------------------------------------------------------------------ยบ
+// -----------------------------------------------------------------------------บ
 // Simulation Subprocesses 
 // -----------------------------------------------------------------------------
 
@@ -418,18 +418,18 @@ void FFullSys::ApplyGravity()
 	}
 }
 
-void FFullSys::ApplyU_ExtForces()
+void FFullSys::ApplyForceInputs()
 {
-	for (const FU_ExtForce& U_ExtForce : U_ExtForces)
+	for (const FForceInput& Input : ForceInputs)
 	{
-		check(Bodies.IsValidIndex(U_ExtForce.BodyIndex));
+		check(Bodies.IsValidIndex(Input.BodyIndex));
 
 		check(
-			FMath::IsFinite(U_ExtForce.Force.X)
-			&& FMath::IsFinite(U_ExtForce.Force.Y)
+			FMath::IsFinite(Input.Force.X)
+			&& FMath::IsFinite(Input.Force.Y)
 		);
 
-		Bodies[U_ExtForce.BodyIndex].NetForce += U_ExtForce.Force;
+		Bodies[Input.BodyIndex].NetForce += Input.Force;
 	}
 }
 
@@ -525,7 +525,7 @@ void FFullSys::ApplyFixedAxes()		// Faltan reacciones
 	}
 }
 
-// -----------------------------------------------------------------------------ยบ
+// -----------------------------------------------------------------------------บ
 // Debug helpers
 // -----------------------------------------------------------------------------
 
@@ -563,7 +563,7 @@ bool FFullSys::IsStateFinite() const
 	return true;
 }
 
-// -----------------------------------------------------------------------------ยบ
+// -----------------------------------------------------------------------------บ
 // Energy diagnostics
 // -----------------------------------------------------------------------------
 
