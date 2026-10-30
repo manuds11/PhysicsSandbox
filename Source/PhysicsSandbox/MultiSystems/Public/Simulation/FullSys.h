@@ -23,9 +23,9 @@ public:
 
 	int32 AddBody(const FBody& Body);
 	int32 AddElement(TUniquePtr<ISysElement> Element);
-	int32 AddForceInput(const FForceInput& ForceInput);
-	void SetForceInput(
-		int32 ForceInputIndex,
+	int32 AddU_ExtForce(const FU_ExtForce& U_ExtForce);
+	void SetU_ExtForce(
+		int32 U_ExtForceIndex,
 		const FVector2D& Force
 	);
 
@@ -82,7 +82,7 @@ private:
 
 	
 	TArray<TUniquePtr<ISysElement>> Elements;
-	TArray<FForceInput> ForceInputs;
+	TArray<FU_ExtForce> U_ExtForces;
 
 	TUniquePtr<ISysIntegrator> Integrator;
 
@@ -95,7 +95,7 @@ private:
 	void ClearForces();
 	void ApplyNonConstraintInteractions();
 	void ApplyGravity();
-	void ApplyForceInputs();
+	void ApplyU_ExtForces();
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();
