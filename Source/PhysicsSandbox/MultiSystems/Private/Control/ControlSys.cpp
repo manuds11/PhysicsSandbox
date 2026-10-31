@@ -118,8 +118,6 @@ bool FControlSys::BuildControlAllocationG_FRMatrix(
 
 	bControlAllocationBuilt = true;
 
-	const double* GData = G_UToTau_FR.data();
-
 	return true;
 }
 
