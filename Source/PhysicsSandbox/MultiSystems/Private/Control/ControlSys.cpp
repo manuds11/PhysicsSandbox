@@ -154,6 +154,8 @@ Eigen::VectorXd FControlSys::ComputeTau_FR(
 bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalTau_FR,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
 	double Epsilon,
 	Eigen::MatrixXd& OutA_FR
 )
@@ -161,65 +163,39 @@ bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
 	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 
 	const int32 SizeX_Full = static_cast<int32>(NominalX_Full.ToVector().size());
-
 	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
 
 	check(Epsilon > 0.0);
 
-	OutA_FR.resize(	SizeX_FR, SizeX_FR);
+	OutA_FR.resize(SizeX_FR, SizeX_FR);
 
-	for (
-		int32 ColumnA_FR = 0;
-		ColumnA_FR < SizeX_FR;
-		++ColumnA_FR
-		)
+	for (int32 ColumnA_FR = 0; ColumnA_FR < SizeX_FR; ++ColumnA_FR)
 	{
-		const int32 PerturbationIndexX_Full = 
-			IndexMap.X_FRToFullIndices[ColumnA_FR];
+		const int32 PerturbationIndexX_Full = IndexMap.X_FRToFullIndices[ColumnA_FR];
 
 		Eigen::VectorXd A_iColumn_Full;
 
 		if (!ComputeA_FullColumn(
 			FullSys,
 			NominalX_Full,
+			NominalTau_FR,
+			NominalU_ExtForces,
 			PerturbationIndexX_Full,
 			Epsilon,
 			A_iColumn_Full
 		))
-		{	
-			FSysStateDerivative XDotNominal_Full;
-			FullSys.EvaluateDynamics(
-				NominalX_Full,
-				XDotNominal_Full
-			);
-
+		{
 			return false;
 		}
 
 		check(A_iColumn_Full.size() == SizeX_Full);
 
-		for (
-			int32 RowA_FR = 0;
-			RowA_FR < SizeX_FR;
-			++RowA_FR
-			)
+		for (int32 RowA_FR = 0; RowA_FR < SizeX_FR; ++RowA_FR)
 		{
-			const int32 RowFull =
-				IndexMap.X_FRToFullIndices[RowA_FR];
+			const int32 RowFull = IndexMap.X_FRToFullIndices[RowA_FR];
 
-			OutA_FR(RowA_FR, ColumnA_FR) =
-				A_iColumn_Full(RowFull);
+			OutA_FR(RowA_FR, ColumnA_FR) = A_iColumn_Full(RowFull);
 		}
-	}
-
-	FSysStateDerivative XDotNominal_Full;
-
-	if (!FullSys.EvaluateDynamics(	// Return to Nominal state  after perturbations
-		NominalX_Full,
-		XDotNominal_Full
-	))
-	{
-		return false;
 	}
 
 	return true;
@@ -437,6 +413,8 @@ Eigen::VectorXd FControlSys::ExpandDeltaX_FRToFull(
 bool FControlSys::ComputeA_FullColumn(
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalTau_FR,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
 	int32 PerturbationIndexX,
 	double Epsilon,
 	Eigen::VectorXd& OutA_iColumn
@@ -462,12 +440,12 @@ bool FControlSys::ComputeA_FullColumn(
 	FSysStateDerivative XDotPlus_Full;
 	FSysStateDerivative XDotMinus_Full;
 
-	if (!FullSys.EvaluateDynamics(XPlus_Full, XDotPlus_Full))
+	if (!FullSys.EvaluateXDot(XPlus_Full, NominalTau_FR, NominalU_ExtForces, XDotPlus_Full))
 	{
 		return false;
 	}
 
-	if (!FullSys.EvaluateDynamics(XMinus_Full, XDotMinus_Full))
+	if (!FullSys.EvaluateXDot(XMinus_Full, NominalTau_FR, NominalU_ExtForces, XDotMinus_Full))
 	{
 		return false;
 	}

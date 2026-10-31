@@ -66,38 +66,6 @@ int32 FFullSys::AddElement(TUniquePtr<ISysElement> Element)
 	return Elements.Add(MoveTemp(Element));
 }
 
-int32 FFullSys::AddU_ExtForce(const FU_ExtForce& U_ExtForce)
-{
-	check(!bInitialized);
-
-	check(Bodies.IsValidIndex(U_ExtForce.BodyApplicationIndex));
-
-	check(
-		FMath::IsFinite(U_ExtForce.Vector.X)
-		&& FMath::IsFinite(U_ExtForce.Vector.Y)
-	);
-
-	return U_ExtForces.Add(U_ExtForce);
-}
-
-void FFullSys::SetU_ExtForce(
-	int32 U_ExtForceIndex,
-	const FVector2D& U_ExtForce
-)
-{
-	checkf(
-		U_ExtForces.IsValidIndex(U_ExtForceIndex),
-		TEXT("Invalid U_ExtForceIndex %d."),
-		U_ExtForceIndex
-	);
-	check(
-		FMath::IsFinite(U_ExtForce.X)
-		&& FMath::IsFinite(U_ExtForce.Y)
-	);
-
-	U_ExtForces[U_ExtForceIndex].Vector = U_ExtForce;
-}
-
 FSubSys& FFullSys::CreateSubSys(FName Name)
 {
 	FSubSys NewSubSys;
@@ -288,11 +256,23 @@ void FFullSys::SetXState2Bodies(
 // Simulation pipeline
 // -----------------------------------------------------------------------------
 
-bool FFullSys::EvaluateDynamics()
+bool FFullSys::EvaluateXDot(
+	const FSysState& InputX_Full,
+	const Eigen::VectorXd& Tau_FR,
+	const TArray<FU_ExtForce>& U_ExtForces,
+	FSysStateDerivative& OutputXDot_Full
+)
 {
+	check(bInitialized);
+	check(Tau_FR.size() == StateIndexMap.SizeQ_FR);
+	check(Tau_FR.allFinite());
+
+	SetXState2Bodies(InputX_Full);
+
 	ClearForces();
 	ApplyGravity();
-	ApplyU_ExtForces();
+	ApplyU_ExtForces(U_ExtForces);
+	ApplyTau_FR(Tau_FR);
 	ApplyNonConstraintInteractions();
 
 	if (!RodSys.RunConstraintForces(Bodies))
@@ -302,60 +282,44 @@ bool FFullSys::EvaluateDynamics()
 
 	ComputeAccelerations();
 
-	return true;
-}
-
-bool FFullSys::EvaluateDynamics(
-	const FSysState& InputX_Full,
-	FSysStateDerivative& OutputXDot_Full
-)
-{
-	// Control interface: X_Full -> XDot_Full
-
-	SetXState2Bodies(InputX_Full);
-
-	if (!EvaluateDynamics())
-	{
-		return false;
-	}
-
 	OutputXDot_Full = BuildFullStateDerivative(InputX_Full.QDot);
 
 	return true;
 }
 
-bool FFullSys::Step(double Dt)
+bool FFullSys::Step(
+	double Dt,
+	const FSysState& InputX_Full,
+	const Eigen::VectorXd& Tau_FR,
+	const TArray<FU_ExtForce>& U_ExtForces
+)
 {
 	check(bInitialized);
+	checkf(FMath::IsFinite(Dt) && Dt > 0.0, TEXT("Simulation Dt must be finite and positive."));
 
-	checkf(
-		FMath::IsFinite(Dt) && Dt > 0.0,
-		TEXT("Simulation Dt must be finite and positive.")
-	);
+	// Restore the actual X_k after possible control linearization perturbations.
+	SetXState2Bodies(InputX_Full);
 
-	const double DissipatedPowerBefore =
-		ComputeDissipatedPower();
+	const double DissipatedPowerBefore = ComputeDissipatedPower();
 
-	if (!EvaluateDynamics())
+	FSysStateDerivative XDot_Full;
+
+	if (!EvaluateXDot(InputX_Full, Tau_FR, U_ExtForces, XDot_Full))
 	{
 		return false;
 	}
 
-	IntegrationEnergy.Before =
-		ComputeSystemEnergy();
+	IntegrationEnergy.Before = ComputeSystemEnergy();
 
 	Integrate(Dt);
 
 	ApplyFixedAxes();
 
-	IntegrationEnergy.After =
-		ComputeSystemEnergy();
+	IntegrationEnergy.After = ComputeSystemEnergy();
 
 	if (!ensureMsgf(
 		IsStateFinite(),
-		TEXT(
-			"Simulation state became non-finite after integration."
-		)
+		TEXT("Simulation state became non-finite after integration.")
 	))
 	{
 		return false;
@@ -374,9 +338,7 @@ bool FFullSys::Step(double Dt)
 
 	if (!ensureMsgf(
 		IsStateFinite(),
-		TEXT(
-			"Simulation state became non-finite after constraint correction."
-		)
+		TEXT("Simulation state became non-finite after constraint correction.")
 	))
 	{
 		return false;
@@ -384,10 +346,7 @@ bool FFullSys::Step(double Dt)
 
 	RodSys.UpdateStatisticalErrorData();
 
-	UpdateEnergyBalance(
-		Dt,
-		DissipatedPowerBefore
-	);
+	UpdateEnergyBalance(Dt, DissipatedPowerBefore);
 
 	return true;
 }
@@ -419,18 +378,34 @@ void FFullSys::ApplyGravity()
 	}
 }
 
-void FFullSys::ApplyU_ExtForces()
+void FFullSys::ApplyU_ExtForces(const TArray<FU_ExtForce>& U_ExtForces)
 {
-	for (const FU_ExtForce& U_ExtForce  : U_ExtForces)
+	for (const FU_ExtForce& U_ExtForce : U_ExtForces)
 	{
-		check(Bodies.IsValidIndex(U_ExtForce .BodyApplicationIndex));
+		check(Bodies.IsValidIndex(U_ExtForce.BodyApplicationIndex));
+		check(FMath::IsFinite(U_ExtForce.Vector.X) && FMath::IsFinite(U_ExtForce.Vector.Y));
 
-		check(
-			FMath::IsFinite(U_ExtForce .Vector.X)
-			&& FMath::IsFinite(U_ExtForce .Vector.Y)
-		);
+		Bodies[U_ExtForce.BodyApplicationIndex].NetForce += U_ExtForce.Vector;
+	}
+}
 
-		Bodies[U_ExtForce .BodyApplicationIndex].NetForce += U_ExtForce.Vector;
+void FFullSys::ApplyTau_FR(const Eigen::VectorXd& Tau_FR)
+{
+	check(Tau_FR.size() == StateIndexMap.SizeQ_FR);
+
+	for (int32 Q_FRIndex = 0; Q_FRIndex < StateIndexMap.SizeQ_FR; ++Q_FRIndex)
+	{
+		const int32 Q_FullIndex = StateIndexMap.Q_FRToFullIndices[Q_FRIndex];
+		const int32 BodyIndex = Q_FullIndex / 2;
+
+		if (Q_FullIndex % 2 == 0)
+		{
+			Bodies[BodyIndex].NetForce.X += Tau_FR(Q_FRIndex);
+		}
+		else
+		{
+			Bodies[BodyIndex].NetForce.Y += Tau_FR(Q_FRIndex);
+		}
 	}
 }
 

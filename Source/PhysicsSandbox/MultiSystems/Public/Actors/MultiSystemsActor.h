@@ -39,6 +39,7 @@ public:
 private:
 	FFullSys FullSys;
 	FControlSys ControlSys;
+	TArray<FU_ExtForce> U_ExtForces;
 
 	// =========================
 	// Camera Control Instance
@@ -81,14 +82,7 @@ private:
 
 	int64 FrameCount = 0;
 	int32 LastSubStepCount = 0;
-
 	uint64 FixedStepCount = 0;
-
-	// =========================
-	// ControlSystem
-	// =========================
-	UPROPERTY(EditAnywhere, Category = "Control|Linearization Test")
-	double LinearizationEpsilon = 1.0e-6;
 
 	// =========================
 	// Visualization

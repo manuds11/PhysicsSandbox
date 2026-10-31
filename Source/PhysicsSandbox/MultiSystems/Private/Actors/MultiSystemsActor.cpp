@@ -169,10 +169,15 @@ void AMultiSystemsActor::BuildDemoSystem()
 		);
 
 	// -------------------------------------------------------------------------
-	// Force Inputs
+	// External force inputs
 	// -------------------------------------------------------------------------
 
+	U_ExtForces.Reset();
 
+	U_ExtForces.Add({
+		Mass1Index,
+		FVector2D::ZeroVector
+		});
 
 	// -------------------------------------------------------------------------
 	// Rods
@@ -375,22 +380,40 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		SimulationTimeDebt >= FixedTimeStep
 		&& SubStepCount < MaxSubSteps)
 	{
-		if (!FullSys.Step(FixedTimeStep))
+		const FSysState X_k = FullSys.BuildFullState();
+
+		Eigen::VectorXd U = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+		const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U);
+
+		constexpr double LinearizationEpsilon = 1.0e-6;
+
+		Eigen::MatrixXd A_FR;
+
+		if (!ControlSys.ComputeA_FR(
+			FullSys,
+			X_k,
+			Tau_FR,
+			U_ExtForces,
+			LinearizationEpsilon,
+			A_FR
+		))
 		{
 			bIsSimulationRunning = false;
-
-			UE_LOG(
-				LogPhysicsSandbox,
-				Error,
-				TEXT("Simulation step failed. Simulation has been paused.")
-			);
-
 			break;
 		}
 
-		// TEST
+		if (!FullSys.Step(
+			FixedTimeStep,
+			X_k,
+			Tau_FR,
+			U_ExtForces
+		))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
 		
-		// END TEST
+		// END 
 
 		++FixedStepCount;
 		SimuPhysicalTime += FixedTimeStep;

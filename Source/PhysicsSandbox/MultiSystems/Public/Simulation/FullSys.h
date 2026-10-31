@@ -23,18 +23,18 @@ public:
 
 	int32 AddBody(const FBody& Body);
 	int32 AddElement(TUniquePtr<ISysElement> Element);
-	int32 AddU_ExtForce(const FU_ExtForce& U_ExtForce);
-	void SetU_ExtForce(
-		int32 U_ExtForceIndex,
-		const FVector2D& U_ExtForce
-	);
 
 	void SetIntegrator(TUniquePtr<ISysIntegrator> InIntegrator);
 	void SetVelocityCorrection1Enabled(bool bEnabled) { RodSys.bEnableVelocityCorrection1 = bEnabled; }
 	void SetPositionCorrectionsEnabled(bool bEnabled) { RodSys.bEnablePositionCorrection = bEnabled; }
 	void SetVelocityCorrection2Enabled(bool bEnabled) { RodSys.bEnableVelocityCorrection2 = bEnabled; }
 
-	bool Step(double Dt);
+	bool Step(
+		double Dt,
+		const FSysState& InputX_Full,
+		const Eigen::VectorXd& Tau_FR,
+		const TArray<FU_ExtForce>& U_ExtForces
+	);
 
 	const TArray<FBody>& GetBodies() const;
 	const FStateDOFIndexMap& GetStateIndexMap() const {	return StateIndexMap;	}
@@ -55,8 +55,10 @@ public:
 		const FSysState& InputX_Full
 	);
 
-	bool EvaluateDynamics(
+	bool EvaluateXDot(
 		const FSysState& InputX_Full,
+		const Eigen::VectorXd& Tau_FR,
+		const TArray<FU_ExtForce>& U_ExtForces,
 		FSysStateDerivative& OutputXDot_Full
 	);
 
@@ -82,20 +84,18 @@ private:
 
 	
 	TArray<TUniquePtr<ISysElement>> Elements;
-	TArray<FU_ExtForce> U_ExtForces;
 
 	TUniquePtr<ISysIntegrator> Integrator;
 
 	bool bInitialized = false;
 	
 	void BuildStateIndexMap();
-	
-	bool EvaluateDynamics();
 
 	void ClearForces();
 	void ApplyNonConstraintInteractions();
 	void ApplyGravity();
-	void ApplyU_ExtForces();
+	void ApplyU_ExtForces(const TArray<FU_ExtForce>& U_ExtForces);
+	void ApplyTau_FR(const Eigen::VectorXd& Tau_FR);
 	void ComputeAccelerations();
 	void Integrate(double Dt);
 	void ApplyFixedAxes();

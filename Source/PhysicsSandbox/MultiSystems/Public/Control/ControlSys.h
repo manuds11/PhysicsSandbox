@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Simulation/SysState.h"
+#include "Simulation/FullSysTypes.h"
 
 #include <Eigen/Dense>
 
@@ -70,6 +71,8 @@ public:
 	bool ComputeA_FR(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalTau_FR,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
 		double Epsilon,
 		Eigen::MatrixXd& OutA_FR
 	);
@@ -121,6 +124,8 @@ private:
 	bool ComputeA_FullColumn(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalTau_FR,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
 		int32 PerturbationIndexX,
 		double Epsilon,
 		Eigen::VectorXd& OutA_iColumn
