@@ -66,36 +66,36 @@ int32 FFullSys::AddElement(TUniquePtr<ISysElement> Element)
 	return Elements.Add(MoveTemp(Element));
 }
 
-int32 FFullSys::AddForceInput(const FForceInput& ForceInput)
+int32 FFullSys::AddU_ExtForce(const FU_ExtForce& U_ExtForce)
 {
 	check(!bInitialized);
 
-	check(Bodies.IsValidIndex(ForceInput.BodyIndex));
+	check(Bodies.IsValidIndex(U_ExtForce.BodyApplicationIndex));
 
 	check(
-		FMath::IsFinite(ForceInput.Force.X)
-		&& FMath::IsFinite(ForceInput.Force.Y)
+		FMath::IsFinite(U_ExtForce.Vector.X)
+		&& FMath::IsFinite(U_ExtForce.Vector.Y)
 	);
 
-	return ForceInputs.Add(ForceInput);
+	return U_ExtForces.Add(U_ExtForce);
 }
 
-void FFullSys::SetForceInput(
-	int32 ForceInputIndex,
-	const FVector2D& Force
+void FFullSys::SetU_ExtForce(
+	int32 U_ExtForceIndex,
+	const FVector2D& U_ExtForce
 )
 {
 	checkf(
-		ForceInputs.IsValidIndex(ForceInputIndex),
-		TEXT("Invalid ForceInputIndex %d."),
-		ForceInputIndex
+		U_ExtForces.IsValidIndex(U_ExtForceIndex),
+		TEXT("Invalid U_ExtForceIndex %d."),
+		U_ExtForceIndex
 	);
 	check(
-		FMath::IsFinite(Force.X)
-		&& FMath::IsFinite(Force.Y)
+		FMath::IsFinite(U_ExtForce.X)
+		&& FMath::IsFinite(U_ExtForce.Y)
 	);
 
-	ForceInputs[ForceInputIndex].Force = Force;
+	U_ExtForces[U_ExtForceIndex].Vector = U_ExtForce;
 }
 
 FSubSys& FFullSys::CreateSubSys(FName Name)
@@ -142,8 +142,6 @@ void FFullSys::BuildStateIndexMap()
 {
 	StateIndexMap = {};
 
-	StateIndexMap.SizeQ_Full = 2 * Bodies.Num();
-
 	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
 	{
 		const FBody& Body = Bodies[BodyIndex];
@@ -153,49 +151,52 @@ void FFullSys::BuildStateIndexMap()
 
 		if (Body.bXFixed)
 		{
-			StateIndexMap.QFixedIndices.Add(XIndex);
+			StateIndexMap.QFull_FixedIndices.Add(XIndex);
 		}
 		else
 		{
-			StateIndexMap.QFreeIndices.Add(XIndex);
+			StateIndexMap.Q_FRToFullIndices.Add(XIndex);
 		}
 
 		if (Body.bYFixed)
 		{
-			StateIndexMap.QFixedIndices.Add(YIndex);
+			StateIndexMap.QFull_FixedIndices.Add(YIndex);
 		}
 		else
 		{
-			StateIndexMap.QFreeIndices.Add(YIndex);
+			StateIndexMap.Q_FRToFullIndices.Add(YIndex);
 		}
 	}
+
+	StateIndexMap.SizeQ_FR = StateIndexMap.Q_FRToFullIndices.Num();
+	StateIndexMap.SizeQ_Full = 2 * Bodies.Num();
 
 	const int32 SizeQ_Full = StateIndexMap.SizeQ_Full;
 
 	// X = [Q ; QDot]
-	for (const int32 QIndex : StateIndexMap.QFreeIndices)
+	for (const int32 QIndex : StateIndexMap.Q_FRToFullIndices)
 	{
-		StateIndexMap.XStateFreeIndices.Add(QIndex);
+		StateIndexMap.X_FRToFullIndices.Add(QIndex);
 	}
 
-	for (const int32 QIndex : StateIndexMap.QFreeIndices)
+	for (const int32 QIndex : StateIndexMap.Q_FRToFullIndices)
 	{
-		StateIndexMap.XStateFreeIndices.Add(SizeQ_Full + QIndex);
+		StateIndexMap.X_FRToFullIndices.Add(SizeQ_Full + QIndex);
 	}
 
-	for (const int32 QIndex : StateIndexMap.QFixedIndices)
+	for (const int32 QIndex : StateIndexMap.QFull_FixedIndices)
 	{
-		StateIndexMap.XStateFixedIndices.Add(QIndex);
+		StateIndexMap.X_FullFixedIndices.Add(QIndex);
 	}
 
-	for (const int32 QIndex : StateIndexMap.QFixedIndices)
+	for (const int32 QIndex : StateIndexMap.QFull_FixedIndices)
 	{
-		StateIndexMap.XStateFixedIndices.Add(SizeQ_Full + QIndex);
+		StateIndexMap.X_FullFixedIndices.Add(SizeQ_Full + QIndex);
 	}
 
 	check(
-		StateIndexMap.QFreeIndices.Num()
-		+ StateIndexMap.QFixedIndices.Num()
+		StateIndexMap.Q_FRToFullIndices.Num()
+		+ StateIndexMap.QFull_FixedIndices.Num()
 		== SizeQ_Full
 	);
 }
@@ -291,7 +292,7 @@ bool FFullSys::EvaluateDynamics()
 {
 	ClearForces();
 	ApplyGravity();
-	ApplyForceInputs();
+	ApplyU_ExtForces();
 	ApplyNonConstraintInteractions();
 
 	if (!RodSys.RunConstraintForces(Bodies))
@@ -418,18 +419,18 @@ void FFullSys::ApplyGravity()
 	}
 }
 
-void FFullSys::ApplyForceInputs()
+void FFullSys::ApplyU_ExtForces()
 {
-	for (const FForceInput& Input : ForceInputs)
+	for (const FU_ExtForce& U_ExtForce  : U_ExtForces)
 	{
-		check(Bodies.IsValidIndex(Input.BodyIndex));
+		check(Bodies.IsValidIndex(U_ExtForce .BodyApplicationIndex));
 
 		check(
-			FMath::IsFinite(Input.Force.X)
-			&& FMath::IsFinite(Input.Force.Y)
+			FMath::IsFinite(U_ExtForce .Vector.X)
+			&& FMath::IsFinite(U_ExtForce .Vector.Y)
 		);
 
-		Bodies[Input.BodyIndex].NetForce += Input.Force;
+		Bodies[U_ExtForce .BodyApplicationIndex].NetForce += U_ExtForce.Vector;
 	}
 }
 

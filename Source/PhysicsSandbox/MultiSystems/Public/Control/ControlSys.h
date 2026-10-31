@@ -6,10 +6,65 @@
 
 class FFullSys;
 
+struct FControlForceContribution
+{
+	int32 BodyApplicationIndex = INDEX_NONE;
+
+	// Cartesian force produced by one unit of this control channel.
+	FVector2D ForcePerUnitU = FVector2D::ZeroVector;
+};
+
+struct FLinearControlChannel
+{
+	FName Name = NAME_None;
+
+	TArray<FControlForceContribution> ForceContributions;
+
+	FLinearControlChannel() = default;
+
+	explicit FLinearControlChannel(
+		FName InName
+	)
+		: Name(InName)
+	{
+	}
+
+	void AddForceContribution(
+		int32 BodyApplicationIndex,
+		const FVector2D& ForcePerUnitU
+	);
+};
+
 class FControlSys
 {
 public:
 	FControlSys() = default;
+
+	// -----------------------------------------------------------------------------
+	// Control Channels
+	// -----------------------------------------------------------------------------
+
+	int32 AddLinearControlChannel(
+		FLinearControlChannel Channel
+	);
+
+	bool BuildControlAllocationG_FRMatrix(
+		const FFullSys& FullSys
+	);
+
+	Eigen::VectorXd ComputeTau_FR(
+		const Eigen::VectorXd& U
+	) const;
+
+	int32 GetNumControlChannels() const
+	{
+		return ControlChannels.Num();
+	}
+
+	const Eigen::MatrixXd& GetG_UToTau_FR() const
+	{
+		return G_UToTau_FR;
+	}
 
 	// Finite Difference
 	bool ComputeA_FR(
@@ -57,6 +112,12 @@ public:
 	) const;
 
 private:
+	TArray<FLinearControlChannel> ControlChannels;
+
+	Eigen::MatrixXd G_UToTau_FR;
+
+	bool bControlAllocationBuilt = false;
+	
 	bool ComputeA_FullColumn(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,

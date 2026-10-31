@@ -116,11 +116,17 @@ private:
 		double VelocityScale
 	) const;
 
-	void DrawKernelBasisColumn(
-		int32 BasisIndex
+	void DrawStatePerturbationAtBody(
+		int32 BodyIndex,
+		const Eigen::VectorXd& DeltaX_Full,
+		double PositionScale,
+		double VelocityScale
 	) const;
 
-	// TEST
-	bool TestAStateJacobian();
-	bool TestKernelBasis_FR();
+	void DrawKernelZVector(const Eigen::VectorXd& Z_ker) const;
+
+	void DrawKernelZVectorAtBody(
+		int32 BodyIndex,
+		const Eigen::VectorXd& Z_ker
+	) const;
 };

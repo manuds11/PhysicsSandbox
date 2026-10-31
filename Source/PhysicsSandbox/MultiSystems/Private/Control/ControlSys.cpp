@@ -6,6 +6,139 @@
 #include <Eigen/SVD>
 #include <limits>
 
+// -----------------------------------------------------------------------------
+// Control Channels
+// -----------------------------------------------------------------------------
+
+int32 FControlSys::AddLinearControlChannel(
+	FLinearControlChannel Channel
+)
+{
+	check(!bControlAllocationBuilt);
+
+	check(
+		!Channel.ForceContributions.IsEmpty()
+	);
+
+	return ControlChannels.Add(
+		MoveTemp(Channel)
+	);
+}
+
+void FLinearControlChannel::AddForceContribution(
+	int32 BodyApplicationIndex,
+	const FVector2D& ForcePerUnitU
+)
+{
+	check(
+		BodyApplicationIndex
+		!= INDEX_NONE
+	);
+
+	check(
+		FMath::IsFinite(ForcePerUnitU.X)
+		&& FMath::IsFinite(ForcePerUnitU.Y)
+	);
+
+	check(
+		!ForcePerUnitU.IsNearlyZero()
+	);
+
+	FControlForceContribution Contribution;
+
+	Contribution.BodyApplicationIndex =
+		BodyApplicationIndex;
+
+	Contribution.ForcePerUnitU =
+		ForcePerUnitU;
+
+	ForceContributions.Add(
+		Contribution
+	);
+}
+
+bool FControlSys::BuildControlAllocationG_FRMatrix(
+	const FFullSys& FullSys
+)
+{
+	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
+
+	const TArray<FBody>& Bodies = FullSys.GetBodies();
+
+	if (IndexMap.SizeQ_FR <= 0 || ControlChannels.Num() <= 0)
+	{
+		return false;
+	}
+
+	G_UToTau_FR = Eigen::MatrixXd::Zero(IndexMap.SizeQ_FR, ControlChannels.Num());
+
+	for (
+		int32 ChannelIndex = 0;
+		ChannelIndex < ControlChannels.Num();
+		++ChannelIndex
+		)
+	{
+		const FLinearControlChannel& Channel =
+			ControlChannels[ChannelIndex];
+
+		if (Channel.ForceContributions.IsEmpty())
+		{
+			return false;
+		}
+
+		for (const FControlForceContribution& Contribution : Channel.ForceContributions)
+		{
+			if (!Bodies.IsValidIndex(Contribution.BodyApplicationIndex))
+			{
+				return false;
+			}
+
+			const int32 Q_FullChannelContribXIndex = 2 * Contribution.BodyApplicationIndex;
+			const int32 Q_FullChannelContribYIndex = Q_FullChannelContribXIndex + 1;
+
+			const int32 Q_FRChannelContribXIndex = IndexMap.FindQ_FRIndex(Q_FullChannelContribXIndex);
+			const int32 Q_FRChannelContribYIndex = IndexMap.FindQ_FRIndex(Q_FullChannelContribYIndex);
+
+			if (Q_FRChannelContribXIndex != INDEX_NONE)
+			{
+				G_UToTau_FR(Q_FRChannelContribXIndex, ChannelIndex) += Contribution.ForcePerUnitU.X;
+			}
+
+			if (Q_FRChannelContribYIndex != INDEX_NONE)
+			{
+				G_UToTau_FR(Q_FRChannelContribYIndex, ChannelIndex) += Contribution.ForcePerUnitU.Y;
+			}
+		}
+	}
+
+	if (!G_UToTau_FR.allFinite())
+	{
+		return false;
+	}
+
+	bControlAllocationBuilt = true;
+
+	const double* GData = G_UToTau_FR.data();
+
+	return true;
+}
+
+Eigen::VectorXd FControlSys::ComputeTau_FR(
+	const Eigen::VectorXd& U
+) const
+{
+	check(bControlAllocationBuilt);
+
+	check(
+		U.size()
+		== G_UToTau_FR.cols()
+	);
+
+	check(U.allFinite());
+
+	return G_UToTau_FR * U;
+}
+
 // -------------------------------------------------------------------------
 // Finite Difference 
 // -------------------------------------------------------------------------
@@ -21,7 +154,7 @@ bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
 
 	const int32 SizeX_Full = static_cast<int32>(NominalX_Full.ToVector().size());
 
-	const int32 SizeX_FR = IndexMap.XStateFreeIndices.Num();
+	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
 
 	check(Epsilon > 0.0);
 
@@ -34,7 +167,7 @@ bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
 		)
 	{
 		const int32 PerturbationIndexX_Full = 
-			IndexMap.XStateFreeIndices[ColumnA_FR];
+			IndexMap.X_FRToFullIndices[ColumnA_FR];
 
 		Eigen::VectorXd A_iColumn_Full;
 
@@ -64,7 +197,7 @@ bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
 			)
 		{
 			const int32 RowFull =
-				IndexMap.XStateFreeIndices[RowA_FR];
+				IndexMap.X_FRToFullIndices[RowA_FR];
 
 			OutA_FR(RowA_FR, ColumnA_FR) =
 				A_iColumn_Full(RowFull);
@@ -92,7 +225,7 @@ void FControlSys::BuildA_FRInFullDisplay(
 {
 	const int32 SizeX_Full = 2 * IndexMap.SizeQ_Full;
 
-	const int32 SizeX_FR = IndexMap.XStateFreeIndices.Num();
+	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
 
 	check(A_FR.rows() == SizeX_FR);
 
@@ -116,7 +249,7 @@ void FControlSys::BuildA_FRInFullDisplay(
 			++ColumnA_FR
 			)
 		{
-			OutA_FullDisplay(IndexMap.XStateFreeIndices[RowA_FR], IndexMap.XStateFreeIndices[ColumnA_FR]) =
+			OutA_FullDisplay(IndexMap.X_FRToFullIndices[RowA_FR], IndexMap.X_FRToFullIndices[ColumnA_FR]) =
 				A_FR(RowA_FR, ColumnA_FR);
 		}
 	}
@@ -181,7 +314,7 @@ bool FControlSys::BuildJandJDot_FR(
 	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 
 	const int32 NumRods = Rods.Num();
-	const int32 SizeQ_FR = IndexMap.QFreeIndices.Num();
+	const int32 SizeQ_FR = IndexMap.Q_FRToFullIndices.Num();
 
 	OutJ_FR = Eigen::MatrixXd::Zero(NumRods, SizeQ_FR);
 	OutJDot_FR = Eigen::MatrixXd::Zero(NumRods, SizeQ_FR);
@@ -199,7 +332,7 @@ bool FControlSys::BuildJandJDot_FR(
 
 		for (int32 Column_FR = 0; Column_FR < SizeQ_FR; ++Column_FR)
 		{
-			const int32 QIndex_Full = IndexMap.QFreeIndices[Column_FR];
+			const int32 QIndex_Full = IndexMap.Q_FRToFullIndices[Column_FR];
 			const int32 BodyIndex = QIndex_Full / 2; 
 			const bool bXAxis = (QIndex_Full % 2) == 0;
 
@@ -272,7 +405,7 @@ Eigen::VectorXd FControlSys::ExpandDeltaX_FRToFull(
 	const Eigen::VectorXd& DeltaX_FR
 ) const
 {
-	const int32 SizeX_FR = IndexMap.XStateFreeIndices.Num();
+	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
 	const int32 SizeX_Full = 2 * IndexMap.SizeQ_Full;
 
 	check(DeltaX_FR.size() == SizeX_FR);
@@ -282,7 +415,7 @@ Eigen::VectorXd FControlSys::ExpandDeltaX_FRToFull(
 
 	for (int32 Index_FR = 0; Index_FR < SizeX_FR; ++Index_FR)
 	{
-		const int32 Index_Full = IndexMap.XStateFreeIndices[Index_FR];
+		const int32 Index_Full = IndexMap.X_FRToFullIndices[Index_FR];
 		DeltaX_Full(Index_Full) = DeltaX_FR(Index_FR);
 	}
 
