@@ -99,6 +99,16 @@ bool FControlSys::BuildControlAllocationG_FRMatrix(
 			const int32 Q_FRChannelContribXIndex = IndexMap.FindQ_FRIndex(Q_FullChannelContribXIndex);
 			const int32 Q_FRChannelContribYIndex = IndexMap.FindQ_FRIndex(Q_FullChannelContribYIndex);
 
+			if (!FMath::IsNearlyZero(Contribution.ForcePerUnitU.X) && Q_FRChannelContribXIndex == INDEX_NONE)
+			{
+				return false;
+			}
+
+			if (!FMath::IsNearlyZero(Contribution.ForcePerUnitU.Y) && Q_FRChannelContribYIndex == INDEX_NONE)
+			{
+				return false;
+			}
+
 			if (Q_FRChannelContribXIndex != INDEX_NONE)
 			{
 				G_UToTau_FR(Q_FRChannelContribXIndex, ChannelIndex) += Contribution.ForcePerUnitU.X;
