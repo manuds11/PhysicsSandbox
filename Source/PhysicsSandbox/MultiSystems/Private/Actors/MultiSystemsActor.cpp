@@ -381,20 +381,13 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		SimulationTimeDebt >= FixedTimeStep
 		&& SubStepCount < MaxSubSteps)
 	{
-	
 		// TEST - Control orchestration / linearization debug
-	// -------------------------------------------------------------------------
+		// -------------------------------------------------------------------------
 
 		const FSysState X_k = FullSys.BodiesToFullStateStruct();
-		const Eigen::VectorXd X_k_Vector = X_k.ToVector();
-		const double* volatile XkData = X_k_Vector.data();
 
 		Eigen::VectorXd U_Control = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
-		U_Control(0) = 0.0;
-		U_Control(1) = -0.0;
-		U_ExtForces[0].Vector = FVector2D(0.0, 0.0);
 
-		const Eigen::MatrixXd& G_UToTau_FR = ControlSys.GetG_UToTau_FR();
 		const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U_Control);
 
 		constexpr double LinearizationEpsilon = 1.0e-5;
@@ -413,43 +406,6 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 			bIsSimulationRunning = false;
 			break;
 		}
-
-		FSysStateDerivative XDotNominal_Full;
-
-		if (!FullSys.EvaluateXDot(
-			X_k,
-			Tau_FR,
-			U_ExtForces,
-			XDotNominal_Full
-		))
-		{
-			bIsSimulationRunning = false;
-			break;
-		}
-
-		const Eigen::VectorXd XDotNominalVector_Full = XDotNominal_Full.ToVector();
-
-
-		// Debug helpers for Visual Studio
-
-		const double* volatile GData = G_UToTau_FR.data();
-		const double* volatile UData = U_Control.data();
-		const double* volatile TauData = Tau_FR.data();
-		const double* volatile AData = A_FR.data();
-		const double* volatile XDotData = XDotNominalVector_Full.data();
-
-		const FU_ExtForce* volatile UExtData = U_ExtForces.GetData();
-
-		const int32 GRows = static_cast<int32>(G_UToTau_FR.rows());
-		const int32 GCols = static_cast<int32>(G_UToTau_FR.cols());
-
-		const int32 ARows = static_cast<int32>(A_FR.rows());
-		const int32 ACols = static_cast<int32>(A_FR.cols());
-
-		const int32 USize = static_cast<int32>(U_Control.size());
-		const int32 TauSize = static_cast<int32>(Tau_FR.size());
-		const int32 XDotSize = static_cast<int32>(XDotNominalVector_Full.size());
-		const int32 UExtNum = U_ExtForces.Num();
 
 		// -------------------------------------------------------------------------
 		// END TEST
