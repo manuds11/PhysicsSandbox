@@ -169,7 +169,7 @@ void FFullSys::BuildStateIndexMap()
 	);
 }
 
-FSysState FFullSys::BuildFullState() const
+FSysState FFullSys::BodiesToFullStateStruct() const
 {
 	// Builds an independent snapshot of the current full system state from Bodies, copying its values.
 

@@ -46,7 +46,7 @@ public:
 	// -----------------------------------------------------------------------------
 	// Control
 	// -----------------------------------------------------------------------------
-	FSysState BuildFullState() const;
+	FSysState BodiesToFullStateStruct() const;
 	FSysStateDerivative BuildFullStateDerivative(
 		const Eigen::VectorXd& InQDot_Full
 	) const;

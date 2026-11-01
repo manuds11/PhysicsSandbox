@@ -132,19 +132,19 @@ bool FControlSys::BuildControlAllocationG_FRMatrix(
 }
 
 Eigen::VectorXd FControlSys::ComputeTau_FR(
-	const Eigen::VectorXd& U
+	const Eigen::VectorXd& U_Control
 ) const
 {
 	check(bControlAllocationBuilt);
 
 	check(
-		U.size()
+		U_Control.size()
 		== G_UToTau_FR.cols()
 	);
 
-	check(U.allFinite());
+	check(U_Control.allFinite());
 
-	return G_UToTau_FR * U;
+	return G_UToTau_FR * U_Control;
 }
 
 // -------------------------------------------------------------------------

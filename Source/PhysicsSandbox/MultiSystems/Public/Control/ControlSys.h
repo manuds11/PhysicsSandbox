@@ -54,7 +54,7 @@ public:
 	);
 
 	Eigen::VectorXd ComputeTau_FR(
-		const Eigen::VectorXd& U
+		const Eigen::VectorXd& U_Control
 	) const;
 
 	int32 GetNumControlChannels() const
