@@ -151,7 +151,7 @@ Eigen::VectorXd FControlSys::ComputeTau_FR(
 // Finite Difference 
 // -------------------------------------------------------------------------
 
-bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
+bool FControlSys::ComputeA_FR_Continuous(	// FR = Free-Redundant
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
 	const Eigen::VectorXd& NominalTau_FR,
@@ -175,7 +175,7 @@ bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
 
 		Eigen::VectorXd A_iColumn_Full;
 
-		if (!ComputeA_FullColumn(
+		if (!ComputeA_FullColumn_Continuous(
 			FullSys,
 			NominalX_Full,
 			NominalTau_FR,
@@ -194,6 +194,58 @@ bool FControlSys::ComputeA_FR(	// FR = Free-Redundant
 		{
 			const int32 RowFull = IndexMap.X_FRToFullIndices[RowA_FR];
 
+			OutA_FR(RowA_FR, ColumnA_FR) = A_iColumn_Full(RowFull);
+		}
+	}
+
+	return true;
+}
+
+bool FControlSys::ComputeA_FR_Discrete(
+	FFullSys& FullSys,
+	double Dt,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalTau_FR,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	double Epsilon,
+	Eigen::MatrixXd& OutA_FR
+)
+{
+	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
+
+	const int32 SizeX_Full = static_cast<int32>(NominalX_Full.ToVector().size());
+	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
+
+	check(Dt > 0.0);
+	check(Epsilon > 0.0);
+
+	OutA_FR.resize(SizeX_FR, SizeX_FR);
+
+	for (int32 ColumnA_FR = 0; ColumnA_FR < SizeX_FR; ++ColumnA_FR)
+	{
+		const int32 PerturbationIndexX_Full = IndexMap.X_FRToFullIndices[ColumnA_FR];
+
+		Eigen::VectorXd A_iColumn_Full;
+
+		if (!ComputeA_FullColumn_Discrete(
+			FullSys,
+			Dt,
+			NominalX_Full,
+			NominalTau_FR,
+			NominalU_ExtForces,
+			PerturbationIndexX_Full,
+			Epsilon,
+			A_iColumn_Full
+		))
+		{
+			return false;
+		}
+
+		check(A_iColumn_Full.size() == SizeX_Full);
+
+		for (int32 RowA_FR = 0; RowA_FR < SizeX_FR; ++RowA_FR)
+		{
+			const int32 RowFull = IndexMap.X_FRToFullIndices[RowA_FR];
 			OutA_FR(RowA_FR, ColumnA_FR) = A_iColumn_Full(RowFull);
 		}
 	}
@@ -410,7 +462,7 @@ Eigen::VectorXd FControlSys::ExpandDeltaX_FRToFull(
 // Helpers
 // -----------------------------------------------------------------------------
 
-bool FControlSys::ComputeA_FullColumn(
+bool FControlSys::ComputeA_FullColumn_Continuous(
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
 	const Eigen::VectorXd& NominalTau_FR,
@@ -452,6 +504,67 @@ bool FControlSys::ComputeA_FullColumn(
 
 	OutA_iColumn =
 		(XDotPlus_Full.ToVector() - XDotMinus_Full.ToVector())
+		/ (2.0 * Epsilon);
+
+	return true;
+}
+
+bool FControlSys::ComputeA_FullColumn_Discrete(
+	FFullSys& FullSys,
+	double Dt,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalTau_FR,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	int32 PerturbationIndexX,
+	double Epsilon,
+	Eigen::VectorXd& OutA_iColumn
+)
+{
+	const Eigen::VectorXd NominalXVector_Full = NominalX_Full.ToVector();
+
+	const int32 NumStates = static_cast<int32>(NominalXVector_Full.size());
+
+	check(Dt > 0.0);
+	check(PerturbationIndexX >= 0);
+	check(PerturbationIndexX < NumStates);
+	check(Epsilon > 0.0);
+
+	Eigen::VectorXd XPlusVector_Full = NominalXVector_Full;
+	Eigen::VectorXd XMinusVector_Full = NominalXVector_Full;
+
+	XPlusVector_Full(PerturbationIndexX) += Epsilon;
+	XMinusVector_Full(PerturbationIndexX) -= Epsilon;
+
+	const FSysState XPlus_Full = FSysState::ToStruct(XPlusVector_Full);
+	const FSysState XMinus_Full = FSysState::ToStruct(XMinusVector_Full);
+
+	FSysState XNextPlus_Full;
+	FSysState XNextMinus_Full;
+
+	if (!FullSys.EvaluateNextXState(
+		Dt,
+		XPlus_Full,
+		NominalTau_FR,
+		NominalU_ExtForces,
+		XNextPlus_Full
+	))
+	{
+		return false;
+	}
+
+	if (!FullSys.EvaluateNextXState(
+		Dt,
+		XMinus_Full,
+		NominalTau_FR,
+		NominalU_ExtForces,
+		XNextMinus_Full
+	))
+	{
+		return false;
+	}
+
+	OutA_iColumn =
+		(XNextPlus_Full.ToVector() - XNextMinus_Full.ToVector())
 		/ (2.0 * Epsilon);
 
 	return true;

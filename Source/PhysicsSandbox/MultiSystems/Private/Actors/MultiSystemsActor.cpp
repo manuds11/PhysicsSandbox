@@ -392,20 +392,114 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 
 		constexpr double LinearizationEpsilon = 1.0e-5;
 
-		Eigen::MatrixXd A_FR;
+		Eigen::MatrixXd A_FR_Continuous;
+		Eigen::MatrixXd A_FR_Discrete;
 
-		if (!ControlSys.ComputeA_FR(
+		if (!ControlSys.ComputeA_FR_Continuous(
 			FullSys,
 			X_k,
 			Tau_FR,
 			U_ExtForces,
 			LinearizationEpsilon,
-			A_FR
+			A_FR_Continuous
 		))
 		{
 			bIsSimulationRunning = false;
 			break;
 		}
+
+		if (!ControlSys.ComputeA_FR_Discrete(
+			FullSys,
+			FixedTimeStep,
+			X_k,
+			Tau_FR,
+			U_ExtForces,
+			LinearizationEpsilon,
+			A_FR_Discrete
+		))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
+
+		// Validate A_FR_Discrete
+		// -------------------------------------------------------------------------
+
+		const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
+		const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
+
+		constexpr double ValidationPerturbation = 1.0e-6;
+
+		Eigen::VectorXd DeltaX_FR(SizeX_FR);
+
+		for (int32 Index_FR = 0; Index_FR < SizeX_FR; ++Index_FR)
+		{
+			const double Sign = (Index_FR % 2 == 0) ? 1.0 : -1.0;
+			const double Scale = 1.0 + 0.1 * static_cast<double>(Index_FR);
+
+			DeltaX_FR(Index_FR) = Sign * Scale * ValidationPerturbation;
+		}
+
+		const Eigen::VectorXd DeltaX_Full =
+			ControlSys.ExpandDeltaX_FRToFull(IndexMap, DeltaX_FR);
+
+		const FSysState X_Perturbed_Full =
+			FSysState::ToStruct(X_k.ToVector() + DeltaX_Full);
+
+		FSysState XNextNominal_Full;
+		FSysState XNextPerturbed_Full;
+
+		if (!FullSys.EvaluateNextXState(
+			FixedTimeStep,
+			X_k,
+			Tau_FR,
+			U_ExtForces,
+			XNextNominal_Full
+		))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
+
+		if (!FullSys.EvaluateNextXState(
+			FixedTimeStep,
+			X_Perturbed_Full,
+			Tau_FR,
+			U_ExtForces,
+			XNextPerturbed_Full
+		))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
+
+		const Eigen::VectorXd DeltaXNextReal_Full =
+			XNextPerturbed_Full.ToVector() - XNextNominal_Full.ToVector();
+
+		Eigen::VectorXd DeltaXNextReal_FR(SizeX_FR);
+
+		for (int32 Index_FR = 0; Index_FR < SizeX_FR; ++Index_FR)
+		{
+			const int32 Index_Full = IndexMap.X_FRToFullIndices[Index_FR];
+			DeltaXNextReal_FR(Index_FR) = DeltaXNextReal_Full(Index_Full);
+		}
+
+		const Eigen::VectorXd DeltaXNextLinear_FR =
+			A_FR_Discrete * DeltaX_FR;
+
+		const Eigen::VectorXd PredictionError_FR =
+			DeltaXNextReal_FR - DeltaXNextLinear_FR;
+
+		const double PredictionError = PredictionError_FR.norm();
+		const double DeltaXNextRealNorm = DeltaXNextReal_FR.norm();
+
+		const double RelativePredictionError =
+			DeltaXNextRealNorm > 1.0e-15
+			? PredictionError / DeltaXNextRealNorm
+			: PredictionError;
+
+		// Real simulation step
+		// -------------------------------------------------------------------------
 
 		FSysState X_kPlus1;
 

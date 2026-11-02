@@ -68,8 +68,18 @@ public:
 	}
 
 	// Finite Difference
-	bool ComputeA_FR(
+	bool ComputeA_FR_Continuous(
 		FFullSys& FullSys,
+		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalTau_FR,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
+		double Epsilon,
+		Eigen::MatrixXd& OutA_FR
+	);
+
+	bool ComputeA_FR_Discrete(
+		FFullSys& FullSys,
+		double Dt,
 		const FSysState& NominalX_Full,
 		const Eigen::VectorXd& NominalTau_FR,
 		const TArray<FU_ExtForce>& NominalU_ExtForces,
@@ -121,8 +131,19 @@ private:
 
 	bool bControlAllocationBuilt = false;
 	
-	bool ComputeA_FullColumn(
+	bool ComputeA_FullColumn_Continuous(
 		FFullSys& FullSys,
+		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalTau_FR,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
+		int32 PerturbationIndexX,
+		double Epsilon,
+		Eigen::VectorXd& OutA_iColumn
+	);
+
+	bool ComputeA_FullColumn_Discrete(
+		FFullSys& FullSys,
+		double Dt,
 		const FSysState& NominalX_Full,
 		const Eigen::VectorXd& NominalTau_FR,
 		const TArray<FU_ExtForce>& NominalU_ExtForces,
