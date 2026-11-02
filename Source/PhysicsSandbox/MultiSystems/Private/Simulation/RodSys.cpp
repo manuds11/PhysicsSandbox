@@ -72,35 +72,50 @@ bool FRodSys::RunConstraintForces(
 // -----------------------------------------------------------------------------
 
 bool FRodSys::RunConstraintCorrections(
-	TArray<FBody>& Bodies, 
-	TFunctionRef<FSystemEnergyState()> ComputeEnergy
+	TArray<FBody>& Bodies,
+	TFunctionRef<FSystemEnergyState()> ComputeEnergy,
+	bool bRecordEnergyDiagnostics
 )
 {
-	CorrectionEnergyDiagnostics.InitialVelocityProjection = FDeltaEnergy{};
-	CorrectionEnergyDiagnostics.PositionProjection = FDeltaEnergy{};
-	CorrectionEnergyDiagnostics.FinalVelocityProjection = FDeltaEnergy{};
+	if (bRecordEnergyDiagnostics)
+	{
+		CorrectionEnergyDiagnostics.InitialVelocityProjection = FDeltaEnergy{};
+		CorrectionEnergyDiagnostics.PositionProjection = FDeltaEnergy{};
+		CorrectionEnergyDiagnostics.FinalVelocityProjection = FDeltaEnergy{};
+	}
 
 	// Initial velocity projection
 	// -----------------------------------------------------------------------------
 	if (bEnableVelocityCorrection1)
 	{
-		CorrectionEnergyDiagnostics.InitialVelocityProjection.Before = ComputeEnergy();
-		
+		if (bRecordEnergyDiagnostics)
+		{
+			CorrectionEnergyDiagnostics.InitialVelocityProjection.Before = ComputeEnergy();
+		}
+
 		ImpulseCorrectionSysUpdate(Bodies);
+
 		if (!SolveEtaVelCorrection())
 		{
 			return false;
 		}
+
 		ApplyAllVelocityProjections(Bodies);
 
-		CorrectionEnergyDiagnostics.InitialVelocityProjection.After = ComputeEnergy();
+		if (bRecordEnergyDiagnostics)
+		{
+			CorrectionEnergyDiagnostics.InitialVelocityProjection.After = ComputeEnergy();
+		}
 	}
 
 	// Position projection
 	// -----------------------------------------------------------------------------
 	if (bEnablePositionCorrection)
 	{
-		CorrectionEnergyDiagnostics.PositionProjection.Before = ComputeEnergy();
+		if (bRecordEnergyDiagnostics)
+		{
+			CorrectionEnergyDiagnostics.PositionProjection.Before = ComputeEnergy();
+		}
 
 		for (int32 Iteration = 0; Iteration < MaxPositionCorrectionIterations; ++Iteration)
 		{
@@ -127,28 +142,42 @@ bool FRodSys::RunConstraintCorrections(
 			}
 		}
 
-		CorrectionEnergyDiagnostics.PositionProjection.After = ComputeEnergy();
+		if (bRecordEnergyDiagnostics)
+		{
+			CorrectionEnergyDiagnostics.PositionProjection.After = ComputeEnergy();
+		}
 	}
 
 	// Final velocity projection
 	// -----------------------------------------------------------------------------
 	if (bEnableVelocityCorrection2)
 	{
-		CorrectionEnergyDiagnostics.FinalVelocityProjection.Before = ComputeEnergy();
+		if (bRecordEnergyDiagnostics)
+		{
+			CorrectionEnergyDiagnostics.FinalVelocityProjection.Before = ComputeEnergy();
+		}
 
 		ImpulseCorrectionSysUpdate(Bodies);
+
 		if (!SolveEtaVelCorrection())
 		{
 			return false;
 		}
+
 		ApplyAllVelocityProjections(Bodies);
 
-		CorrectionEnergyDiagnostics.FinalVelocityProjection.After = ComputeEnergy();
+		if (bRecordEnergyDiagnostics)
+		{
+			CorrectionEnergyDiagnostics.FinalVelocityProjection.After = ComputeEnergy();
+		}
 	}
 	
 	UpdateRodStates(Bodies);
 
-	CorrectionEnergyDiagnostics.AccumulateStepEnergy();
+	if (bRecordEnergyDiagnostics)
+	{
+		CorrectionEnergyDiagnostics.AccumulateStepEnergy();
+	}
 
 	return true;
 }

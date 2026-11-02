@@ -19,8 +19,9 @@ public:
 	bool RunConstraintForces(TArray<FBody>& Bodies);
 
 	bool RunConstraintCorrections(
-		TArray<FBody>& Bodies, 
-		TFunctionRef<FSystemEnergyState()> ComputeEnergy
+		TArray<FBody>& Bodies,
+		TFunctionRef<FSystemEnergyState()> ComputeEnergy,
+		bool bRecordEnergyDiagnostics
 	);
 
 	void UpdateStatisticalErrorData();

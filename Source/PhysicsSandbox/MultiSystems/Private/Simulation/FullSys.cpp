@@ -325,12 +325,15 @@ bool FFullSys::Step(
 		return false;
 	}
 
+	const bool bRecordEnergyDiagnostics = true;
+
 	if (!RodSys.RunConstraintCorrections(
 		Bodies,
 		[this]()
 		{
 			return ComputeSystemEnergy();
-		}
+		},
+		bRecordEnergyDiagnostics
 	))
 	{
 		return false;
