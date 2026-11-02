@@ -382,7 +382,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		&& SubStepCount < MaxSubSteps)
 	{
 		// TEST - Control orchestration / linearization debug
-		// -------------------------------------------------------------------------
+// -------------------------------------------------------------------------
 
 		const FSysState X_k = FullSys.BodiesToFullStateStruct();
 
@@ -407,19 +407,22 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 			break;
 		}
 
-		// -------------------------------------------------------------------------
-		// END TEST
+		FSysState X_kPlus1;
 
 		if (!FullSys.Step(
 			FixedTimeStep,
 			X_k,
 			Tau_FR,
-			U_ExtForces
+			U_ExtForces,
+			X_kPlus1
 		))
 		{
 			bIsSimulationRunning = false;
 			break;
 		}
+
+		// -------------------------------------------------------------------------
+		// END TEST
 
 		++FixedStepCount;
 		SimuPhysicalTime += FixedTimeStep;

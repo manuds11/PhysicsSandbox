@@ -287,35 +287,43 @@ bool FFullSys::EvaluateXDot(
 	return true;
 }
 
-bool FFullSys::Step(
+bool FFullSys::EvaluateNextXState(
 	double Dt,
 	const FSysState& InputX_Full,
 	const Eigen::VectorXd& Tau_FR,
-	const TArray<FU_ExtForce>& U_ExtForces
+	const TArray<FU_ExtForce>& U_ExtForces,
+	FSysState& OutputXNext_Full,
+	bool bRecordEnergyDiagnostics
 )
 {
 	check(bInitialized);
 	checkf(FMath::IsFinite(Dt) && Dt > 0.0, TEXT("Simulation Dt must be finite and positive."));
 
-	// Restore the actual X_k after possible control linearization perturbations.
-	SetXState2Bodies(InputX_Full);
-
-	const double DissipatedPowerBefore = ComputeDissipatedPower();
-
 	FSysStateDerivative XDot_Full;
 
-	if (!EvaluateXDot(InputX_Full, Tau_FR, U_ExtForces, XDot_Full))
+	if (!EvaluateXDot(
+		InputX_Full,
+		Tau_FR,
+		U_ExtForces,
+		XDot_Full
+	))
 	{
 		return false;
 	}
 
-	IntegrationEnergy.Before = ComputeSystemEnergy();
+	if (bRecordEnergyDiagnostics)
+	{
+		IntegrationEnergy.Before = ComputeSystemEnergy();
+	}
 
 	Integrate(Dt);
 
 	ApplyFixedAxes();
 
-	IntegrationEnergy.After = ComputeSystemEnergy();
+	if (bRecordEnergyDiagnostics)
+	{
+		IntegrationEnergy.After = ComputeSystemEnergy();
+	}
 
 	if (!ensureMsgf(
 		IsStateFinite(),
@@ -325,16 +333,12 @@ bool FFullSys::Step(
 		return false;
 	}
 
-	const bool bRecordEnergyDiagnostics = true;
-
-	if (!RodSys.RunConstraintCorrections(
-		Bodies,
-		[this]()
-		{
-			return ComputeSystemEnergy();
-		},
+	if (
+		!RodSys.RunConstraintCorrections(Bodies, 
+		[this](){	return ComputeSystemEnergy();	},
 		bRecordEnergyDiagnostics
-	))
+		)
+	)
 	{
 		return false;
 	}
@@ -342,6 +346,40 @@ bool FFullSys::Step(
 	if (!ensureMsgf(
 		IsStateFinite(),
 		TEXT("Simulation state became non-finite after constraint correction.")
+	))
+	{
+		return false;
+	}
+
+	OutputXNext_Full = BodiesToFullStateStruct();
+
+	return true;
+}
+
+bool FFullSys::Step(
+	double Dt,
+	const FSysState& InputX_Full,
+	const Eigen::VectorXd& Tau_FR,
+	const TArray<FU_ExtForce>& U_ExtForces,
+	FSysState& OutputXNext_Full
+)
+{
+	check(bInitialized);
+	checkf(FMath::IsFinite(Dt) && Dt > 0.0, TEXT("Simulation Dt must be finite and positive."));
+
+	SetXState2Bodies(InputX_Full);
+
+	const double DissipatedPowerBefore = ComputeDissipatedPower();
+
+	const bool bRecordEnergyDiagnostics = true;
+
+	if (!EvaluateNextXState(
+		Dt,
+		InputX_Full,
+		Tau_FR,
+		U_ExtForces,
+		OutputXNext_Full,
+		bRecordEnergyDiagnostics
 	))
 	{
 		return false;

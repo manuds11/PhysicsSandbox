@@ -29,11 +29,26 @@ public:
 	void SetPositionCorrectionsEnabled(bool bEnabled) { RodSys.bEnablePositionCorrection = bEnabled; }
 	void SetVelocityCorrection2Enabled(bool bEnabled) { RodSys.bEnableVelocityCorrection2 = bEnabled; }
 
+	bool EvaluateXDot(
+		const FSysState& InputX_Full,
+		const Eigen::VectorXd& Tau_FR,
+		const TArray<FU_ExtForce>& U_ExtForces,
+		FSysStateDerivative& OutputXDot_Full
+	);
+	bool EvaluateNextXState(
+		double Dt,
+		const FSysState& InputX_Full,
+		const Eigen::VectorXd& Tau_FR,
+		const TArray<FU_ExtForce>& U_ExtForces,
+		FSysState& OutputXNext_Full,
+		bool bRecordEnergyDiagnostics = false
+	);
 	bool Step(
 		double Dt,
 		const FSysState& InputX_Full,
 		const Eigen::VectorXd& Tau_FR,
-		const TArray<FU_ExtForce>& U_ExtForces
+		const TArray<FU_ExtForce>& U_ExtForces,
+		FSysState& OutputXNext_Full
 	);
 
 	const TArray<FBody>& GetBodies() const;
@@ -53,13 +68,6 @@ public:
 
 	void SetXState2Bodies(
 		const FSysState& InputX_Full
-	);
-
-	bool EvaluateXDot(
-		const FSysState& InputX_Full,
-		const Eigen::VectorXd& Tau_FR,
-		const TArray<FU_ExtForce>& U_ExtForces,
-		FSysStateDerivative& OutputXDot_Full
 	);
 
 	// -----------------------------------------------------------------------------
