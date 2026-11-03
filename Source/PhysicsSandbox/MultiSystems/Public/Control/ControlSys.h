@@ -36,6 +36,21 @@ struct FLinearControlChannel
 	);
 };
 
+struct FControllabilityResult
+{
+	int32 StateDimension = 0;
+	int32 ControlDimension = 0;
+
+	int32 Rank = 0;
+	bool bIsControllable = false;
+
+	double RankTolerance = 0.0;
+	double RelativeMinSingularValue = 0.0;
+
+	Eigen::VectorXd SingularValues;
+	Eigen::MatrixXd ControllabilityMatrix;
+};
+
 class FControlSys
 {
 public:
@@ -68,6 +83,7 @@ public:
 	}
 
 	// Finite Difference
+
 	bool ComputeA_FR_Continuous(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
@@ -134,6 +150,14 @@ public:
 		const Eigen::VectorXd& DeltaX_FR
 	) const;
 
+	// Controlability
+
+	bool AnalyzeControllability(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		FControllabilityResult& OutResult
+	) const;
+
 private:
 	TArray<FLinearControlChannel> ControlChannels;
 
@@ -172,4 +196,17 @@ private:
 		double EpsilonU,
 		Eigen::VectorXd& OutB_iColumn
 	);
+
+	bool BuildControllabilityMatrix(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		Eigen::MatrixXd& OutControllabilityMatrix
+	) const;
+
+	bool ComputeMatrixRankSVD(
+		const Eigen::MatrixXd& Matrix,
+		int32& OutRank,
+		double& OutRankTolerance,
+		Eigen::VectorXd& OutSingularValues
+	) const;
 };

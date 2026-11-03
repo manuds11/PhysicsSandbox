@@ -625,6 +625,24 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 			? OutsideKerError / DeltaXNextRealFRNorm
 			: OutsideKerError;
 
+		// Controlability analysis
+		// -------------------------------------------------------------------------
+
+		FControllabilityResult ControllabilityResult;
+
+		if (!ControlSys.AnalyzeControllability(
+			A_ker_Discrete,
+			B_ker_Discrete,
+			ControllabilityResult
+		))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
+
+		const double* volatile ControllabilitySingularValuesData =
+			ControllabilityResult.SingularValues.data();
+
 		// Real simulation step
 		// -------------------------------------------------------------------------
 

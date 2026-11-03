@@ -511,6 +511,72 @@ Eigen::VectorXd FControlSys::ExpandDeltaX_FRToFull(
 }
 
 // -----------------------------------------------------------------------------
+// Controlability
+// -----------------------------------------------------------------------------
+
+bool FControlSys::AnalyzeControllability(
+	const Eigen::MatrixXd& A,
+	const Eigen::MatrixXd& B,
+	FControllabilityResult& OutResult
+) const
+{
+	OutResult = FControllabilityResult{};
+
+	const int32 StateDimension = static_cast<int32>(A.rows());
+	const int32 ControlDimension = static_cast<int32>(B.cols());
+
+	if (
+		StateDimension <= 0
+		|| ControlDimension <= 0
+		|| A.cols() != StateDimension
+		|| B.rows() != StateDimension
+		|| !A.allFinite()
+		|| !B.allFinite()
+		)
+	{
+		return false;
+	}
+
+	OutResult.StateDimension = StateDimension;
+	OutResult.ControlDimension = ControlDimension;
+
+	if (!BuildControllabilityMatrix(
+		A,
+		B,
+		OutResult.ControllabilityMatrix
+	))
+	{
+		return false;
+	}
+
+	if (!ComputeMatrixRankSVD(
+		OutResult.ControllabilityMatrix,
+		OutResult.Rank,
+		OutResult.RankTolerance,
+		OutResult.SingularValues
+	))
+	{
+		return false;
+	}
+
+	const double MaxSingularValue =
+		OutResult.SingularValues.maxCoeff();
+
+	const double MinSingularValue =
+		OutResult.SingularValues.minCoeff();
+
+	OutResult.RelativeMinSingularValue =
+		MaxSingularValue > 0.0
+		? MinSingularValue / MaxSingularValue
+		: 0.0;
+
+	OutResult.bIsControllable =
+		OutResult.Rank == StateDimension;
+
+	return true;
+}
+
+// -----------------------------------------------------------------------------
 // Helpers
 // -----------------------------------------------------------------------------
 
@@ -678,6 +744,105 @@ bool FControlSys::ComputeB_FullColumn_Discrete(
 	OutB_iColumn =
 		(XNextPlus_Full.ToVector() - XNextMinus_Full.ToVector())
 		/ (2.0 * EpsilonU);
+
+	return true;
+}
+
+bool FControlSys::BuildControllabilityMatrix(
+	const Eigen::MatrixXd& A,
+	const Eigen::MatrixXd& B,
+	Eigen::MatrixXd& OutControllabilityMatrix
+) const
+{
+	const int32 StateDimension = static_cast<int32>(A.rows());
+	const int32 ControlDimension = static_cast<int32>(B.cols());
+
+	if (
+		StateDimension <= 0
+		|| ControlDimension <= 0
+		|| A.cols() != StateDimension
+		|| B.rows() != StateDimension
+		|| !A.allFinite()
+		|| !B.allFinite()
+		)
+	{
+		return false;
+	}
+
+	OutControllabilityMatrix.resize(
+		StateDimension,
+		StateDimension * ControlDimension
+	);
+
+	Eigen::MatrixXd APower =
+		Eigen::MatrixXd::Identity(StateDimension, StateDimension);
+
+	for (int32 PowerIndex = 0; PowerIndex < StateDimension; ++PowerIndex)
+	{
+		OutControllabilityMatrix.block(
+			0,
+			PowerIndex * ControlDimension,
+			StateDimension,
+			ControlDimension
+		) = APower * B;
+
+		APower = APower * A;
+	}
+
+	return true;
+}
+
+bool FControlSys::ComputeMatrixRankSVD(
+	const Eigen::MatrixXd& Matrix,
+	int32& OutRank,
+	double& OutRankTolerance,
+	Eigen::VectorXd& OutSingularValues
+) const
+{
+	if (
+		Matrix.rows() <= 0
+		|| Matrix.cols() <= 0
+		|| !Matrix.allFinite()
+		)
+	{
+		return false;
+	}
+
+	Eigen::JacobiSVD<Eigen::MatrixXd> SVD(
+		Matrix,
+		Eigen::ComputeThinU | Eigen::ComputeThinV
+	);
+
+	OutSingularValues = SVD.singularValues();
+
+	if (OutSingularValues.size() <= 0)
+	{
+		return false;
+	}
+
+	const double MaxSingularValue =
+		OutSingularValues.maxCoeff();
+
+	const int32 MaxMatrixDimension =
+		FMath::Max(
+			static_cast<int32>(Matrix.rows()),
+			static_cast<int32>(Matrix.cols())
+		);
+
+	OutRankTolerance =
+		static_cast<double>(MaxMatrixDimension)
+		* std::numeric_limits<double>::epsilon()
+		* MaxSingularValue;
+
+	OutRank = 0;
+
+	for (Eigen::Index SingularValueIndex = 0; SingularValueIndex < OutSingularValues.size(); ++SingularValueIndex)
+	{
+		if (OutSingularValues(SingularValueIndex) > OutRankTolerance)
+		{
+			++OutRank;
+		}
+	}
 
 	return true;
 }
