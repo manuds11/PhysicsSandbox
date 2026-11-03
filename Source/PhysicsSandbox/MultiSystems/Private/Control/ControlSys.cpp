@@ -719,7 +719,7 @@ bool FControlSys::SolveDARE(
 
 		Eigen::MatrixXd PNext = Q + A.transpose() * P * A - A.transpose() * P * B * GainTerm;
 
-		PNext = 0.5 * (PNext + PNext.transpose());
+		PNext = (0.5 * (PNext + PNext.transpose())).eval();
 
 		if (!PNext.allFinite())
 		{
@@ -765,6 +765,71 @@ bool FControlSys::SolveDARE(
 
 	OutResult.P = MoveTemp(P);
 	OutResult.Residual = (OutResult.P - RiccatiP).norm();
+
+	return true;
+}
+
+bool FControlSys::ComputeLQRGain(
+	const Eigen::MatrixXd& A,
+	const Eigen::MatrixXd& B,
+	const Eigen::MatrixXd& R,
+	const Eigen::MatrixXd& P,
+	Eigen::MatrixXd& OutK
+) const
+{
+	/*
+	 * Discrete LQR gain:
+	 *
+	 * K = (R + B^T P B)^-1 B^T P A
+	 *
+	 * The inverse is not formed explicitly.
+	 * Instead, the linear system
+	 *
+	 * (R + B^T P B) K = B^T P A
+	 *
+	 * is solved.
+	 */
+
+	const int32 StateDimension = static_cast<int32>(A.rows());
+	const int32 ControlDimension = static_cast<int32>(B.cols());
+
+	if (
+		StateDimension <= 0
+		|| ControlDimension <= 0
+		|| A.cols() != StateDimension
+		|| B.rows() != StateDimension
+		|| P.rows() != StateDimension
+		|| P.cols() != StateDimension
+		|| R.rows() != ControlDimension
+		|| R.cols() != ControlDimension
+		|| !A.allFinite()
+		|| !B.allFinite()
+		|| !P.allFinite()
+		|| !R.allFinite()
+		)
+	{
+		return false;
+	}
+
+	const Eigen::MatrixXd S =
+		R + B.transpose() * P * B;
+
+	const Eigen::MatrixXd BTPA =
+		B.transpose() * P * A;
+
+	Eigen::LDLT<Eigen::MatrixXd> LDLT(S);
+
+	if (LDLT.info() != Eigen::Success)
+	{
+		return false;
+	}
+
+	OutK = LDLT.solve(BTPA);
+
+	if (LDLT.info() != Eigen::Success || !OutK.allFinite())
+	{
+		return false;
+	}
 
 	return true;
 }

@@ -569,37 +569,44 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 
 	const Eigen::MatrixXd& P = DAREResult.P;
 
-	const int32 PRows = static_cast<int32>(P.rows());
-	const int32 PCols = static_cast<int32>(P.cols());
+	// LQR gain
+	// -----------------------------------------------------------------------------
 
-	const double PNorm = P.norm();
+	Eigen::MatrixXd K;
 
-	const double DARERelativeResidual =
-		DAREResult.Residual / FMath::Max(1.0, P.norm());
-
-	const double PSymmetryError =
-		(P - P.transpose()).norm();
-
-	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> PEigenSolver(P);
-
-	if (PEigenSolver.info() != Eigen::Success)
+	if (!ControlSys.ComputeLQRGain(A_ker_Discrete, B_ker_Discrete, R, P, K))
 	{
 		return false;
 	}
 
-	const Eigen::VectorXd PEigenvalues =
-		PEigenSolver.eigenvalues();
+	const int32 KRows = static_cast<int32>(K.rows());
+	const int32 KCols = static_cast<int32>(K.cols());
 
-	const double PMinEigenvalue =
-		PEigenvalues.minCoeff();
+	const Eigen::MatrixXd A_ClosedLoop =
+		A_ker_Discrete - B_ker_Discrete * K;
 
-	const double PMaxEigenvalue =
-		PEigenvalues.maxCoeff();
+	Eigen::EigenSolver<Eigen::MatrixXd> ClosedLoopEigenSolver(A_ClosedLoop, false);
 
-	// LQR gain
-	// -------------------------------------------------------------------------
+	if (ClosedLoopEigenSolver.info() != Eigen::Success)
+	{
+		return false;
+	}
 
-	// K
+	const Eigen::VectorXcd ClosedLoopEigenvalues =
+		ClosedLoopEigenSolver.eigenvalues();
+
+	const Eigen::VectorXd ClosedLoopEigenvalueMagnitudes =
+		ClosedLoopEigenvalues.cwiseAbs();
+
+	const double ClosedLoopSpectralRadius =
+		ClosedLoopEigenvalueMagnitudes.maxCoeff();
+
+	const double EigenvalueMagnitude0 = ClosedLoopEigenvalueMagnitudes.coeff(0);
+	const double EigenvalueMagnitude1 = ClosedLoopEigenvalueMagnitudes.coeff(1);
+	const double EigenvalueMagnitude2 = ClosedLoopEigenvalueMagnitudes.coeff(2);
+	const double EigenvalueMagnitude3 = ClosedLoopEigenvalueMagnitudes.coeff(3);
+	const double EigenvalueMagnitude4 = ClosedLoopEigenvalueMagnitudes.coeff(4);
+	const double EigenvalueMagnitude5 = ClosedLoopEigenvalueMagnitudes.coeff(5);
 
 	// Control law
 	// -------------------------------------------------------------------------

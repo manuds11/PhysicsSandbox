@@ -177,7 +177,7 @@ public:
 		FControllabilityResult& OutResult
 	) const;
 
-	// DARE solver
+	// SOLVERS
 
 	bool SolveDARE(
 		const Eigen::MatrixXd& A,
@@ -185,6 +185,14 @@ public:
 		const Eigen::MatrixXd& Q,
 		const Eigen::MatrixXd& R,
 		FDAREResult& OutResult
+	) const;
+
+	bool ComputeLQRGain(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		const Eigen::MatrixXd& R,
+		const Eigen::MatrixXd& P,
+		Eigen::MatrixXd& OutK
 	) const;
 
 private:
