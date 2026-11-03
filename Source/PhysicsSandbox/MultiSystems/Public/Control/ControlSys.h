@@ -109,6 +109,15 @@ public:
 		Eigen::MatrixXd& OutA_FullDisplay
 	);
 
+	bool ComputeB_FR_Continuous(
+		FFullSys& FullSys,
+		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalU_Control,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
+		double EpsilonU,
+		Eigen::MatrixXd& OutB_FR
+	);
+
 	bool ComputeB_FR_Discrete(
 		FFullSys& FullSys,
 		double Dt,
@@ -184,6 +193,16 @@ private:
 		int32 PerturbationIndexX,
 		double Epsilon,
 		Eigen::VectorXd& OutA_iColumn
+	);
+
+	bool ComputeB_FullColumn_Continuous(
+		FFullSys& FullSys,
+		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalU_Control,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
+		int32 PerturbationIndexU,
+		double EpsilonU,
+		Eigen::VectorXd& OutB_iColumn
 	);
 
 	bool ComputeB_FullColumn_Discrete(

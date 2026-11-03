@@ -291,6 +291,72 @@ void FControlSys::BuildA_FRInFullDisplay(
 	}
 }
 
+bool FControlSys::ComputeB_FR_Continuous(
+	FFullSys& FullSys,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalU_Control,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	double EpsilonU,
+	Eigen::MatrixXd& OutB_FR
+)
+{
+	if (
+		EpsilonU <= 0.0
+		|| NominalU_Control.size() != GetNumControlChannels()
+		|| !NominalU_Control.allFinite()
+		)
+	{
+		return false;
+	}
+
+	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
+
+	const int32 SizeX_Full =
+		static_cast<int32>(NominalX_Full.ToVector().size());
+
+	const int32 SizeX_FR =
+		IndexMap.X_FRToFullIndices.Num();
+
+	const int32 NumControlChannels =
+		GetNumControlChannels();
+
+	OutB_FR.resize(SizeX_FR, NumControlChannels);
+
+	for (int32 ColumnB_FR = 0; ColumnB_FR < NumControlChannels; ++ColumnB_FR)
+	{
+		Eigen::VectorXd B_iColumn_Full;
+
+		if (!ComputeB_FullColumn_Continuous(
+			FullSys,
+			NominalX_Full,
+			NominalU_Control,
+			NominalU_ExtForces,
+			ColumnB_FR,
+			EpsilonU,
+			B_iColumn_Full
+		))
+		{
+			return false;
+		}
+
+		if (B_iColumn_Full.size() != SizeX_Full)
+		{
+			return false;
+		}
+
+		for (int32 RowB_FR = 0; RowB_FR < SizeX_FR; ++RowB_FR)
+		{
+			const int32 RowIndex_Full =
+				IndexMap.X_FRToFullIndices[RowB_FR];
+
+			OutB_FR(RowB_FR, ColumnB_FR) =
+				B_iColumn_Full(RowIndex_Full);
+		}
+	}
+
+	return OutB_FR.allFinite();
+}
+
 bool FControlSys::ComputeB_FR_Discrete(
 	FFullSys& FullSys,
 	double Dt,
@@ -686,6 +752,81 @@ bool FControlSys::ComputeA_FullColumn_Discrete(
 		/ (2.0 * Epsilon);
 
 	return true;
+}
+
+bool FControlSys::ComputeB_FullColumn_Continuous(
+	FFullSys& FullSys,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalU_Control,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	int32 PerturbationIndexU,
+	double EpsilonU,
+	Eigen::VectorXd& OutB_iColumn
+)
+{
+	if (
+		EpsilonU <= 0.0
+		|| PerturbationIndexU < 0
+		|| PerturbationIndexU >= NominalU_Control.size()
+		)
+	{
+		return false;
+	}
+
+	Eigen::VectorXd UPlus_Control =
+		NominalU_Control;
+
+	Eigen::VectorXd UMinus_Control =
+		NominalU_Control;
+
+	UPlus_Control(PerturbationIndexU) += EpsilonU;
+	UMinus_Control(PerturbationIndexU) -= EpsilonU;
+
+	const Eigen::VectorXd TauPlus_FR =
+		ComputeTau_FR(UPlus_Control);
+
+	const Eigen::VectorXd TauMinus_FR =
+		ComputeTau_FR(UMinus_Control);
+
+	FSysStateDerivative XDotPlus_Full;
+	FSysStateDerivative XDotMinus_Full;
+
+	if (!FullSys.EvaluateXDot(
+		NominalX_Full,
+		TauPlus_FR,
+		NominalU_ExtForces,
+		XDotPlus_Full
+	))
+	{
+		return false;
+	}
+
+	if (!FullSys.EvaluateXDot(
+		NominalX_Full,
+		TauMinus_FR,
+		NominalU_ExtForces,
+		XDotMinus_Full
+	))
+	{
+		return false;
+	}
+
+	const Eigen::VectorXd XDotPlusVector_Full =
+		XDotPlus_Full.ToVector();
+
+	const Eigen::VectorXd XDotMinusVector_Full =
+		XDotMinus_Full.ToVector();
+
+	if (XDotPlusVector_Full.size() != XDotMinusVector_Full.size())
+	{
+		return false;
+	}
+
+	OutB_iColumn =
+		(XDotPlusVector_Full - XDotMinusVector_Full)
+		/ (2.0 * EpsilonU);
+
+	return OutB_iColumn.allFinite();
 }
 
 bool FControlSys::ComputeB_FullColumn_Discrete(
