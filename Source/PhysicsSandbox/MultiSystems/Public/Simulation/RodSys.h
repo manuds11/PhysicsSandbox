@@ -16,6 +16,10 @@ public:
 
 	void BuildEmptyStructure(const TArray<TUniquePtr<ISysElement>>& Elements);
 
+	void InitializeRodStates(
+		const TArray<FBody>& Bodies
+	);
+
 	bool RunConstraintForces(TArray<FBody>& Bodies);
 
 	bool RunConstraintCorrections(

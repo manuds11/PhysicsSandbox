@@ -8,6 +8,8 @@
 
 #include "Logging/PhysicsSandboxLog.h"
 
+#include <Eigen/Eigenvalues>
+
 // -----------------------------------------------------------------------------
 // Construction and lifecycle
 // -----------------------------------------------------------------------------
@@ -419,28 +421,14 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	// Nominal state and control
 	// -------------------------------------------------------------------------
 
-	const FSysState X_k = FullSys.BodiesToFullStateStruct();
+	const FSysState X_k =
+		FullSys.BodiesToFullStateStruct();
 
 	Eigen::VectorXd U_Control =
 		Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
 
 	const Eigen::VectorXd Tau_FR =
 		ControlSys.ComputeTau_FR(U_Control);
-
-	// Synchronize constraint state at X_k
-	// -------------------------------------------------------------------------
-
-	FSysStateDerivative NominalXDot_Full;
-
-	if (!FullSys.EvaluateXDot(
-		X_k,
-		Tau_FR,
-		U_ExtForces,
-		NominalXDot_Full
-	))
-	{
-		return false;
-	}
 
 	// Constraint tangent space
 	// -------------------------------------------------------------------------
@@ -450,17 +438,28 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	Eigen::MatrixXd H_X_FR;
 	Eigen::MatrixXd T_kerToFR;
 
-	if (!ControlSys.BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
+	if (!ControlSys.BuildJandJDot_FR(
+		FullSys,
+		J_FR,
+		JDot_FR
+	))
 	{
 		return false;
 	}
 
-	if (!ControlSys.BuildH_FR(J_FR, JDot_FR, H_X_FR))
+	if (!ControlSys.BuildH_FR(
+		J_FR,
+		JDot_FR,
+		H_X_FR
+	))
 	{
 		return false;
 	}
 
-	if (!ControlSys.BuildKernelBasis_FR(H_X_FR, T_kerToFR))
+	if (!ControlSys.BuildKernelBasis_FR(
+		H_X_FR,
+		T_kerToFR
+	))
 	{
 		return false;
 	}
@@ -523,12 +522,93 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		return false;
 	}
 
-	// LQR cost definition
+	/// LQR cost definition
+	// -----------------------------------------------------------------------------
+
+	const FStateDOFIndexMap& IndexMap =
+		FullSys.GetStateIndexMap();
+
+	const int32 SizeQ_FR = IndexMap.SizeQ_FR;
+
+	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
+
+	const int32 NumControlChannels = ControlSys.GetNumControlChannels();
+
+	constexpr double PositionStateWeight = 10.0;
+	constexpr double VelocityStateWeight = 1.0;
+	constexpr double ControlWeight = 1.0;
+
+	Eigen::MatrixXd Q_FR = Eigen::MatrixXd::Zero(SizeX_FR, SizeX_FR);
+
+	for (int32 QIndex_FR = 0; QIndex_FR < SizeQ_FR; ++QIndex_FR)
+	{
+		Q_FR(QIndex_FR, QIndex_FR) = PositionStateWeight;
+
+		const int32 QDotIndex_FR =
+			SizeQ_FR + QIndex_FR;
+
+		Q_FR(QDotIndex_FR, QDotIndex_FR) = VelocityStateWeight;
+	}
+
+	const Eigen::MatrixXd Q_ker =
+		T_kerToFR.transpose() * Q_FR * T_kerToFR;
+
+	const Eigen::MatrixXd R =
+		ControlWeight
+		* Eigen::MatrixXd::Identity(NumControlChannels, NumControlChannels);
+
+	// Solve Discrete Algebraic Riccati Equation (DARE)
+	// -----------------------------------------------------------------------------
+
+	FDAREResult DAREResult;
+
+	if (!ControlSys.SolveDARE(A_ker_Discrete, B_ker_Discrete, Q_ker, R, DAREResult))
+	{
+		return false;
+	}
+
+	const Eigen::MatrixXd& P = DAREResult.P;
+
+	const int32 PRows = static_cast<int32>(P.rows());
+	const int32 PCols = static_cast<int32>(P.cols());
+
+	const double PNorm = P.norm();
+
+	const double DARERelativeResidual =
+		DAREResult.Residual / FMath::Max(1.0, P.norm());
+
+	const double PSymmetryError =
+		(P - P.transpose()).norm();
+
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> PEigenSolver(P);
+
+	if (PEigenSolver.info() != Eigen::Success)
+	{
+		return false;
+	}
+
+	const Eigen::VectorXd PEigenvalues =
+		PEigenSolver.eigenvalues();
+
+	const double PMinEigenvalue =
+		PEigenvalues.minCoeff();
+
+	const double PMaxEigenvalue =
+		PEigenvalues.maxCoeff();
+
+	// LQR gain
 	// -------------------------------------------------------------------------
 
-	// Q_FR
-	// Q_ker = T_kerToFR.transpose() * Q_FR * T_kerToFR
-	// R
+	// K
+
+	// Control law
+	// -------------------------------------------------------------------------
+
+	// DeltaX_FR
+	// DeltaZ_ker
+	// DeltaU = -K * DeltaZ_ker
+	// U_Control = NominalU_Control + DeltaU
+	// Tau_FR = ControlSys.ComputeTau_FR(U_Control)
 
 	// Physical simulation step
 	// -------------------------------------------------------------------------

@@ -47,6 +47,13 @@ void FRodSys::BuildEmptyStructure(
 	);
 }
 
+void FRodSys::InitializeRodStates(
+	const TArray<FBody>& Bodies
+)
+{
+	UpdateRodStates(Bodies);
+}
+
 bool FRodSys::RunConstraintForces(
 	TArray<FBody>& Bodies
 )

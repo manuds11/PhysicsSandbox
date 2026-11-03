@@ -4,6 +4,7 @@
 #include "Elements/PendulumRod.h"
 
 #include <Eigen/SVD>
+#include <Eigen/Cholesky>
 #include <limits>
 
 // -----------------------------------------------------------------------------
@@ -638,6 +639,132 @@ bool FControlSys::AnalyzeControllability(
 
 	OutResult.bIsControllable =
 		OutResult.Rank == StateDimension;
+
+	return true;
+}
+
+// -----------------------------------------------------------------------------
+// Discrete Algebraic Riccati Equation (DARE) Solver
+// -----------------------------------------------------------------------------
+
+bool FControlSys::SolveDARE(
+	const Eigen::MatrixXd& A,
+	const Eigen::MatrixXd& B,
+	const Eigen::MatrixXd& Q,
+	const Eigen::MatrixXd& R,
+	FDAREResult& OutResult
+) const
+{
+	/*
+	* Discrete Algebraic Riccati Equation (DARE):
+	 *
+	 * P = Q + A^T P A
+	 *     - A^T P B (R + B^T P B)^-1 B^T P A
+	 *
+	 * The inverse is not formed explicitly.
+	 * Instead, the linear system
+	 *
+	 * (R + B^T P B) K = B^T P A
+	 *
+	 * is solved at each iteration.
+	 */
+
+
+	OutResult = FDAREResult{};
+
+	const int32 StateDimension = static_cast<int32>(A.rows());
+	const int32 ControlDimension = static_cast<int32>(B.cols());
+
+	if (
+		StateDimension <= 0
+		|| ControlDimension <= 0
+		|| A.cols() != StateDimension
+		|| B.rows() != StateDimension
+		|| Q.rows() != StateDimension
+		|| Q.cols() != StateDimension
+		|| R.rows() != ControlDimension
+		|| R.cols() != ControlDimension
+		|| !A.allFinite()
+		|| !B.allFinite()
+		|| !Q.allFinite()
+		|| !R.allFinite()
+		)
+	{
+		return false;
+	}
+
+	constexpr int32 MaxIterations = 50000;
+	constexpr double ConvergenceTolerance = 1.0e-12;
+
+	Eigen::MatrixXd P = Q;
+
+	for (int32 Iteration = 0; Iteration < MaxIterations; ++Iteration)
+	{
+		const Eigen::MatrixXd S = R + B.transpose() * P * B;
+		const Eigen::MatrixXd BTPA = B.transpose() * P * A;
+
+		Eigen::LDLT<Eigen::MatrixXd> LDLT(S);
+
+		if (LDLT.info() != Eigen::Success)
+		{
+			return false;
+		}
+
+		const Eigen::MatrixXd GainTerm = LDLT.solve(BTPA);
+
+		if (LDLT.info() != Eigen::Success || !GainTerm.allFinite())
+		{
+			return false;
+		}
+
+		Eigen::MatrixXd PNext = Q + A.transpose() * P * A - A.transpose() * P * B * GainTerm;
+
+		PNext = 0.5 * (PNext + PNext.transpose());
+
+		if (!PNext.allFinite())
+		{
+			return false;
+		}
+
+		const double IterationError = (PNext - P).norm();
+
+		P = MoveTemp(PNext);
+
+		OutResult.Iterations = Iteration + 1;
+
+		if (IterationError <= ConvergenceTolerance * FMath::Max(1.0, P.norm()))
+		{
+			OutResult.bConverged = true;
+			break;
+		}
+	}
+
+	if (!OutResult.bConverged)
+	{
+		return false;
+	}
+
+	const Eigen::MatrixXd S = R + B.transpose() * P * B;
+	const Eigen::MatrixXd BTPA = B.transpose() * P * A;
+
+	Eigen::LDLT<Eigen::MatrixXd> LDLT(S);
+
+	if (LDLT.info() != Eigen::Success)
+	{
+		return false;
+	}
+
+	const Eigen::MatrixXd GainTerm = LDLT.solve(BTPA);
+
+	if (LDLT.info() != Eigen::Success || !GainTerm.allFinite())
+	{
+		return false;
+	}
+
+	const Eigen::MatrixXd RiccatiP = Q + A.transpose() * P * A - A.transpose() * P * B * GainTerm;
+
+	OutResult.P = MoveTemp(P);
+	OutResult.Residual = (OutResult.P - RiccatiP).norm();
 
 	return true;
 }

@@ -51,6 +51,16 @@ struct FControllabilityResult
 	Eigen::MatrixXd ControllabilityMatrix;
 };
 
+struct FDAREResult
+{
+	Eigen::MatrixXd P;
+
+	int32 Iterations = 0;
+	double Residual = 0.0;
+
+	bool bConverged = false;
+};
+
 class FControlSys
 {
 public:
@@ -165,6 +175,16 @@ public:
 		const Eigen::MatrixXd& A,
 		const Eigen::MatrixXd& B,
 		FControllabilityResult& OutResult
+	) const;
+
+	// DARE solver
+
+	bool SolveDARE(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		const Eigen::MatrixXd& Q,
+		const Eigen::MatrixXd& R,
+		FDAREResult& OutResult
 	) const;
 
 private:

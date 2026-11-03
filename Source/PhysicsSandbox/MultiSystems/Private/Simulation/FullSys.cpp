@@ -24,6 +24,7 @@ void FFullSys::Initialize()
 	RodSys.ResetEnergyDiagnostics();
 
 	RodSys.BuildEmptyStructure(Elements);
+	RodSys.InitializeRodStates(Bodies);
 
 	BuildStateIndexMap();
 
