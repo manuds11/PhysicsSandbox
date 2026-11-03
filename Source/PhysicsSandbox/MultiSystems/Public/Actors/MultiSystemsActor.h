@@ -97,6 +97,7 @@ private:
 	void ConfigureIntegrator();
 
 	void RunSimFixedSteps(double FrameDeltaTime);
+	bool RunControlLoopStep(double Dt);
 
 	FVector ToWorld(const FVector2D& P) const;
 	void DrawSystem() const;
