@@ -192,9 +192,9 @@ bool FControlSys::ComputeA_FR_Continuous(	// FR = Free-Redundant
 
 		for (int32 RowA_FR = 0; RowA_FR < SizeX_FR; ++RowA_FR)
 		{
-			const int32 RowFull = IndexMap.X_FRToFullIndices[RowA_FR];
+			const int32 RowIndex_Full = IndexMap.X_FRToFullIndices[RowA_FR];
 
-			OutA_FR(RowA_FR, ColumnA_FR) = A_iColumn_Full(RowFull);
+			OutA_FR(RowA_FR, ColumnA_FR) = A_iColumn_Full(RowIndex_Full);
 		}
 	}
 
@@ -245,8 +245,8 @@ bool FControlSys::ComputeA_FR_Discrete(
 
 		for (int32 RowA_FR = 0; RowA_FR < SizeX_FR; ++RowA_FR)
 		{
-			const int32 RowFull = IndexMap.X_FRToFullIndices[RowA_FR];
-			OutA_FR(RowA_FR, ColumnA_FR) = A_iColumn_Full(RowFull);
+			const int32 RowIndex_Full = IndexMap.X_FRToFullIndices[RowA_FR];
+			OutA_FR(RowA_FR, ColumnA_FR) = A_iColumn_Full(RowIndex_Full);
 		}
 	}
 
@@ -289,6 +289,58 @@ void FControlSys::BuildA_FRInFullDisplay(
 				A_FR(RowA_FR, ColumnA_FR);
 		}
 	}
+}
+
+bool FControlSys::ComputeB_FR_Discrete(
+	FFullSys& FullSys,
+	double Dt,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalU_Control,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	double EpsilonU,
+	Eigen::MatrixXd& OutB_FR
+)
+{
+	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
+
+	const int32 SizeX_Full = static_cast<int32>(NominalX_Full.ToVector().size());
+	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
+	const int32 NumControlChannels = GetNumControlChannels();
+
+	check(Dt > 0.0);
+	check(EpsilonU > 0.0);
+	check(NominalU_Control.size() == NumControlChannels);
+
+	OutB_FR.resize(SizeX_FR, NumControlChannels);
+
+	for (int32 ColumnB_FR = 0; ColumnB_FR < NumControlChannels; ++ColumnB_FR)
+	{
+		Eigen::VectorXd B_iColumn_Full;
+
+		if (!ComputeB_FullColumn_Discrete(
+			FullSys,
+			Dt,
+			NominalX_Full,
+			NominalU_Control,
+			NominalU_ExtForces,
+			ColumnB_FR,
+			EpsilonU,
+			B_iColumn_Full
+		))
+		{
+			return false;
+		}
+
+		check(B_iColumn_Full.size() == SizeX_Full);
+
+		for (int32 RowB_FR = 0; RowB_FR < SizeX_FR; ++RowB_FR)
+		{
+			const int32 RowIndex_Full = IndexMap.X_FRToFullIndices[RowB_FR];
+			OutB_FR(RowB_FR, ColumnB_FR) = B_iColumn_Full(RowIndex_Full);
+		}
+	}
+
+	return true;
 }
 
 // -------------------------------------------------------------------------
@@ -566,6 +618,66 @@ bool FControlSys::ComputeA_FullColumn_Discrete(
 	OutA_iColumn =
 		(XNextPlus_Full.ToVector() - XNextMinus_Full.ToVector())
 		/ (2.0 * Epsilon);
+
+	return true;
+}
+
+bool FControlSys::ComputeB_FullColumn_Discrete(
+	FFullSys& FullSys,
+	double Dt,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalU_Control,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	int32 PerturbationIndexU,
+	double EpsilonU,
+	Eigen::VectorXd& OutB_iColumn
+)
+{
+	const int32 NumControlChannels = GetNumControlChannels();
+
+	check(Dt > 0.0);
+	check(EpsilonU > 0.0);
+	check(NominalU_Control.size() == NumControlChannels);
+	check(PerturbationIndexU >= 0);
+	check(PerturbationIndexU < NumControlChannels);
+
+	Eigen::VectorXd UPlus = NominalU_Control;
+	Eigen::VectorXd UMinus = NominalU_Control;
+
+	UPlus(PerturbationIndexU) += EpsilonU;
+	UMinus(PerturbationIndexU) -= EpsilonU;
+
+	const Eigen::VectorXd TauPlus_FR = ComputeTau_FR(UPlus);
+	const Eigen::VectorXd TauMinus_FR = ComputeTau_FR(UMinus);
+
+	FSysState XNextPlus_Full;
+	FSysState XNextMinus_Full;
+
+	if (!FullSys.EvaluateNextXState(
+		Dt,
+		NominalX_Full,
+		TauPlus_FR,
+		NominalU_ExtForces,
+		XNextPlus_Full
+	))
+	{
+		return false;
+	}
+
+	if (!FullSys.EvaluateNextXState(
+		Dt,
+		NominalX_Full,
+		TauMinus_FR,
+		NominalU_ExtForces,
+		XNextMinus_Full
+	))
+	{
+		return false;
+	}
+
+	OutB_iColumn =
+		(XNextPlus_Full.ToVector() - XNextMinus_Full.ToVector())
+		/ (2.0 * EpsilonU);
 
 	return true;
 }

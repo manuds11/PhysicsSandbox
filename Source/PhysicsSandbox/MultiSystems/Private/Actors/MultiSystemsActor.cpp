@@ -390,61 +390,46 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 
 		const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U_Control);
 
-		constexpr double LinearizationEpsilon = 1.0e-5;
+		constexpr double ControlLinearizationEpsilon = 1.0e-5;
 
-		Eigen::MatrixXd A_FR_Continuous;
-		Eigen::MatrixXd A_FR_Discrete;
+		Eigen::MatrixXd B_FR_Discrete;
 
-		if (!ControlSys.ComputeA_FR_Continuous(
-			FullSys,
-			X_k,
-			Tau_FR,
-			U_ExtForces,
-			LinearizationEpsilon,
-			A_FR_Continuous
-		))
-		{
-			bIsSimulationRunning = false;
-			break;
-		}
-
-		if (!ControlSys.ComputeA_FR_Discrete(
+		if (!ControlSys.ComputeB_FR_Discrete(
 			FullSys,
 			FixedTimeStep,
 			X_k,
-			Tau_FR,
+			U_Control,
 			U_ExtForces,
-			LinearizationEpsilon,
-			A_FR_Discrete
+			ControlLinearizationEpsilon,
+			B_FR_Discrete
 		))
 		{
 			bIsSimulationRunning = false;
 			break;
 		}
 
-		// Validate A_FR_Discrete
+		// Validate B_FR_Discrete
 		// -------------------------------------------------------------------------
 
 		const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 		const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
 
-		constexpr double ValidationPerturbation = 1.0e-6;
+		constexpr double ValidationControlPerturbation = 1.0e-5;
 
-		Eigen::VectorXd DeltaX_FR(SizeX_FR);
+		Eigen::VectorXd DeltaU = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
 
-		for (int32 Index_FR = 0; Index_FR < SizeX_FR; ++Index_FR)
+		for (int32 ControlIndex = 0; ControlIndex < DeltaU.size(); ++ControlIndex)
 		{
-			const double Sign = (Index_FR % 2 == 0) ? 1.0 : -1.0;
-			const double Scale = 1.0 + 0.1 * static_cast<double>(Index_FR);
+			const double Sign = (ControlIndex % 2 == 0) ? 1.0 : -1.0;
+			const double Scale = 1.0 + 0.25 * static_cast<double>(ControlIndex);
 
-			DeltaX_FR(Index_FR) = Sign * Scale * ValidationPerturbation;
+			DeltaU(ControlIndex) = Sign * Scale * ValidationControlPerturbation;
 		}
 
-		const Eigen::VectorXd DeltaX_Full =
-			ControlSys.ExpandDeltaX_FRToFull(IndexMap, DeltaX_FR);
+		const Eigen::VectorXd U_Perturbed = U_Control + DeltaU;
 
-		const FSysState X_Perturbed_Full =
-			FSysState::ToStruct(X_k.ToVector() + DeltaX_Full);
+		const Eigen::VectorXd TauPerturbed_FR =
+			ControlSys.ComputeTau_FR(U_Perturbed);
 
 		FSysState XNextNominal_Full;
 		FSysState XNextPerturbed_Full;
@@ -463,8 +448,8 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 
 		if (!FullSys.EvaluateNextXState(
 			FixedTimeStep,
-			X_Perturbed_Full,
-			Tau_FR,
+			X_k,
+			TauPerturbed_FR,
 			U_ExtForces,
 			XNextPerturbed_Full
 		))
@@ -485,7 +470,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		}
 
 		const Eigen::VectorXd DeltaXNextLinear_FR =
-			A_FR_Discrete * DeltaX_FR;
+			B_FR_Discrete * DeltaU;
 
 		const Eigen::VectorXd PredictionError_FR =
 			DeltaXNextReal_FR - DeltaXNextLinear_FR;
