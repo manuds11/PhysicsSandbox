@@ -387,12 +387,58 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		const FSysState X_k = FullSys.BodiesToFullStateStruct();
 
 		Eigen::VectorXd U_Control = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
-
 		const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U_Control);
 
-		constexpr double ControlLinearizationEpsilon = 1.0e-5;
+		// Build current constraint-state kernel
+		// -------------------------------------------------------------------------
 
+		Eigen::MatrixXd J_FR;
+		Eigen::MatrixXd JDot_FR;
+		Eigen::MatrixXd H_X_FR;
+		Eigen::MatrixXd T_kerToFR;
+
+		if (!ControlSys.BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
+
+		if (!ControlSys.BuildH_FR(J_FR, JDot_FR, H_X_FR))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
+
+		if (!ControlSys.BuildKernelBasis_FR(H_X_FR, T_kerToFR))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
+
+		const int32 SizeX_ker = static_cast<int32>(T_kerToFR.cols());
+
+		// Build discrete FR model
+		// -------------------------------------------------------------------------
+
+		constexpr double LinearizationEpsilonX = 1.0e-5;
+		constexpr double LinearizationEpsilonU = 1.0e-5;
+
+		Eigen::MatrixXd A_FR_Discrete;
 		Eigen::MatrixXd B_FR_Discrete;
+
+		if (!ControlSys.ComputeA_FR_Discrete(
+			FullSys,
+			FixedTimeStep,
+			X_k,
+			Tau_FR,
+			U_ExtForces,
+			LinearizationEpsilonX,
+			A_FR_Discrete
+		))
+		{
+			bIsSimulationRunning = false;
+			break;
+		}
 
 		if (!ControlSys.ComputeB_FR_Discrete(
 			FullSys,
@@ -400,7 +446,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 			X_k,
 			U_Control,
 			U_ExtForces,
-			ControlLinearizationEpsilon,
+			LinearizationEpsilonU,
 			B_FR_Discrete
 		))
 		{
@@ -408,28 +454,83 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 			break;
 		}
 
-		// Validate B_FR_Discrete
+		// Reduce FR model to ker coordinates
 		// -------------------------------------------------------------------------
 
-		const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
-		const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
+		const Eigen::MatrixXd A_ker_Discrete =
+			T_kerToFR.transpose() * A_FR_Discrete * T_kerToFR;
 
+		const Eigen::MatrixXd B_ker_Discrete =
+			T_kerToFR.transpose() * B_FR_Discrete;
+
+		// Validate kernel basis
+		// -------------------------------------------------------------------------
+
+		const Eigen::MatrixXd KernelConstraintResidual =
+			H_X_FR * T_kerToFR;
+
+		const Eigen::MatrixXd KernelOrthonormalityResidual =
+			T_kerToFR.transpose() * T_kerToFR
+			- Eigen::MatrixXd::Identity(SizeX_ker, SizeX_ker);
+
+		const double KernelConstraintError =
+			KernelConstraintResidual.norm();
+
+		const double KernelOrthonormalityError =
+			KernelOrthonormalityResidual.norm();
+
+		// Build a small perturbation directly in ker coordinates
+		// -------------------------------------------------------------------------
+
+		constexpr double ValidationStatePerturbation = 1.0e-6;
 		constexpr double ValidationControlPerturbation = 1.0e-5;
 
-		Eigen::VectorXd DeltaU = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+		Eigen::VectorXd DeltaZ_ker(SizeX_ker);
+
+		for (int32 StateIndex_ker = 0; StateIndex_ker < SizeX_ker; ++StateIndex_ker)
+		{
+			const double Sign = (StateIndex_ker % 2 == 0) ? 1.0 : -1.0;
+			const double Scale = 1.0 + 0.1 * static_cast<double>(StateIndex_ker);
+
+			DeltaZ_ker(StateIndex_ker) =
+				Sign * Scale * ValidationStatePerturbation;
+		}
+
+		Eigen::VectorXd DeltaU =
+			Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
 
 		for (int32 ControlIndex = 0; ControlIndex < DeltaU.size(); ++ControlIndex)
 		{
 			const double Sign = (ControlIndex % 2 == 0) ? 1.0 : -1.0;
 			const double Scale = 1.0 + 0.25 * static_cast<double>(ControlIndex);
 
-			DeltaU(ControlIndex) = Sign * Scale * ValidationControlPerturbation;
+			DeltaU(ControlIndex) =
+				Sign * Scale * ValidationControlPerturbation;
 		}
 
-		const Eigen::VectorXd U_Perturbed = U_Control + DeltaU;
+		// ker -> FR -> Full
+		// -------------------------------------------------------------------------
+
+		const Eigen::VectorXd DeltaX_FR =
+			ControlSys.TransformDeltaX_ker2FR(T_kerToFR, DeltaZ_ker);
+
+		const FStateDOFIndexMap& IndexMap =
+			FullSys.GetStateIndexMap();
+
+		const Eigen::VectorXd DeltaX_Full =
+			ControlSys.ExpandDeltaX_FRToFull(IndexMap, DeltaX_FR);
+
+		const FSysState X_Perturbed_Full =
+			FSysState::ToStruct(X_k.ToVector() + DeltaX_Full);
+
+		const Eigen::VectorXd U_Perturbed =
+			U_Control + DeltaU;
 
 		const Eigen::VectorXd TauPerturbed_FR =
 			ControlSys.ComputeTau_FR(U_Perturbed);
+
+		// Evaluate real nonlinear transition
+		// -------------------------------------------------------------------------
 
 		FSysState XNextNominal_Full;
 		FSysState XNextPerturbed_Full;
@@ -448,7 +549,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 
 		if (!FullSys.EvaluateNextXState(
 			FixedTimeStep,
-			X_k,
+			X_Perturbed_Full,
 			TauPerturbed_FR,
 			U_ExtForces,
 			XNextPerturbed_Full
@@ -459,29 +560,70 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		}
 
 		const Eigen::VectorXd DeltaXNextReal_Full =
-			XNextPerturbed_Full.ToVector() - XNextNominal_Full.ToVector();
+			XNextPerturbed_Full.ToVector()
+			- XNextNominal_Full.ToVector();
+
+		const int32 SizeX_FR =
+			IndexMap.X_FRToFullIndices.Num();
 
 		Eigen::VectorXd DeltaXNextReal_FR(SizeX_FR);
 
-		for (int32 Index_FR = 0; Index_FR < SizeX_FR; ++Index_FR)
+		for (int32 StateIndex_FR = 0; StateIndex_FR < SizeX_FR; ++StateIndex_FR)
 		{
-			const int32 Index_Full = IndexMap.X_FRToFullIndices[Index_FR];
-			DeltaXNextReal_FR(Index_FR) = DeltaXNextReal_Full(Index_Full);
+			const int32 StateIndex_Full =
+				IndexMap.X_FRToFullIndices[StateIndex_FR];
+
+			DeltaXNextReal_FR(StateIndex_FR) =
+				DeltaXNextReal_Full(StateIndex_Full);
 		}
 
-		const Eigen::VectorXd DeltaXNextLinear_FR =
-			B_FR_Discrete * DeltaU;
+		// Project real result back to ker_k
+		// -------------------------------------------------------------------------
 
-		const Eigen::VectorXd PredictionError_FR =
-			DeltaXNextReal_FR - DeltaXNextLinear_FR;
+		const Eigen::VectorXd DeltaZNextReal_ker =
+			T_kerToFR.transpose() * DeltaXNextReal_FR;
 
-		const double PredictionError = PredictionError_FR.norm();
-		const double DeltaXNextRealNorm = DeltaXNextReal_FR.norm();
+		// Linear ker prediction
+		// -------------------------------------------------------------------------
 
-		const double RelativePredictionError =
-			DeltaXNextRealNorm > 1.0e-15
-			? PredictionError / DeltaXNextRealNorm
-			: PredictionError;
+		const Eigen::VectorXd DeltaZNextLinear_ker =
+			A_ker_Discrete * DeltaZ_ker
+			+ B_ker_Discrete * DeltaU;
+
+		const Eigen::VectorXd KernelPredictionErrorVector =
+			DeltaZNextReal_ker - DeltaZNextLinear_ker;
+
+		const double KernelPredictionError =
+			KernelPredictionErrorVector.norm();
+
+		const double DeltaZNextRealNorm =
+			DeltaZNextReal_ker.norm();
+
+		const double KernelRelativePredictionError =
+			DeltaZNextRealNorm > 1.0e-15
+			? KernelPredictionError / DeltaZNextRealNorm
+			: KernelPredictionError;
+
+		// Measure part of DeltaX_{k+1} outside ker_k
+		// -------------------------------------------------------------------------
+
+		const Eigen::MatrixXd Projector_ker =
+			T_kerToFR * T_kerToFR.transpose();
+
+		const Eigen::VectorXd DeltaXNextOutsideKer_FR =
+			DeltaXNextReal_FR
+			- Projector_ker * DeltaXNextReal_FR;
+
+		const double OutsideKerError =
+			DeltaXNextOutsideKer_FR.norm();
+
+		const double DeltaXNextRealFRNorm =
+			DeltaXNextReal_FR.norm();
+
+		const double OutsideKerRelativeError =
+			DeltaXNextRealFRNorm > 1.0e-15
+			? OutsideKerError / DeltaXNextRealFRNorm
+			: OutsideKerError;
 
 		// Real simulation step
 		// -------------------------------------------------------------------------
