@@ -228,39 +228,17 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// Control Channels
 	// -------------------------------------------------------------------------
 
-	// Channel 1
-	FLinearControlChannel Channel0(TEXT("Channel0"));
+	FLinearControlChannel Channel0(TEXT("Mass1Horizontal"));
+	Channel0.AddForceContribution(Mass1Index, FVector2D(1.0, 0.0));
+	ControlSys.AddLinearControlChannel(MoveTemp(Channel0));
 
-	Channel0.AddForceContribution(
-		Mass1Index,
-		FVector2D(1.0, 0.5)
-	);
+	FLinearControlChannel Channel1(TEXT("Mass2Horizontal"));
+	Channel1.AddForceContribution(Mass2Index, FVector2D(1.0, 0.0));
+	ControlSys.AddLinearControlChannel(MoveTemp(Channel1));
 
-	Channel0.AddForceContribution(
-		Mass3Index,
-		FVector2D(-1.0, 0.0)
-	);
-
-	ControlSys.AddLinearControlChannel(
-		MoveTemp(Channel0)
-	);
-
-	// Channel 2
-	FLinearControlChannel Channel1(TEXT("Channel1"));
-
-	Channel1.AddForceContribution(
-		Mass2Index,
-		FVector2D(0.0, 1.0)
-	);
-
-	Channel1.AddForceContribution(
-		Mass3Index,
-		FVector2D(0.5, -1.0)
-	);
-
-	ControlSys.AddLinearControlChannel(
-		MoveTemp(Channel1)
-	);
+	FLinearControlChannel Channel2(TEXT("Mass3Horizontal"));
+	Channel2.AddForceContribution(Mass3Index, FVector2D(1.0, 0.0));
+	ControlSys.AddLinearControlChannel(MoveTemp(Channel2));
 
 	// -------------------------------------------------------------------------
 	// External force inputs
@@ -418,17 +396,14 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		return false;
 	}
 
-	// Nominal state and control
+	// Current state and nominal control
 	// -------------------------------------------------------------------------
 
-	const FSysState X_k =
-		FullSys.BodiesToFullStateStruct();
+	const FSysState X_k = FullSys.BodiesToFullStateStruct();
 
-	Eigen::VectorXd U_Control =
-		Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+	Eigen::VectorXd U_Control = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
 
-	const Eigen::VectorXd Tau_FR =
-		ControlSys.ComputeTau_FR(U_Control);
+	const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U_Control);
 
 	// Constraint tangent space
 	// -------------------------------------------------------------------------
@@ -438,28 +413,17 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	Eigen::MatrixXd H_X_FR;
 	Eigen::MatrixXd T_kerToFR;
 
-	if (!ControlSys.BuildJandJDot_FR(
-		FullSys,
-		J_FR,
-		JDot_FR
-	))
+	if (!ControlSys.BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
 	{
 		return false;
 	}
 
-	if (!ControlSys.BuildH_FR(
-		J_FR,
-		JDot_FR,
-		H_X_FR
-	))
+	if (!ControlSys.BuildH_FR(J_FR, JDot_FR, H_X_FR))
 	{
 		return false;
 	}
 
-	if (!ControlSys.BuildKernelBasis_FR(
-		H_X_FR,
-		T_kerToFR
-	))
+	if (!ControlSys.BuildKernelBasis_FR(H_X_FR, T_kerToFR))
 	{
 		return false;
 	}
@@ -513,25 +477,18 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 
 	FControllabilityResult ControllabilityResult;
 
-	if (!ControlSys.AnalyzeControllability(
-		A_ker_Discrete,
-		B_ker_Discrete,
-		ControllabilityResult
-	))
+	if (!ControlSys.AnalyzeControllability(A_ker_Discrete, B_ker_Discrete, ControllabilityResult))
 	{
 		return false;
 	}
 
-	/// LQR cost definition
-	// -----------------------------------------------------------------------------
+	// LQR cost definition
+	// -------------------------------------------------------------------------
 
-	const FStateDOFIndexMap& IndexMap =
-		FullSys.GetStateIndexMap();
+	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 
 	const int32 SizeQ_FR = IndexMap.SizeQ_FR;
-
 	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
-
 	const int32 NumControlChannels = ControlSys.GetNumControlChannels();
 
 	constexpr double PositionStateWeight = 10.0;
@@ -554,11 +511,10 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		T_kerToFR.transpose() * Q_FR * T_kerToFR;
 
 	const Eigen::MatrixXd R =
-		ControlWeight
-		* Eigen::MatrixXd::Identity(NumControlChannels, NumControlChannels);
+		ControlWeight * Eigen::MatrixXd::Identity(NumControlChannels, NumControlChannels);
 
-	// Solve Discrete Algebraic Riccati Equation (DARE)
-	// -----------------------------------------------------------------------------
+	// DARE
+	// -------------------------------------------------------------------------
 
 	FDAREResult DAREResult;
 
@@ -570,7 +526,7 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	const Eigen::MatrixXd& P = DAREResult.P;
 
 	// LQR gain
-	// -----------------------------------------------------------------------------
+	// -------------------------------------------------------------------------
 
 	Eigen::MatrixXd K;
 
@@ -579,42 +535,16 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		return false;
 	}
 
-	const int32 KRows = static_cast<int32>(K.rows());
-	const int32 KCols = static_cast<int32>(K.cols());
-
-	const Eigen::MatrixXd A_ClosedLoop =
-		A_ker_Discrete - B_ker_Discrete * K;
-
-	Eigen::EigenSolver<Eigen::MatrixXd> ClosedLoopEigenSolver(A_ClosedLoop, false);
-
-	if (ClosedLoopEigenSolver.info() != Eigen::Success)
-	{
-		return false;
-	}
-
-	const Eigen::VectorXcd ClosedLoopEigenvalues =
-		ClosedLoopEigenSolver.eigenvalues();
-
-	const Eigen::VectorXd ClosedLoopEigenvalueMagnitudes =
-		ClosedLoopEigenvalues.cwiseAbs();
-
-	const double ClosedLoopSpectralRadius =
-		ClosedLoopEigenvalueMagnitudes.maxCoeff();
-
-	const double EigenvalueMagnitude0 = ClosedLoopEigenvalueMagnitudes.coeff(0);
-	const double EigenvalueMagnitude1 = ClosedLoopEigenvalueMagnitudes.coeff(1);
-	const double EigenvalueMagnitude2 = ClosedLoopEigenvalueMagnitudes.coeff(2);
-	const double EigenvalueMagnitude3 = ClosedLoopEigenvalueMagnitudes.coeff(3);
-	const double EigenvalueMagnitude4 = ClosedLoopEigenvalueMagnitudes.coeff(4);
-	const double EigenvalueMagnitude5 = ClosedLoopEigenvalueMagnitudes.coeff(5);
-
 	// Control law
 	// -------------------------------------------------------------------------
 
+	// X_Reference_Full = X_0
+	// U_Reference = 0
+	//
 	// DeltaX_FR
-	// DeltaZ_ker
+	// DeltaZ_ker = T_kerToFR.transpose() * DeltaX_FR
 	// DeltaU = -K * DeltaZ_ker
-	// U_Control = NominalU_Control + DeltaU
+	// U_Control = U_Reference + DeltaU
 	// Tau_FR = ControlSys.ComputeTau_FR(U_Control)
 
 	// Physical simulation step
@@ -622,13 +552,7 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 
 	FSysState X_kPlus1;
 
-	if (!FullSys.Step(
-		Dt,
-		X_k,
-		Tau_FR,
-		U_ExtForces,
-		X_kPlus1
-	))
+	if (!FullSys.Step(Dt, X_k, Tau_FR, U_ExtForces, X_kPlus1))
 	{
 		return false;
 	}
