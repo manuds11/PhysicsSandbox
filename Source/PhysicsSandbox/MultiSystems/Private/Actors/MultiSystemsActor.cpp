@@ -330,6 +330,10 @@ void AMultiSystemsActor::BuildDemoSystem()
 			FullSys
 		)
 	);
+
+	X_Reference_Full = FullSys.BodiesToFullStateStruct();
+
+	U_Reference = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
 }
 
 // -----------------------------------------------------------------------------
@@ -401,9 +405,10 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 
 	const FSysState X_k = FullSys.BodiesToFullStateStruct();
 
-	Eigen::VectorXd U_Control = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+	Eigen::VectorXd U_Control = U_Reference;
 
-	const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U_Control);
+	const Eigen::VectorXd Tau_Nominal_FR =
+		ControlSys.ComputeTau_FR(U_Reference);
 
 	// Constraint tangent space
 	// -------------------------------------------------------------------------
@@ -441,7 +446,7 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		FullSys,
 		Dt,
 		X_k,
-		Tau_FR,
+		Tau_Nominal_FR,
 		U_ExtForces,
 		LinearizationEpsilonX,
 		A_FR_Discrete
@@ -454,7 +459,7 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		FullSys,
 		Dt,
 		X_k,
-		U_Control,
+		U_Reference,
 		U_ExtForces,
 		LinearizationEpsilonU,
 		B_FR_Discrete
@@ -538,14 +543,50 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	// Control law
 	// -------------------------------------------------------------------------
 
-	// X_Reference_Full = X_0
-	// U_Reference = 0
-	//
-	// DeltaX_FR
-	// DeltaZ_ker = T_kerToFR.transpose() * DeltaX_FR
-	// DeltaU = -K * DeltaZ_ker
-	// U_Control = U_Reference + DeltaU
-	// Tau_FR = ControlSys.ComputeTau_FR(U_Control)
+	const Eigen::VectorXd DeltaX_Full =
+		X_k.ToVector() - X_Reference_Full.ToVector();
+
+	Eigen::VectorXd DeltaX_FR(SizeX_FR);
+
+	for (int32 StateIndex_FR = 0; StateIndex_FR < SizeX_FR; ++StateIndex_FR)
+	{
+		const int32 StateIndex_Full = IndexMap.X_FRToFullIndices[StateIndex_FR];
+
+		DeltaX_FR(StateIndex_FR) = DeltaX_Full(StateIndex_Full);
+	}
+
+	const Eigen::VectorXd DeltaZ_ker =
+		T_kerToFR.transpose() * DeltaX_FR;
+
+	const Eigen::VectorXd DeltaU =
+		-K * DeltaZ_ker;
+
+	U_Control =
+		U_Reference + DeltaU;
+
+	const Eigen::VectorXd Tau_FR =
+		ControlSys.ComputeTau_FR(U_Control);
+
+	// Control diagnostics
+	// -------------------------------------------------------------------------
+
+	const double* volatile AKerData = A_ker_Discrete.data();
+	const double* volatile BKerData = B_ker_Discrete.data();
+	const double* volatile PData = P.data();
+	const double* volatile KData = K.data();
+
+	const double* volatile DeltaZKerData = DeltaZ_ker.data();
+	const double* volatile DeltaUData = DeltaU.data();
+	const double* volatile UControlData = U_Control.data();
+
+	const double KNorm = K.norm();
+	const double KMaxAbs = K.cwiseAbs().maxCoeff();
+
+	const double DeltaXFRNorm = DeltaX_FR.norm();
+	const double DeltaZKerNorm = DeltaZ_ker.norm();
+	const double DeltaUNorm = DeltaU.norm();
+	const double UControlNorm = U_Control.norm();
+	const double TauFRNorm = Tau_FR.norm();
 
 	// Physical simulation step
 	// -------------------------------------------------------------------------
