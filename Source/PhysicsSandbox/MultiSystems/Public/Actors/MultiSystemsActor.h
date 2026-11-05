@@ -38,10 +38,12 @@ public:
 
 private:
 	FFullSys FullSys;
+
 	FControlSys ControlSys;
 	TArray<FU_ExtForce> U_ExtForces;
 	FSysState X_Reference_Full;
 	Eigen::VectorXd U_Reference;
+	FLQRDesign ActiveLQRModel;
 
 	// =========================
 	// Camera Control Instance

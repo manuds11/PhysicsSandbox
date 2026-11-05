@@ -253,6 +253,11 @@ void FFullSys::SetXState2Bodies(
 	}
 }
 
+void FFullSys::SyncRodStates()
+{
+	RodSys.InitializeRodStates(Bodies);
+}
+
 // -----------------------------------------------------------------------------
 // Simulation pipeline
 // -----------------------------------------------------------------------------

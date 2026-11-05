@@ -46,6 +46,24 @@ void AMultiSystemsActor::BeginPlay()
 			&AMultiSystemsActor::ToggleSimulation
 		);
 	}
+
+	if (!ControlSys.DesignLQRController(
+		FullSys,
+		FixedTimeStep,
+		X_Reference_Full,
+		U_Reference,
+		U_ExtForces,
+		ActiveLQRModel
+	))
+	{
+		UE_LOG(
+			LogPhysicsSandbox,
+			Error,
+			TEXT("Failed to design initial LQR controller.")
+		);
+
+		return;
+	}
 }
 
 void AMultiSystemsActor::Tick(float DeltaTime)
@@ -400,147 +418,16 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		return false;
 	}
 
-	// Current state and nominal control
+	// Current state
 	// -------------------------------------------------------------------------
 
 	const FSysState X_k = FullSys.BodiesToFullStateStruct();
 
-	Eigen::VectorXd U_Control = U_Reference;
-
-	const Eigen::VectorXd Tau_Nominal_FR =
-		ControlSys.ComputeTau_FR(U_Reference);
-
-	// Constraint tangent space
-	// -------------------------------------------------------------------------
-
-	Eigen::MatrixXd J_FR;
-	Eigen::MatrixXd JDot_FR;
-	Eigen::MatrixXd H_X_FR;
-	Eigen::MatrixXd T_kerToFR;
-
-	if (!ControlSys.BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
-	{
-		return false;
-	}
-
-	if (!ControlSys.BuildH_FR(J_FR, JDot_FR, H_X_FR))
-	{
-		return false;
-	}
-
-	if (!ControlSys.BuildKernelBasis_FR(H_X_FR, T_kerToFR))
-	{
-		return false;
-	}
-
-	// Discrete FR linearization
-	// -------------------------------------------------------------------------
-
-	constexpr double LinearizationEpsilonX = 1.0e-5;
-	constexpr double LinearizationEpsilonU = 1.0e-5;
-
-	Eigen::MatrixXd A_FR_Discrete;
-	Eigen::MatrixXd B_FR_Discrete;
-
-	if (!ControlSys.ComputeA_FR_Discrete(
-		FullSys,
-		Dt,
-		X_k,
-		Tau_Nominal_FR,
-		U_ExtForces,
-		LinearizationEpsilonX,
-		A_FR_Discrete
-	))
-	{
-		return false;
-	}
-
-	if (!ControlSys.ComputeB_FR_Discrete(
-		FullSys,
-		Dt,
-		X_k,
-		U_Reference,
-		U_ExtForces,
-		LinearizationEpsilonU,
-		B_FR_Discrete
-	))
-	{
-		return false;
-	}
-
-	// FR -> ker reduced model
-	// -------------------------------------------------------------------------
-
-	const Eigen::MatrixXd A_ker_Discrete =
-		T_kerToFR.transpose() * A_FR_Discrete * T_kerToFR;
-
-	const Eigen::MatrixXd B_ker_Discrete =
-		T_kerToFR.transpose() * B_FR_Discrete;
-
-	// Controllability
-	// -------------------------------------------------------------------------
-
-	FControllabilityResult ControllabilityResult;
-
-	if (!ControlSys.AnalyzeControllability(A_ker_Discrete, B_ker_Discrete, ControllabilityResult))
-	{
-		return false;
-	}
-
-	// LQR cost definition
-	// -------------------------------------------------------------------------
-
 	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 
-	const int32 SizeQ_FR = IndexMap.SizeQ_FR;
 	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
-	const int32 NumControlChannels = ControlSys.GetNumControlChannels();
 
-	constexpr double PositionStateWeight = 10.0;
-	constexpr double VelocityStateWeight = 1.0;
-	constexpr double ControlWeight = 1.0;
-
-	Eigen::MatrixXd Q_FR = Eigen::MatrixXd::Zero(SizeX_FR, SizeX_FR);
-
-	for (int32 QIndex_FR = 0; QIndex_FR < SizeQ_FR; ++QIndex_FR)
-	{
-		Q_FR(QIndex_FR, QIndex_FR) = PositionStateWeight;
-
-		const int32 QDotIndex_FR =
-			SizeQ_FR + QIndex_FR;
-
-		Q_FR(QDotIndex_FR, QDotIndex_FR) = VelocityStateWeight;
-	}
-
-	const Eigen::MatrixXd Q_ker =
-		T_kerToFR.transpose() * Q_FR * T_kerToFR;
-
-	const Eigen::MatrixXd R =
-		ControlWeight * Eigen::MatrixXd::Identity(NumControlChannels, NumControlChannels);
-
-	// DARE
-	// -------------------------------------------------------------------------
-
-	FDAREResult DAREResult;
-
-	if (!ControlSys.SolveDARE(A_ker_Discrete, B_ker_Discrete, Q_ker, R, DAREResult))
-	{
-		return false;
-	}
-
-	const Eigen::MatrixXd& P = DAREResult.P;
-
-	// LQR gain
-	// -------------------------------------------------------------------------
-
-	Eigen::MatrixXd K;
-
-	if (!ControlSys.ComputeLQRGain(A_ker_Discrete, B_ker_Discrete, R, P, K))
-	{
-		return false;
-	}
-
-	// Control law
+	// State error
 	// -------------------------------------------------------------------------
 
 	const Eigen::VectorXd DeltaX_Full =
@@ -555,14 +442,19 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		DeltaX_FR(StateIndex_FR) = DeltaX_Full(StateIndex_Full);
 	}
 
+	// FR -> ker
+	// -------------------------------------------------------------------------
+
 	const Eigen::VectorXd DeltaZ_ker =
-		T_kerToFR.transpose() * DeltaX_FR;
+		ActiveLQRModel.T_kerToFR.transpose() * DeltaX_FR;
+
+	// LQR control law
+	// -------------------------------------------------------------------------
 
 	const Eigen::VectorXd DeltaU =
-		-K * DeltaZ_ker;
+		-ActiveLQRModel.K * DeltaZ_ker;
 
-	U_Control =
-		U_Reference + DeltaU;
+	const Eigen::VectorXd U_Control = U_Reference + DeltaU;
 
 	const Eigen::VectorXd Tau_FR =
 		ControlSys.ComputeTau_FR(U_Control);
@@ -570,17 +462,9 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	// Control diagnostics
 	// -------------------------------------------------------------------------
 
-	const double* volatile AKerData = A_ker_Discrete.data();
-	const double* volatile BKerData = B_ker_Discrete.data();
-	const double* volatile PData = P.data();
-	const double* volatile KData = K.data();
-
 	const double* volatile DeltaZKerData = DeltaZ_ker.data();
 	const double* volatile DeltaUData = DeltaU.data();
 	const double* volatile UControlData = U_Control.data();
-
-	const double KNorm = K.norm();
-	const double KMaxAbs = K.cwiseAbs().maxCoeff();
 
 	const double DeltaXFRNorm = DeltaX_FR.norm();
 	const double DeltaZKerNorm = DeltaZ_ker.norm();

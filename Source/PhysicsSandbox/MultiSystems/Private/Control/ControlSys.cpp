@@ -644,6 +644,191 @@ bool FControlSys::AnalyzeControllability(
 }
 
 // -----------------------------------------------------------------------------
+// LQR Model
+// -----------------------------------------------------------------------------
+
+bool FControlSys::DesignLQRController(
+	FFullSys& FullSys,
+	double Dt,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalU,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	FLQRDesign& OutLQRModel
+)
+{
+	if (
+		Dt <= 0.0
+		|| NominalU.size() != GetNumControlChannels()
+		|| !NominalU.allFinite()
+		)
+	{
+		return false;
+	}
+
+	FLQRDesign NewLQRModel;
+
+	NewLQRModel.Dt = Dt;
+	NewLQRModel.NominalX_Full = NominalX_Full;
+	NewLQRModel.NominalU = NominalU;
+
+	const FSysState FullSysX_BeforeDesign =
+		FullSys.BodiesToFullStateStruct();
+
+	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
+
+	const int32 SizeQ_FR = IndexMap.SizeQ_FR;
+	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
+	const int32 NumControlChannels = GetNumControlChannels();
+
+	const Eigen::VectorXd Tau_Nominal_FR =
+		ComputeTau_FR(NominalU);
+
+	// Constraint tangent space
+	// -------------------------------------------------------------------------
+
+	Eigen::MatrixXd J_FR;
+	Eigen::MatrixXd JDot_FR;
+	Eigen::MatrixXd H_X_FR;
+
+	if (!BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
+	{
+		return false;
+	}
+
+	if (!BuildH_FR(J_FR, JDot_FR, H_X_FR))
+	{
+		return false;
+	}
+
+	if (!BuildKernelBasis_FR(H_X_FR, NewLQRModel.T_kerToFR))
+	{
+		return false;
+	}
+
+	// Discrete FR linearization
+	// -------------------------------------------------------------------------
+
+	constexpr double LinearizationEpsilonX = 1.0e-5;
+	constexpr double LinearizationEpsilonU = 1.0e-5;
+
+	Eigen::MatrixXd A_FR_Discrete;
+	Eigen::MatrixXd B_FR_Discrete;
+
+	if (!ComputeA_FR_Discrete(
+		FullSys,
+		Dt,
+		NominalX_Full,
+		Tau_Nominal_FR,
+		NominalU_ExtForces,
+		LinearizationEpsilonX,
+		A_FR_Discrete
+	))
+	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		return false;
+	}
+
+	if (!ComputeB_FR_Discrete(
+		FullSys,
+		Dt,
+		NominalX_Full,
+		NominalU,
+		NominalU_ExtForces,
+		LinearizationEpsilonU,
+		B_FR_Discrete
+	))
+	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		return false;
+	}
+
+	// Restore Bodies to original state before perturbations from A, B computation 
+	// -------------------------------------------------------------------------
+
+	FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+	FullSys.SyncRodStates();
+
+	// FR -> ker reduced model
+	// -------------------------------------------------------------------------
+
+	NewLQRModel.A_ker_Discrete =
+		NewLQRModel.T_kerToFR.transpose() * A_FR_Discrete * NewLQRModel.T_kerToFR;
+
+	NewLQRModel.B_ker_Discrete =
+		NewLQRModel.T_kerToFR.transpose() * B_FR_Discrete;
+
+	// Controllability
+	// -------------------------------------------------------------------------
+
+	if (!AnalyzeControllability(
+		NewLQRModel.A_ker_Discrete,
+		NewLQRModel.B_ker_Discrete,
+		NewLQRModel.Controllability
+	))
+	{
+		return false;
+	}
+
+	// LQR cost definition
+	// -------------------------------------------------------------------------
+
+	constexpr double PositionStateWeight = 10.0;
+	constexpr double VelocityStateWeight = 1.0;
+	constexpr double ControlWeight = 1.0;
+
+	Eigen::MatrixXd Q_FR = Eigen::MatrixXd::Zero(SizeX_FR, SizeX_FR);
+
+	for (int32 QIndex_FR = 0; QIndex_FR < SizeQ_FR; ++QIndex_FR)
+	{
+		Q_FR(QIndex_FR, QIndex_FR) = PositionStateWeight;
+
+		const int32 QDotIndex_FR =
+			SizeQ_FR + QIndex_FR;
+
+		Q_FR(QDotIndex_FR, QDotIndex_FR) = VelocityStateWeight;
+	}
+
+	const Eigen::MatrixXd Q_ker =
+		NewLQRModel.T_kerToFR.transpose() * Q_FR * NewLQRModel.T_kerToFR;
+
+	const Eigen::MatrixXd R =
+		ControlWeight * Eigen::MatrixXd::Identity(NumControlChannels, NumControlChannels);
+
+	// DARE
+	// -------------------------------------------------------------------------
+
+	if (!SolveDARE(
+		NewLQRModel.A_ker_Discrete,
+		NewLQRModel.B_ker_Discrete,
+		Q_ker,
+		R,
+		NewLQRModel.DARE
+	))
+	{
+		return false;
+	}
+
+	// LQR gain
+	// -------------------------------------------------------------------------
+
+	if (!ComputeLQRGain(
+		NewLQRModel.A_ker_Discrete,
+		NewLQRModel.B_ker_Discrete,
+		R,
+		NewLQRModel.DARE.P,
+		NewLQRModel.K
+	))
+	{
+		return false;
+	}
+
+	OutLQRModel = MoveTemp(NewLQRModel);
+	OutLQRModel.AdaptDataFromEigen2Debug();
+
+	return true;
+}
+
+// -----------------------------------------------------------------------------
 // Discrete Algebraic Riccati Equation (DARE) Solver
 // -----------------------------------------------------------------------------
 

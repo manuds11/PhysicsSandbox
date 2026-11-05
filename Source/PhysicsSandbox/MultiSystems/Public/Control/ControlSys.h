@@ -61,6 +61,62 @@ struct FDAREResult
 	bool bConverged = false;
 };
 
+struct FLQRDesign
+{
+	double Dt = 0.0;
+
+	FSysState NominalX_Full;
+	Eigen::VectorXd NominalU;
+
+	Eigen::MatrixXd T_kerToFR;
+
+	Eigen::MatrixXd A_ker_Discrete;
+	Eigen::MatrixXd B_ker_Discrete;
+
+	FControllabilityResult Controllability;
+	FDAREResult DARE;
+
+	Eigen::MatrixXd K;
+
+	// Debug visualization
+	// -------------------------------------------------------------------------
+
+	TArray<double> T_DebugData;
+	TArray<double> A_DebugData;
+	TArray<double> B_DebugData;
+	TArray<double> P_DebugData;
+	TArray<double> K_DebugData;
+
+	void AdaptDataFromEigen2Debug()
+	{
+		auto CopyMatrixRowMajor = [](
+			const Eigen::MatrixXd& Matrix,
+			TArray<double>& OutDebugData
+			)
+			{
+				OutDebugData.SetNum(
+					static_cast<int32>(Matrix.rows() * Matrix.cols())
+				);
+
+				int32 DebugIndex = 0;
+
+				for (Eigen::Index Row = 0; Row < Matrix.rows(); ++Row)
+				{
+					for (Eigen::Index Col = 0; Col < Matrix.cols(); ++Col)
+					{
+						OutDebugData[DebugIndex++] = Matrix(Row, Col);
+					}
+				}
+			};
+
+		CopyMatrixRowMajor(T_kerToFR, T_DebugData);
+		CopyMatrixRowMajor(A_ker_Discrete, A_DebugData);
+		CopyMatrixRowMajor(B_ker_Discrete, B_DebugData);
+		CopyMatrixRowMajor(DARE.P, P_DebugData);
+		CopyMatrixRowMajor(K, K_DebugData);
+	}
+};
+
 class FControlSys
 {
 public:
@@ -177,7 +233,18 @@ public:
 		FControllabilityResult& OutResult
 	) const;
 
-	// SOLVERS
+	// LQR Model
+
+	bool DesignLQRController(
+		FFullSys& FullSys,
+		double Dt,
+		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalU,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
+		FLQRDesign& OutLQRModel
+	);
+
+	// Solvers
 
 	bool SolveDARE(
 		const Eigen::MatrixXd& A,
