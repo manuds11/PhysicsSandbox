@@ -615,6 +615,10 @@ void AMultiSystemsActor::PrintInfo() const
 	DebugText +=
 		TEXT("MULTI SYSTEMS\n");
 
+	// =========================================================================
+	// Input / camera info
+	// =========================================================================
+
 	const TCHAR* CameraMode =
 		TEXT("Unknown");
 
@@ -626,31 +630,42 @@ void AMultiSystemsActor::PrintInfo() const
 			: TEXT("Free");
 	}
 
-	/*
 	DebugText += FString::Printf(
 		TEXT(
-			"SPACE Start/Stop\n"
-			"Key 'C' Camera Toggle: %s\n"
-			"SimulTime: %.2f s | FixedSteps: %llu\n"
-			"Delay: %.3f s | AvgDt: %.3f s | FixedDt: %.4f s\n"
+			"SPACE Start/Stop | Camera C: %s\n"
 		),
-		CameraMode,
-		SimuPhysicalTime,
-		FixedStepCount,
-		SimulationDelay,
-		AverageDeltaTime,
-		FixedTimeStep
+		CameraMode
 	);
-	*/
 
-	
+	// =========================================================================
+	// Simulation time
+	// =========================================================================
+
+	const double RealTimeFactor =
+		SimuWallClockTime > UE_SMALL_NUMBER
+		? SimuPhysicalTime / SimuWallClockTime
+		: 0.0;
+
 	DebugText += FString::Printf(
-		TEXT("SimulTime: %.2f s | FixedSteps: %llu\n"),
-
-		SimuPhysicalTime, FixedStepCount
+		TEXT(
+			"Sim: %.2f s | Wall: %.2f s | Delay: %+.3f s | RTF: %.3f | FixedSteps: %llu | FixedDt: %.5f s\n"
+			"AvgFrameDt: %.4f s | LastSubSteps: %d\n"
+		),
+		SimuPhysicalTime,
+		SimuWallClockTime,
+		SimulationDelay,
+		RealTimeFactor,
+		FixedStepCount,
+		FixedTimeStep,
+		AverageDeltaTime,
+		LastSubStepCount
 	);
-	
 
+	// =========================================================================
+	// Rod diagnostics
+	// =========================================================================
+
+	/*
 	const TArray<FPendulumRod*>& RodSystemArray =
 		FullSys.GetRodSystemArray();
 
@@ -662,11 +677,7 @@ void AMultiSystemsActor::PrintInfo() const
 		== RodSystemLambda.Num()
 	);
 
-	for (
-		int32 Rod_iIndex = 0;
-		Rod_iIndex < RodSystemArray.Num();
-		++Rod_iIndex
-		)
+	for (int32 Rod_iIndex = 0; Rod_iIndex < RodSystemArray.Num(); ++Rod_iIndex)
 	{
 		const FPendulumRod* Rod_i =
 			RodSystemArray[Rod_iIndex];
@@ -679,101 +690,121 @@ void AMultiSystemsActor::PrintInfo() const
 		const FInstantErrorData& InstantErrorData_i =
 			Rod_i->GetInstantErrorData();
 
-		const FStatisticalErrorData& StatisticalErrorData_i =
-			Rod_i->GetStatisticalErrorData();
-
 		const double Lambda_i =
 			RodSystemLambda[Rod_iIndex];
 
-		/*
 		DebugText += FString::Printf(
 			TEXT(
-				"--------------------------------------------------\n"
-				"ROD %d\n"
-
-				"L Rel Error: %.3e   ||   Radial Vel: %.3e m/s\n"
+				"Rod %d | L Rel Error: %.3e | Radial Vel: %.3e m/s | Lambda: %.3e\n"
 			),
-
 			Rod_iIndex + 1,
-
 			InstantErrorData_i.LengthRelError,
-			InstantErrorData_i.RadialVelocityError
-		); */
+			InstantErrorData_i.RadialVelocityError,
+			Lambda_i
+		);
 	}
+	*/
 
-	const FSystemEnergyBalance& Balance = FullSys.GetEnergyBalance();
-	const FSystemEnergyState& CurrentEnergyState = Balance.Current;
-	const FDeltaEnergy& IntegrationBalance = FullSys.GetIntegrationEnergy();
-	const FConstraintCorrectionEnergyDiagnostics& CorrectionBalance = FullSys.GetCorrectionEnergyDiagnostics();
+	// =========================================================================
+	// Energy balance
+	// =========================================================================
+
+	const FSystemEnergyBalance& Balance =
+		FullSys.GetEnergyBalance();
+
+	const FSystemEnergyState& CurrentEnergyState =
+		Balance.Current;
+
+	const FConstraintCorrectionEnergyDiagnostics& CorrectionBalance =
+		FullSys.GetCorrectionEnergyDiagnostics();
 
 	DebugText += FString::Printf(
 		TEXT(
-			"\n==================================================\n"
-			"ENERGY BALANCE\n\n"
-
-			"Initial Mechanical: %.6f J\n"
-			"Mechanical: %.6f J\n"
-			"Kinetic: %.6f J\n"
-			"Gravitational: %.6f J\n"
-			"Elastic: %.6f J\n"
-			"\n"
-			"Delta Mechanical: %+.6f J\n"
-			"Total Dissipated: %.6f J\n"
-			"Energy Residual: %+.6f J\n"
+			"\nENERGY BALANCE\n"
+			"Initial Mech: %.6f J | Mechanical: %.6f J | Delta Mech: %+.6f J | Dissipated: %.6f J\n"
+			"Accum Correction: %+.6f J | Control Work: NOT IMPLEMENTED | External Work: NOT IMPLEMENTED\n"
+			"Unaccounted Energy Residual*: %+.6f J\n"
+			"* Residual currently does not include control/external work.\n"
 		),
 		Balance.Initial.Mechanical(),
 		CurrentEnergyState.Mechanical(),
-		CurrentEnergyState.Kinetic,
-		CurrentEnergyState.Gravitational,
-		CurrentEnergyState.Elastic,
-
 		Balance.MechanicalVariationSinceStart(),
 		CurrentEnergyState.TotalDissipated,
+		CorrectionBalance.AccumulatedProjectionEnergy(),
 		Balance.EnergyResidualSinceStart()
 	);
 
+	// =========================================================================
+	// Energy components
+	// =========================================================================
+
+	/*
 	DebugText += FString::Printf(
 		TEXT(
-			"\n--------------------------------------------------\n"
-			"STEP ENERGY INCREMENTS\n\n"
+			"\nENERGY COMPONENTS\n"
+			"Kinetic: %.6f J | Gravitational: %.6f J | Elastic: %.6f J\n"
+		),
+		CurrentEnergyState.Kinetic,
+		CurrentEnergyState.Gravitational,
+		CurrentEnergyState.Elastic
+	);
+	*/
 
-			"Integration: %+.6f J\n"
-			"1º Vel Correction: %+.6f J\n"
-			"Pos Correction: %+.6f J\n"
-			"2º Vel Correction: %+.6f J\n"
-			"Total Correction: %+.6f J\n"
-			"Total Step: %+.6f J\n"
+	// =========================================================================
+	// Current step energy increments
+	// =========================================================================
+
+	/*
+	const FDeltaEnergy& IntegrationBalance =
+		FullSys.GetIntegrationEnergy();
+
+	DebugText += FString::Printf(
+		TEXT(
+			"\nSTEP ENERGY INCREMENTS\n"
+			"Integration: %+.6f J | Vel1: %+.6f J | Pos: %+.6f J | Vel2: %+.6f J | "
+			"Total Correction: %+.6f J | Total Step: %+.6f J\n"
 		),
 		IntegrationBalance.DeltaMechanical(),
 		CorrectionBalance.InitialVelocityProjection.DeltaMechanical(),
 		CorrectionBalance.PositionProjection.DeltaMechanical(),
 		CorrectionBalance.FinalVelocityProjection.DeltaMechanical(),
 		CorrectionBalance.StepProjectionEnergyIncrement(),
-
 		IntegrationBalance.DeltaMechanical()
-		+ CorrectionBalance.StepProjectionEnergyIncrement()
+			+ CorrectionBalance.StepProjectionEnergyIncrement()
 	);
+	*/
 
+	// =========================================================================
+	// Detailed accumulated correction energy
+	// =========================================================================
+
+	/*
 	DebugText += FString::Printf(
 		TEXT(
-			"\n--------------------------------------------------\n"
-			"ACCUMULATED CORRECTION ENERGY\n\n"
-
-			"1º Vel Correction: %+.6f J\n"
-			"Pos Correction: %+.6f J\n"
-			"2º Vel Correction: %+.6f J\n"
-			"Total Correction: %+.6f J\n"
-			"\n"
-			"Residual Excluding Projections: %+.6f J\n"
+			"\nACCUMULATED CORRECTION ENERGY\n"
+			"Vel1: %+.6f J | Pos: %+.6f J | Vel2: %+.6f J | Total: %+.6f J\n"
 		),
 		CorrectionBalance.AccumulatedInitialVelocity.Mechanical(),
 		CorrectionBalance.AccumulatedPosition.Mechanical(),
 		CorrectionBalance.AccumulatedFinalVelocity.Mechanical(),
-		CorrectionBalance.AccumulatedProjectionEnergy(),
-
-		Balance.EnergyResidualSinceStart()
-		- CorrectionBalance.AccumulatedProjectionEnergy()
+		CorrectionBalance.AccumulatedProjectionEnergy()
 	);
+	*/
+
+	// =========================================================================
+	// LQR design timing - To be implemented
+	// =========================================================================
+
+	/*
+	DebugText += FString::Printf(
+		TEXT(
+			"\nLQR DESIGN\n"
+			"Kernel: %.3f ms | A: %.3f ms | B: %.3f ms | Controllability: %.3f ms | "
+			"DARE: %.3f ms | K: %.3f ms | Total: %.3f ms\n"
+		),
+		...
+	);
+	*/
 
 	const FColor TextColor =
 		bIsSimulationRunning
