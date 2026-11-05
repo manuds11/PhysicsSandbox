@@ -245,18 +245,22 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// -------------------------------------------------------------------------
 	// Control Channels
 	// -------------------------------------------------------------------------
-
+	
+	/*
 	FLinearControlChannel Channel0(TEXT("Mass1Horizontal"));
 	Channel0.AddForceContribution(Mass1Index, FVector2D(1.0, 0.0));
 	ControlSys.AddLinearControlChannel(MoveTemp(Channel0));
+	*/
 
 	FLinearControlChannel Channel1(TEXT("Mass2Horizontal"));
-	Channel1.AddForceContribution(Mass2Index, FVector2D(1.0, 0.0));
+	Channel1.AddForceContribution(Mass2Index, FVector2D(0.0, 1.0));
 	ControlSys.AddLinearControlChannel(MoveTemp(Channel1));
-
+	
+	/*/
 	FLinearControlChannel Channel2(TEXT("Mass3Horizontal"));
 	Channel2.AddForceContribution(Mass3Index, FVector2D(1.0, 0.0));
 	ControlSys.AddLinearControlChannel(MoveTemp(Channel2));
+	*/
 
 	// -------------------------------------------------------------------------
 	// External force inputs

@@ -671,8 +671,7 @@ bool FControlSys::DesignLQRController(
 	NewLQRModel.NominalX_Full = NominalX_Full;
 	NewLQRModel.NominalU = NominalU;
 
-	const FSysState FullSysX_BeforeDesign =
-		FullSys.BodiesToFullStateStruct();
+	const FSysState FullSysX_BeforeDesign = FullSys.BodiesToFullStateStruct();
 
 	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 
