@@ -6,28 +6,31 @@
 // -----------------------------------------------------------------------------
 // System energy
 // -----------------------------------------------------------------------------
-
 struct FSystemEnergyState
 {
-    double Kinetic = 0.0;
-    double Gravitational = 0.0;
-    double Elastic = 0.0;
-    double TotalDissipated = 0.0;
+	double Kinetic = 0.0;
+	double Gravitational = 0.0;
+	double Elastic = 0.0;
 
-    double Potential() const
-    {
-        return Gravitational + Elastic;
-    }
+	double TotalDissipated = 0.0;
+	double TotalControlWork = 0.0;
 
-    double Mechanical() const
-    {
-        return Kinetic + Gravitational + Elastic;
-    }
+	double Potential() const
+	{
+		return Gravitational + Elastic;
+	}
 
-    double Total() const
-    {
-        return Mechanical() + TotalDissipated;
-    }
+	double Mechanical() const
+	{
+		return Kinetic + Gravitational + Elastic;
+	}
+
+	double Total() const
+	{
+		return Mechanical()
+			+ TotalDissipated
+			- TotalControlWork;
+	}
 };
 
 // -----------------------------------------------------------------------------

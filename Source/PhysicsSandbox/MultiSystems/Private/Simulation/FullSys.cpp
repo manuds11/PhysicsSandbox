@@ -375,7 +375,8 @@ bool FFullSys::Step(
 
 	SetXState2Bodies(InputX_Full);
 
-	const double DissipatedPowerBefore = ComputeDissipatedPower();
+	const double DissipatedPowerBefore =
+		ComputeDissipatedPower();
 
 	const bool bRecordEnergyDiagnostics = true;
 
@@ -391,9 +392,20 @@ bool FFullSys::Step(
 		return false;
 	}
 
+	const double ControlWorkIncrement =
+		ComputeControlWorkIncrement(
+			InputX_Full,
+			OutputXNext_Full,
+			Tau_FR
+		);
+
 	RodSys.UpdateStatisticalErrorData();
 
-	UpdateEnergyBalance(Dt, DissipatedPowerBefore);
+	UpdateEnergyBalance(
+		Dt,
+		DissipatedPowerBefore,
+		ControlWorkIncrement
+	);
 
 	return true;
 }
@@ -652,17 +664,56 @@ double FFullSys::ComputeDissipatedPower() const
 	return TotalPower;
 }
 
-void FFullSys::UpdateEnergyBalance(double Dt, double DissipatedPowerBefore)
+double FFullSys::ComputeControlWorkIncrement(
+	const FSysState& InputX_Full,
+	const FSysState& OutputXNext_Full,
+	const Eigen::VectorXd& Tau_FR
+) const
 {
-	const double DissipatedPowerAfter = ComputeDissipatedPower();
+	check(Tau_FR.size() == StateIndexMap.SizeQ_FR);
+
+	double ControlWorkIncrement = 0.0;
+
+	for (int32 QIndex_FR = 0; QIndex_FR < StateIndexMap.SizeQ_FR; ++QIndex_FR)
+	{
+		const int32 QIndex_Full =
+			StateIndexMap.Q_FRToFullIndices[QIndex_FR];
+
+		const double DeltaQ =
+			OutputXNext_Full.Q(QIndex_Full)
+			- InputX_Full.Q(QIndex_Full);
+
+		ControlWorkIncrement +=
+			Tau_FR(QIndex_FR) * DeltaQ;
+	}
+
+	return ControlWorkIncrement;
+}
+
+void FFullSys::UpdateEnergyBalance(
+	double Dt,
+	double DissipatedPowerBefore,
+	double ControlWorkIncrement
+)
+{
+	const double DissipatedPowerAfter =
+		ComputeDissipatedPower();
 
 	const double DissipatedIncrement =
 		0.5 * Dt * (DissipatedPowerBefore + DissipatedPowerAfter);
 
-	const double PreviousDissipated = EnergyBalance.Current.TotalDissipated;
+	const double PreviousDissipated =
+		EnergyBalance.Current.TotalDissipated;
 
-	EnergyBalance.Current = ComputeSystemEnergy();
+	const double PreviousControlWork =
+		EnergyBalance.Current.TotalControlWork;
+
+	EnergyBalance.Current =
+		ComputeSystemEnergy();
 
 	EnergyBalance.Current.TotalDissipated =
 		PreviousDissipated + DissipatedIncrement;
+
+	EnergyBalance.Current.TotalControlWork =
+		PreviousControlWork + ControlWorkIncrement;
 }

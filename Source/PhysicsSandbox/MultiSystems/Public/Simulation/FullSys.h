@@ -117,7 +117,19 @@ private:
 	FSystemEnergyBalance EnergyBalance;
 	FDeltaEnergy IntegrationEnergy;
 	double ComputeDissipatedPower() const;
-	void UpdateEnergyBalance(double Dt, double DissipatedPowerBefore);
+
+	double ComputeControlWorkIncrement(
+		const FSysState& InputX_Full,
+		const FSysState& OutputXNext_Full,
+		const Eigen::VectorXd& Tau_FR
+	) const;
+
+
+	void UpdateEnergyBalance(
+		double Dt,
+		double DissipatedPowerBefore,
+		double ControlWorkIncrement
+	);
 };
 
 

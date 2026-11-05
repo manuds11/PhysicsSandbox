@@ -718,20 +718,29 @@ void AMultiSystemsActor::PrintInfo() const
 	const FConstraintCorrectionEnergyDiagnostics& CorrectionBalance =
 		FullSys.GetCorrectionEnergyDiagnostics();
 
+	const double EnergyResidual =
+		Balance.EnergyResidualSinceStart();
+
+	const double EnergyResidualExcludingCorrections =
+		EnergyResidual - CorrectionBalance.AccumulatedProjectionEnergy();
+
 	DebugText += FString::Printf(
 		TEXT(
 			"\nENERGY BALANCE\n"
 			"Initial Mech: %.6f J | Mechanical: %.6f J | Delta Mech: %+.6f J | Dissipated: %.6f J\n"
-			"Accum Correction: %+.6f J | Control Work: NOT IMPLEMENTED | External Work: NOT IMPLEMENTED\n"
-			"Unaccounted Energy Residual*: %+.6f J\n"
-			"* Residual currently does not include control/external work.\n"
+			"Control Work: %+.6f J | Accum Correction: %+.6f J | External Work: NOT IMPLEMENTED\n"
+			"Energy Residual: %+.6f J | Residual Excl. Corrections: %+.6f J\n"
 		),
 		Balance.Initial.Mechanical(),
 		CurrentEnergyState.Mechanical(),
 		Balance.MechanicalVariationSinceStart(),
 		CurrentEnergyState.TotalDissipated,
+
+		CurrentEnergyState.TotalControlWork,
 		CorrectionBalance.AccumulatedProjectionEnergy(),
-		Balance.EnergyResidualSinceStart()
+
+		EnergyResidual,
+		EnergyResidualExcludingCorrections
 	);
 
 	// =========================================================================
