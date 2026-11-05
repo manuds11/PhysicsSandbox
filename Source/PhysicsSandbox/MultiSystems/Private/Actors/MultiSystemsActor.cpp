@@ -140,20 +140,22 @@ void AMultiSystemsActor::BuildDemoSystem()
 		);
 
 	// -------------------------------------------------------------------------
-	// Bodies - Pendulum
+	// Bodies - Perfect inverted equilibrium
 	// -------------------------------------------------------------------------
+
+	constexpr double EquilibriumX = 2.50;
 
 	const int32 BaseIndex =
 		FullSys.AddBody(
 			FBody::Fixed(
-				FVector2D(2.50, -1.20)
+				FVector2D(EquilibriumX, -1.20)
 			)
 		);
 
 	const int32 Mass1Index =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(2.58, -0.40),
+				FVector2D(EquilibriumX, -0.3960099503),
 				1.4
 			)
 		);
@@ -161,7 +163,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 Mass2Index =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(2.38, 0.32),
+				FVector2D(EquilibriumX, 0.3512517174),
 				1.0
 			)
 		);
@@ -169,22 +171,8 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 Mass3Index =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(2.62, 1.20),
+				FVector2D(EquilibriumX, 1.2633920575),
 				0.7
-			)
-		);
-
-	const int32 LeftAnchorIndex =
-		FullSys.AddBody(
-			FBody::Fixed(
-				FVector2D(1.14, 1.20)
-			)
-		);
-
-	const int32 RightAnchorIndex =
-		FullSys.AddBody(
-			FBody::Fixed(
-				FVector2D(3.86, 1.20)
 			)
 		);
 
@@ -217,50 +205,16 @@ void AMultiSystemsActor::BuildDemoSystem()
 		);
 
 	// -------------------------------------------------------------------------
-	// Upper stabilization springs
-	// -------------------------------------------------------------------------
-
-	const int32 LeftSpringIndex =
-		FullSys.AddElement(
-			MakeUnique<FSpringDamper>(
-				LeftAnchorIndex,
-				Mass3Index,
-				35.0,
-				0.15,
-				1.48
-			)
-		);
-
-	const int32 RightSpringIndex =
-		FullSys.AddElement(
-			MakeUnique<FSpringDamper>(
-				RightAnchorIndex, 
-				Mass3Index,
-				35.0,
-				0.15,
-				1.48
-			)
-		);
-	
-	// -------------------------------------------------------------------------
 	// Control Channels
 	// -------------------------------------------------------------------------
-	
-	/*
+
 	FLinearControlChannel Channel0(TEXT("Mass1Horizontal"));
 	Channel0.AddForceContribution(Mass1Index, FVector2D(1.0, 0.0));
 	ControlSys.AddLinearControlChannel(MoveTemp(Channel0));
-	*/
 
 	FLinearControlChannel Channel1(TEXT("Mass2Horizontal"));
-	Channel1.AddForceContribution(Mass2Index, FVector2D(0.0, 1.0));
+	Channel1.AddForceContribution(Mass2Index, FVector2D(1.0, 0.0));
 	ControlSys.AddLinearControlChannel(MoveTemp(Channel1));
-	
-	/*/
-	FLinearControlChannel Channel2(TEXT("Mass3Horizontal"));
-	Channel2.AddForceContribution(Mass3Index, FVector2D(1.0, 0.0));
-	ControlSys.AddLinearControlChannel(MoveTemp(Channel2));
-	*/
 
 	// -------------------------------------------------------------------------
 	// External force inputs
@@ -297,16 +251,6 @@ void AMultiSystemsActor::BuildDemoSystem()
 		Mass3Index
 	);
 
-	TripleInvertedPendulum.AddBody(
-		TEXT("LeftAnchor"),
-		LeftAnchorIndex
-	);
-
-	TripleInvertedPendulum.AddBody(
-		TEXT("RightAnchor"),
-		RightAnchorIndex
-	);
-
 	// -------------------------------------------------------------------------
 	// Subsystem associations - Rods
 	// -------------------------------------------------------------------------
@@ -327,24 +271,9 @@ void AMultiSystemsActor::BuildDemoSystem()
 	);
 
 	// -------------------------------------------------------------------------
-	// Subsystem associations - Springs
-	// -------------------------------------------------------------------------
-
-	TripleInvertedPendulum.AddElement(
-		TEXT("LeftSpring"),
-		LeftSpringIndex
-	);
-
-	TripleInvertedPendulum.AddElement(
-		TEXT("RightSpring"),
-		RightSpringIndex
-	);
-
-	// -------------------------------------------------------------------------
 	// Initialization
 	// -------------------------------------------------------------------------
 
-	// Must be called after all bodies and elements have been added.
 	FullSys.Initialize();
 
 	check(
@@ -353,9 +282,13 @@ void AMultiSystemsActor::BuildDemoSystem()
 		)
 	);
 
-	X_Reference_Full = FullSys.BodiesToFullStateStruct();
+	X_Reference_Full =
+		FullSys.BodiesToFullStateStruct();
 
-	U_Reference = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+	U_Reference =
+		Eigen::VectorXd::Zero(
+			ControlSys.GetNumControlChannels()
+		);
 }
 
 // -----------------------------------------------------------------------------

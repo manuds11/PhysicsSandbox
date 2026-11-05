@@ -672,6 +672,12 @@ bool FControlSys::DesignLQRController(
 	NewLQRModel.NominalU = NominalU;
 
 	const FSysState FullSysX_BeforeDesign = FullSys.BodiesToFullStateStruct();
+	// Set FullSys to the nominal state used for the LQR design.
+	// This guarantees that J, JDot, H and T are evaluated
+	// at the same operating point as A and B.
+	FullSys.SetXState2Bodies(NominalX_Full);
+	FullSys.SyncRodStates();
+
 
 	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 
@@ -691,16 +697,22 @@ bool FControlSys::DesignLQRController(
 
 	if (!BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
 	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
 		return false;
 	}
 
 	if (!BuildH_FR(J_FR, JDot_FR, H_X_FR))
 	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
 		return false;
 	}
 
 	if (!BuildKernelBasis_FR(H_X_FR, NewLQRModel.T_kerToFR))
 	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
 		return false;
 	}
 
@@ -724,6 +736,7 @@ bool FControlSys::DesignLQRController(
 	))
 	{
 		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
 		return false;
 	}
 
@@ -738,6 +751,7 @@ bool FControlSys::DesignLQRController(
 	))
 	{
 		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
 		return false;
 	}
 
