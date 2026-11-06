@@ -171,7 +171,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 Mass3Index =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(EquilibriumX, 1.2633920575),
+				FVector2D(EquilibriumX + 0.02, 1.2633920575),
 				0.7
 			)
 		);
@@ -212,9 +212,12 @@ void AMultiSystemsActor::BuildDemoSystem()
 	Channel0.AddForceContribution(Mass1Index, FVector2D(1.0, 0.0));
 	ControlSys.AddLinearControlChannel(MoveTemp(Channel0));
 
+	/*
 	FLinearControlChannel Channel1(TEXT("Mass2Horizontal"));
 	Channel1.AddForceContribution(Mass2Index, FVector2D(1.0, 0.0));
 	ControlSys.AddLinearControlChannel(MoveTemp(Channel1));
+	*/
+	
 
 	// -------------------------------------------------------------------------
 	// External force inputs
