@@ -147,8 +147,9 @@ void AMultiSystemsActor::BuildDemoSystem()
 
 	const int32 BaseIndex =
 		FullSys.AddBody(
-			FBody::Fixed(
-				FVector2D(EquilibriumX, -1.20)
+			FBody::SlidingMassX(
+				FVector2D(EquilibriumX, -1.20),
+				2.0
 			)
 		);
 
@@ -171,7 +172,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 	const int32 Mass3Index =
 		FullSys.AddBody(
 			FBody::Free(
-				FVector2D(EquilibriumX + 0.02, 1.2633920575),
+				FVector2D(EquilibriumX + 0.01, 1.2633920575),
 				0.7
 			)
 		);
@@ -208,8 +209,8 @@ void AMultiSystemsActor::BuildDemoSystem()
 	// Control Channels
 	// -------------------------------------------------------------------------
 
-	FLinearControlChannel Channel0(TEXT("Mass1Horizontal"));
-	Channel0.AddForceContribution(Mass1Index, FVector2D(1.0, 0.0));
+	FLinearControlChannel Channel0(TEXT("BaseHorizontal"));
+	Channel0.AddForceContribution(BaseIndex, FVector2D(1.0, 0.0));
 	ControlSys.AddLinearControlChannel(MoveTemp(Channel0));
 
 	/*
