@@ -27,6 +27,38 @@ struct FStateDOFIndexMap
 
 		return INDEX_NONE;
 	}
+
+	Eigen::VectorXd ExtractX_FR(
+		const Eigen::VectorXd& X_Full
+	) const
+	{
+		check(X_Full.size() == 2 * SizeQ_Full);
+
+		Eigen::VectorXd X_FR(X_FRToFullIndices.Num());
+
+		for (int32 XIndex_FR = 0; XIndex_FR < X_FRToFullIndices.Num(); ++XIndex_FR)
+		{
+			X_FR(XIndex_FR) = X_Full(X_FRToFullIndices[XIndex_FR]);
+		}
+
+		return X_FR;
+	}
+
+	Eigen::VectorXd ExpandX_FRToFull(
+		const Eigen::VectorXd& X_FR
+	) const
+	{
+		check(X_FR.size() == X_FRToFullIndices.Num());
+
+		Eigen::VectorXd X_Full = Eigen::VectorXd::Zero(2 * SizeQ_Full);
+
+		for (int32 XIndex_FR = 0; XIndex_FR < X_FRToFullIndices.Num(); ++XIndex_FR)
+		{
+			X_Full(X_FRToFullIndices[XIndex_FR]) = X_FR(XIndex_FR);
+		}
+
+		return X_Full;
+	}
 };
 
 struct FSysState

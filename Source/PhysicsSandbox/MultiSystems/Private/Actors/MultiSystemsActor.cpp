@@ -284,7 +284,7 @@ void AMultiSystemsActor::BuildDemoSystem()
 
 	X_Reference_Full = FullSys.BodiesToFullStateStruct();
 
-	U_Reference = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+	U_Reference = Eigen::VectorXd::Zero(ControlSys.GetControlChannels().Num());
 	
 	U_Control = U_Reference;
 }
@@ -360,22 +360,13 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 
 	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
 
-	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
-
 	// State error
 	// -------------------------------------------------------------------------
 
-	const Eigen::VectorXd DeltaX_Full =
+	const Eigen::VectorXd DeltaX_Full = 
 		X_k.ToVector() - X_Reference_Full.ToVector();
 
-	Eigen::VectorXd DeltaX_FR(SizeX_FR);
-
-	for (int32 StateIndex_FR = 0; StateIndex_FR < SizeX_FR; ++StateIndex_FR)
-	{
-		const int32 StateIndex_Full = IndexMap.X_FRToFullIndices[StateIndex_FR];
-
-		DeltaX_FR(StateIndex_FR) = DeltaX_Full(StateIndex_Full);
-	}
+	const Eigen::VectorXd DeltaX_FR = IndexMap.ExtractX_FR(DeltaX_Full);
 
 	// FR -> ker
 	// -------------------------------------------------------------------------
@@ -948,17 +939,9 @@ void AMultiSystemsActor::DrawKernelZVector(
 		== T_kerToFR.cols()
 	);
 
-	const Eigen::VectorXd DeltaX_FR =
-		ControlSys.TransformDeltaX_ker2FR(
-			T_kerToFR,
-			Z_ker
-		);
+	const Eigen::VectorXd DeltaX_FR = ControlSys.TransformDeltaX_ker2FR(T_kerToFR, Z_ker);
 
-	const Eigen::VectorXd DeltaX_Full =
-		ControlSys.ExpandDeltaX_FRToFull(
-			FullSys.GetStateIndexMap(),
-			DeltaX_FR
-		);
+	const Eigen::VectorXd DeltaX_Full = FullSys.GetStateIndexMap().ExpandX_FRToFull(DeltaX_FR);
 
 	constexpr double PositionScale = 0.5;
 	constexpr double VelocityScale = 0.5;
@@ -1011,17 +994,9 @@ void AMultiSystemsActor::DrawKernelZVectorAtBody(
 		== T_kerToFR.cols()
 	);
 
-	const Eigen::VectorXd DeltaX_FR =
-		ControlSys.TransformDeltaX_ker2FR(
-			T_kerToFR,
-			Z_ker
-		);
+	const Eigen::VectorXd DeltaX_FR = ControlSys.TransformDeltaX_ker2FR(T_kerToFR, Z_ker);
 
-	const Eigen::VectorXd DeltaX_Full =
-		ControlSys.ExpandDeltaX_FRToFull(
-			FullSys.GetStateIndexMap(),
-			DeltaX_FR
-		);
+	const Eigen::VectorXd DeltaX_Full = FullSys.GetStateIndexMap().ExpandX_FRToFull(DeltaX_FR);
 
 	constexpr double PositionScale = 0.5;
 	constexpr double VelocityScale = 0.5;

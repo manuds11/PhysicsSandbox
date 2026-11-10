@@ -303,7 +303,7 @@ bool FControlSys::ComputeB_FR_Continuous(
 {
 	if (
 		EpsilonU <= 0.0
-		|| NominalU_Control.size() != GetNumControlChannels()
+		|| NominalU_Control.size() != GetControlChannels().Num()
 		|| !NominalU_Control.allFinite()
 		)
 	{
@@ -318,8 +318,7 @@ bool FControlSys::ComputeB_FR_Continuous(
 	const int32 SizeX_FR =
 		IndexMap.X_FRToFullIndices.Num();
 
-	const int32 NumControlChannels =
-		GetNumControlChannels();
+	const int32 NumControlChannels = GetControlChannels().Num();
 
 	OutB_FR.resize(SizeX_FR, NumControlChannels);
 
@@ -372,7 +371,7 @@ bool FControlSys::ComputeB_FR_Discrete(
 
 	const int32 SizeX_Full = static_cast<int32>(NominalX_Full.ToVector().size());
 	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
-	const int32 NumControlChannels = GetNumControlChannels();
+	const int32 NumControlChannels = GetControlChannels().Num();
 
 	check(Dt > 0.0);
 	check(EpsilonU > 0.0);
@@ -555,28 +554,6 @@ Eigen::VectorXd FControlSys::TransformDeltaX_ker2FR(
 	return T_kerToFR * DeltaX_ker;
 }
 
-Eigen::VectorXd FControlSys::ExpandDeltaX_FRToFull(
-	const FStateDOFIndexMap& IndexMap,
-	const Eigen::VectorXd& DeltaX_FR
-) const
-{
-	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
-	const int32 SizeX_Full = 2 * IndexMap.SizeQ_Full;
-
-	check(DeltaX_FR.size() == SizeX_FR);
-	check(DeltaX_FR.allFinite());
-
-	Eigen::VectorXd DeltaX_Full = Eigen::VectorXd::Zero(SizeX_Full);
-
-	for (int32 Index_FR = 0; Index_FR < SizeX_FR; ++Index_FR)
-	{
-		const int32 Index_Full = IndexMap.X_FRToFullIndices[Index_FR];
-		DeltaX_Full(Index_Full) = DeltaX_FR(Index_FR);
-	}
-
-	return DeltaX_Full;
-}
-
 // -----------------------------------------------------------------------------
 // Controlability
 // -----------------------------------------------------------------------------
@@ -658,7 +635,7 @@ bool FControlSys::DesignLQRController(
 {
 	if (
 		Dt <= 0.0
-		|| NominalU.size() != GetNumControlChannels()
+		|| NominalU.size() != GetControlChannels().Num()
 		|| !NominalU.allFinite()
 		)
 	{
@@ -683,7 +660,7 @@ bool FControlSys::DesignLQRController(
 
 	const int32 SizeQ_FR = IndexMap.SizeQ_FR;
 	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
-	const int32 NumControlChannels = GetNumControlChannels();
+	const int32 NumControlChannels = GetControlChannels().Num();
 
 	const Eigen::VectorXd Tau_Nominal_FR =
 		ComputeTau_FR(NominalU);
@@ -1201,11 +1178,8 @@ bool FControlSys::ComputeB_FullColumn_Continuous(
 		return false;
 	}
 
-	const Eigen::VectorXd XDotPlusVector_Full =
-		XDotPlus_Full.ToVector();
-
-	const Eigen::VectorXd XDotMinusVector_Full =
-		XDotMinus_Full.ToVector();
+	const Eigen::VectorXd XDotPlusVector_Full = XDotPlus_Full.ToVector();
+	const Eigen::VectorXd XDotMinusVector_Full = XDotMinus_Full.ToVector();
 
 	if (XDotPlusVector_Full.size() != XDotMinusVector_Full.size())
 	{
@@ -1230,7 +1204,7 @@ bool FControlSys::ComputeB_FullColumn_Discrete(
 	Eigen::VectorXd& OutB_iColumn
 )
 {
-	const int32 NumControlChannels = GetNumControlChannels();
+	const int32 NumControlChannels = GetControlChannels().Num();
 
 	check(Dt > 0.0);
 	check(EpsilonU > 0.0);

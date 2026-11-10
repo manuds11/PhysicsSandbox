@@ -138,11 +138,6 @@ public:
 		const Eigen::VectorXd& U_Control
 	) const;
 
-	int32 GetNumControlChannels() const
-	{
-		return ControlChannels.Num();
-	}
-
 	const TArray<FLinearControlChannel>& GetControlChannels() const
 	{
 		return ControlChannels;
@@ -223,11 +218,6 @@ public:
 	Eigen::VectorXd TransformDeltaX_ker2FR(
 		const Eigen::MatrixXd& T_kerToFR,
 		const Eigen::VectorXd& DeltaX_ker
-	) const;
-
-	Eigen::VectorXd ExpandDeltaX_FRToFull(
-		const FStateDOFIndexMap& IndexMap,
-		const Eigen::VectorXd& DeltaX_FR
 	) const;
 
 	// Controlability
