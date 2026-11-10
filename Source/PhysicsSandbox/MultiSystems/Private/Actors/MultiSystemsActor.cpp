@@ -280,19 +280,13 @@ void AMultiSystemsActor::BuildDemoSystem()
 
 	FullSys.Initialize();
 
-	check(
-		ControlSys.BuildControlAllocationG_FRMatrix(
-			FullSys
-		)
-	);
+	check(ControlSys.BuildControlAllocationG_FRMatrix(FullSys));
 
-	X_Reference_Full =
-		FullSys.BodiesToFullStateStruct();
+	X_Reference_Full = FullSys.BodiesToFullStateStruct();
 
-	U_Reference =
-		Eigen::VectorXd::Zero(
-			ControlSys.GetNumControlChannels()
-		);
+	U_Reference = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+	
+	U_Control = U_Reference;
 }
 
 // -----------------------------------------------------------------------------
@@ -395,10 +389,9 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	const Eigen::VectorXd DeltaU =
 		-ActiveLQRModel.K * DeltaZ_ker;
 
-	const Eigen::VectorXd U_Control = U_Reference + DeltaU;
+	U_Control = U_Reference + DeltaU;
 
-	const Eigen::VectorXd Tau_FR =
-		ControlSys.ComputeTau_FR(U_Control);
+	const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U_Control);
 
 	// Control diagnostics
 	// -------------------------------------------------------------------------
@@ -542,6 +535,8 @@ void AMultiSystemsActor::DrawSystem() const
 			);
 		}
 	}
+
+	DrawControlForces();
 }
 
 void AMultiSystemsActor::PrintInfo() const
@@ -1037,4 +1032,57 @@ void AMultiSystemsActor::DrawKernelZVectorAtBody(
 		PositionScale,
 		VelocityScale
 	);
+}
+
+void AMultiSystemsActor::DrawControlForces() const
+{
+	if (!bDrawControlForces)
+	{
+		return;
+	}
+
+	const TArray<FLinearControlChannel>& ControlChannels = ControlSys.GetControlChannels();
+	const TArray<FBody>& Bodies = FullSys.GetBodies();
+
+	check(U_Control.size() == ControlChannels.Num());
+
+	for (int32 ChannelIndex = 0; ChannelIndex < ControlChannels.Num(); ++ChannelIndex)
+	{
+		const FLinearControlChannel& Channel = ControlChannels[ChannelIndex];
+		const double U = U_Control(ChannelIndex);
+
+		for (const FControlForceContribution& Contribution : Channel.ForceContributions)
+		{
+			const FVector2D ControlForce = U * Contribution.ForcePerUnitU;
+			const double ForceMagnitude = ControlForce.Size();
+
+			if (ForceMagnitude <= UE_SMALL_NUMBER)
+			{
+				continue;
+			}
+
+			const FVector2D ForceDirection = ControlForce / ForceMagnitude;
+
+			const double ArrowLength =
+				FMath::Min(ForceMagnitude * ControlForceArrowScale, ControlForceArrowMaxLength);
+
+			const FBody& Body = Bodies[Contribution.BodyApplicationIndex];
+
+			const FVector ArrowStart = ToWorld(Body.Position);
+			const FVector ArrowDirection(ForceDirection.X, 0.0, ForceDirection.Y);
+			const FVector ArrowEnd = ArrowStart + ArrowDirection * ArrowLength;
+
+			DrawDebugDirectionalArrow(
+				GetWorld(),
+				ArrowStart,
+				ArrowEnd,
+				12.0f,
+				FColor::Cyan,
+				false,
+				0.0f,
+				0,
+				3.0f
+			);
+		}
+	}
 }

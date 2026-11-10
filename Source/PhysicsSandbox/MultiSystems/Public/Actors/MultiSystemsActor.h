@@ -43,6 +43,7 @@ private:
 	TArray<FU_ExtForce> U_ExtForces;
 	FSysState X_Reference_Full;
 	Eigen::VectorXd U_Reference;
+	Eigen::VectorXd U_Control;
 	FLQRDesign ActiveLQRModel;
 
 	// =========================
@@ -56,7 +57,7 @@ private:
 		nullptr;
 
 	// =========================
-	// Simulation control
+	// Simulation options
 	// =========================
 	UPROPERTY(EditAnywhere, Category = "Simulation")
 	EIntegratorType IntegratorType =
@@ -94,6 +95,14 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Visualization")
 	FVector VisualizationOffset = FVector(-100.0, 0.0, 250.0); // in cm
 
+	UPROPERTY(EditAnywhere, Category = "Visualization|Control")
+	bool bDrawControlForces = true;
+
+	UPROPERTY(EditAnywhere, Category = "Visualization|Control")
+	double ControlForceArrowScale = 5.0; // cm / N
+
+	UPROPERTY(EditAnywhere, Category = "Visualization|Control")
+	double ControlForceArrowMaxLength = 250.0; // cm
 
 	void BuildDemoSystem();
 
@@ -128,4 +137,6 @@ private:
 		int32 BodyIndex,
 		const Eigen::VectorXd& Z_ker
 	) const;
+
+	void DrawControlForces() const;
 };

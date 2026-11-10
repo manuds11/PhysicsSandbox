@@ -143,6 +143,11 @@ public:
 		return ControlChannels.Num();
 	}
 
+	const TArray<FLinearControlChannel>& GetControlChannels() const
+	{
+		return ControlChannels;
+	}
+
 	const Eigen::MatrixXd& GetG_UToTau_FR() const
 	{
 		return G_UToTau_FR;
