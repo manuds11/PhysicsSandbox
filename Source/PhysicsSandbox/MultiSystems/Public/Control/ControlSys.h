@@ -134,9 +134,7 @@ public:
 		const FFullSys& FullSys
 	);
 
-	Eigen::VectorXd ComputeTau_FR(
-		const Eigen::VectorXd& U_Control
-	) const;
+	Eigen::VectorXd ComputeTau_FR(const Eigen::VectorXd& InU_Control) const;
 
 	const TArray<FLinearControlChannel>& GetControlChannels() const
 	{
@@ -147,6 +145,43 @@ public:
 	{
 		return G_UToTau_FR;
 	}
+
+	// -----------------------------------------------------------------------------
+	// Control State
+	// -----------------------------------------------------------------------------
+
+	void SetReference(const FSysState& InX_Reference_Full, const Eigen::VectorXd& InU_Reference);
+
+	void ActivateLQRModel(FLQRDesign LQRModel);
+
+	const FSysState& GetXReference_Full() const
+	{
+		return X_Reference_Full;
+	}
+
+	const Eigen::VectorXd& GetUReference() const
+	{
+		return U_Reference;
+	}
+
+	const Eigen::VectorXd& GetUControl() const
+	{
+		return U_Control;
+	}
+
+	const FLQRDesign& GetActiveLQRModel() const
+	{
+		return ActiveLQRModel;
+	}
+
+	// -----------------------------------------------------------------------------
+	// Control Law
+	// -----------------------------------------------------------------------------
+
+	Eigen::VectorXd ComputeControlTau_FR(
+		const FSysState& X_Full,
+		const FStateDOFIndexMap& IndexMap
+	);
 
 	// Finite Difference
 
@@ -261,6 +296,12 @@ private:
 	TArray<FLinearControlChannel> ControlChannels;
 
 	Eigen::MatrixXd G_UToTau_FR;
+
+	FSysState X_Reference_Full;
+	Eigen::VectorXd U_Reference;
+	Eigen::VectorXd U_Control;
+
+	FLQRDesign ActiveLQRModel;
 
 	bool bControlAllocationBuilt = false;
 	

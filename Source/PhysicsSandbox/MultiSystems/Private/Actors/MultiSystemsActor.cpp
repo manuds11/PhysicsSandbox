@@ -47,23 +47,22 @@ void AMultiSystemsActor::BeginPlay()
 		);
 	}
 
+	FLQRDesign InitialLQRModel;
+
 	if (!ControlSys.DesignLQRController(
 		FullSys,
 		FixedTimeStep,
-		X_Reference_Full,
-		U_Reference,
+		ControlSys.GetXReference_Full(),
+		ControlSys.GetUReference(),
 		U_ExtForces,
-		ActiveLQRModel
+		InitialLQRModel
 	))
 	{
-		UE_LOG(
-			LogPhysicsSandbox,
-			Error,
-			TEXT("Failed to design initial LQR controller.")
-		);
-
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to design initial LQR controller."));
 		return;
 	}
+
+	ControlSys.ActivateLQRModel(MoveTemp(InitialLQRModel));
 }
 
 void AMultiSystemsActor::Tick(float DeltaTime)
@@ -282,11 +281,10 @@ void AMultiSystemsActor::BuildDemoSystem()
 
 	check(ControlSys.BuildControlAllocationG_FRMatrix(FullSys));
 
-	X_Reference_Full = FullSys.BodiesToFullStateStruct();
-
-	U_Reference = Eigen::VectorXd::Zero(ControlSys.GetControlChannels().Num());
-	
-	U_Control = U_Reference;
+	ControlSys.SetReference(
+		FullSys.BodiesToFullStateStruct(),
+		Eigen::VectorXd::Zero(ControlSys.GetControlChannels().Num())
+	);
 }
 
 // -----------------------------------------------------------------------------
@@ -353,61 +351,12 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 		return false;
 	}
 
-	// Current state
-	// -------------------------------------------------------------------------
-
 	const FSysState X_k = FullSys.BodiesToFullStateStruct();
-
-	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
-
-	// State error
-	// -------------------------------------------------------------------------
-
-	const Eigen::VectorXd DeltaX_Full = 
-		X_k.ToVector() - X_Reference_Full.ToVector();
-
-	const Eigen::VectorXd DeltaX_FR = IndexMap.ExtractX_FR(DeltaX_Full);
-
-	// FR -> ker
-	// -------------------------------------------------------------------------
-
-	const Eigen::VectorXd DeltaZ_ker =
-		ActiveLQRModel.T_kerToFR.transpose() * DeltaX_FR;
-
-	// LQR control law
-	// -------------------------------------------------------------------------
-
-	const Eigen::VectorXd DeltaU =
-		-ActiveLQRModel.K * DeltaZ_ker;
-
-	U_Control = U_Reference + DeltaU;
-
-	const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U_Control);
-
-	// Control diagnostics
-	// -------------------------------------------------------------------------
-
-	const double* volatile DeltaZKerData = DeltaZ_ker.data();
-	const double* volatile DeltaUData = DeltaU.data();
-	const double* volatile UControlData = U_Control.data();
-
-	const double DeltaXFRNorm = DeltaX_FR.norm();
-	const double DeltaZKerNorm = DeltaZ_ker.norm();
-	const double DeltaUNorm = DeltaU.norm();
-	const double UControlNorm = U_Control.norm();
-	const double TauFRNorm = Tau_FR.norm();
-
-	// Physical simulation step
-	// -------------------------------------------------------------------------
+	const Eigen::VectorXd Tau_FR = ControlSys.ComputeControlTau_FR(X_k, FullSys.GetStateIndexMap());
 
 	FSysState X_kPlus1;
 
-	if (!FullSys.Step(Dt, X_k, Tau_FR, U_ExtForces, X_kPlus1))
-	{
-		return false;
-	}
-
-	return true;
+	return FullSys.Step(Dt, X_k, Tau_FR, U_ExtForces, X_kPlus1);
 }
 
 // -----------------------------------------------------------------------------
@@ -1017,6 +966,7 @@ void AMultiSystemsActor::DrawControlForces() const
 	}
 
 	const TArray<FLinearControlChannel>& ControlChannels = ControlSys.GetControlChannels();
+	const Eigen::VectorXd& U_Control = ControlSys.GetUControl();
 	const TArray<FBody>& Bodies = FullSys.GetBodies();
 
 	check(U_Control.size() == ControlChannels.Num());

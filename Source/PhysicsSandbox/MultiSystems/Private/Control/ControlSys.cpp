@@ -132,20 +132,329 @@ bool FControlSys::BuildControlAllocationG_FRMatrix(
 	return true;
 }
 
-Eigen::VectorXd FControlSys::ComputeTau_FR(
-	const Eigen::VectorXd& U_Control
-) const
+Eigen::VectorXd FControlSys::ComputeTau_FR(const Eigen::VectorXd& InU_Control) const
 {
 	check(bControlAllocationBuilt);
+	check(InU_Control.size() == G_UToTau_FR.cols());
+	check(InU_Control.allFinite());
 
-	check(
-		U_Control.size()
-		== G_UToTau_FR.cols()
-	);
+	return G_UToTau_FR * InU_Control;
+}
 
-	check(U_Control.allFinite());
+// -----------------------------------------------------------------------------
+// Control State
+// -----------------------------------------------------------------------------
 
-	return G_UToTau_FR * U_Control;
+void FControlSys::SetReference(
+	const FSysState& InX_Reference_Full,
+	const Eigen::VectorXd& InU_Reference
+)
+{
+	check(InU_Reference.size() == ControlChannels.Num());
+
+	X_Reference_Full = InX_Reference_Full;
+	U_Reference = InU_Reference;
+	U_Control = U_Reference;
+}
+
+void FControlSys::ActivateLQRModel(FLQRDesign LQRModel)
+{
+	ActiveLQRModel = MoveTemp(LQRModel);
+}
+
+// -----------------------------------------------------------------------------
+// LQR Model and Control Law
+// -----------------------------------------------------------------------------
+
+bool FControlSys::DesignLQRController(
+	FFullSys& FullSys,
+	double Dt,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalU,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	FLQRDesign& OutLQRModel
+)
+{
+	if (
+		Dt <= 0.0
+		|| NominalU.size() != GetControlChannels().Num()
+		|| !NominalU.allFinite()
+		)
+	{
+		return false;
+	}
+
+	FLQRDesign NewLQRModel;
+
+	NewLQRModel.Dt = Dt;
+	NewLQRModel.NominalX_Full = NominalX_Full;
+	NewLQRModel.NominalU = NominalU;
+
+	const FSysState FullSysX_BeforeDesign = FullSys.BodiesToFullStateStruct();
+	// Set FullSys to the nominal state used for the LQR design.
+	// This guarantees that J, JDot, H and T are evaluated
+	// at the same operating point as A and B.
+	FullSys.SetXState2Bodies(NominalX_Full);
+	FullSys.SyncRodStates();
+
+
+	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
+
+	const int32 SizeQ_FR = IndexMap.SizeQ_FR;
+	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
+	const int32 NumControlChannels = GetControlChannels().Num();
+
+	const Eigen::VectorXd Tau_Nominal_FR =
+		ComputeTau_FR(NominalU);
+
+	// Constraint tangent space
+	// -------------------------------------------------------------------------
+
+	Eigen::MatrixXd J_FR;
+	Eigen::MatrixXd JDot_FR;
+	Eigen::MatrixXd H_X_FR;
+
+	if (!BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
+	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
+		return false;
+	}
+
+	if (!BuildH_FR(J_FR, JDot_FR, H_X_FR))
+	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
+		return false;
+	}
+
+	if (!BuildKernelBasis_FR(H_X_FR, NewLQRModel.T_kerToFR))
+	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
+		return false;
+	}
+
+	// Discrete FR linearization
+	// -------------------------------------------------------------------------
+
+	constexpr double LinearizationEpsilonX = 1.0e-5;
+	constexpr double LinearizationEpsilonU = 1.0e-5;
+
+	Eigen::MatrixXd A_FR_Discrete;
+	Eigen::MatrixXd B_FR_Discrete;
+
+	if (!ComputeA_FR_Discrete(
+		FullSys,
+		Dt,
+		NominalX_Full,
+		Tau_Nominal_FR,
+		NominalU_ExtForces,
+		LinearizationEpsilonX,
+		A_FR_Discrete
+	))
+	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
+		return false;
+	}
+
+	if (!ComputeB_FR_Discrete(
+		FullSys,
+		Dt,
+		NominalX_Full,
+		NominalU,
+		NominalU_ExtForces,
+		LinearizationEpsilonU,
+		B_FR_Discrete
+	))
+	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
+		return false;
+	}
+
+	// Restore Bodies to original state before perturbations from A, B computation 
+	// -------------------------------------------------------------------------
+
+	FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+	FullSys.SyncRodStates();
+
+	// FR -> ker reduced model
+	// -------------------------------------------------------------------------
+
+	NewLQRModel.A_ker_Discrete =
+		NewLQRModel.T_kerToFR.transpose() * A_FR_Discrete * NewLQRModel.T_kerToFR;
+
+	NewLQRModel.B_ker_Discrete =
+		NewLQRModel.T_kerToFR.transpose() * B_FR_Discrete;
+
+	// Controllability
+	// -------------------------------------------------------------------------
+
+	if (!AnalyzeControllability(
+		NewLQRModel.A_ker_Discrete,
+		NewLQRModel.B_ker_Discrete,
+		NewLQRModel.Controllability
+	))
+	{
+		return false;
+	}
+
+	// LQR cost definition
+	// -------------------------------------------------------------------------
+
+	constexpr double PositionStateWeight = 10.0;
+	constexpr double VelocityStateWeight = 1.0;
+	constexpr double ControlWeight = 1.0;
+
+	Eigen::MatrixXd Q_FR = Eigen::MatrixXd::Zero(SizeX_FR, SizeX_FR);
+
+	for (int32 QIndex_FR = 0; QIndex_FR < SizeQ_FR; ++QIndex_FR)
+	{
+		Q_FR(QIndex_FR, QIndex_FR) = PositionStateWeight;
+
+		const int32 QDotIndex_FR =
+			SizeQ_FR + QIndex_FR;
+
+		Q_FR(QDotIndex_FR, QDotIndex_FR) = VelocityStateWeight;
+	}
+
+	const Eigen::MatrixXd Q_ker =
+		NewLQRModel.T_kerToFR.transpose() * Q_FR * NewLQRModel.T_kerToFR;
+
+	const Eigen::MatrixXd R =
+		ControlWeight * Eigen::MatrixXd::Identity(NumControlChannels, NumControlChannels);
+
+	// DARE
+	// -------------------------------------------------------------------------
+
+	if (!SolveDARE(
+		NewLQRModel.A_ker_Discrete,
+		NewLQRModel.B_ker_Discrete,
+		Q_ker,
+		R,
+		NewLQRModel.DARE
+	))
+	{
+		return false;
+	}
+
+	// LQR gain
+	// -------------------------------------------------------------------------
+
+	if (!ComputeLQRGain(
+		NewLQRModel.A_ker_Discrete,
+		NewLQRModel.B_ker_Discrete,
+		R,
+		NewLQRModel.DARE.P,
+		NewLQRModel.K
+	))
+	{
+		return false;
+	}
+
+	OutLQRModel = MoveTemp(NewLQRModel);
+	OutLQRModel.AdaptDataFromEigen2Debug();
+
+	return true;
+}
+
+Eigen::VectorXd FControlSys::ComputeControlTau_FR(
+	const FSysState& X_Full,
+	const FStateDOFIndexMap& IndexMap
+)
+{
+	const Eigen::VectorXd DeltaX_Full = X_Full.ToVector() - X_Reference_Full.ToVector();
+	const Eigen::VectorXd DeltaX_FR = IndexMap.ExtractX_FR(DeltaX_Full);
+
+	const Eigen::VectorXd DeltaZ_ker = ActiveLQRModel.T_kerToFR.transpose() * DeltaX_FR;
+	const Eigen::VectorXd DeltaU = -ActiveLQRModel.K * DeltaZ_ker;
+
+	U_Control = U_Reference + DeltaU;
+
+	const Eigen::VectorXd Tau_FR = ComputeTau_FR(U_Control);
+
+	// Control diagnostics
+	// -------------------------------------------------------------------------
+
+	const double* volatile DeltaZKerData = DeltaZ_ker.data();
+	const double* volatile DeltaUData = DeltaU.data();
+	const double* volatile UControlData = U_Control.data();
+
+	const double DeltaXFRNorm = DeltaX_FR.norm();
+	const double DeltaZKerNorm = DeltaZ_ker.norm();
+	const double DeltaUNorm = DeltaU.norm();
+	const double UControlNorm = U_Control.norm();
+	const double TauFRNorm = Tau_FR.norm();
+
+	return Tau_FR;
+}
+
+// -----------------------------------------------------------------------------
+// Controlability
+// -----------------------------------------------------------------------------
+
+bool FControlSys::AnalyzeControllability(
+	const Eigen::MatrixXd& A,
+	const Eigen::MatrixXd& B,
+	FControllabilityResult& OutResult
+) const
+{
+	OutResult = FControllabilityResult{};
+
+	const int32 StateDimension = static_cast<int32>(A.rows());
+	const int32 ControlDimension = static_cast<int32>(B.cols());
+
+	if (
+		StateDimension <= 0
+		|| ControlDimension <= 0
+		|| A.cols() != StateDimension
+		|| B.rows() != StateDimension
+		|| !A.allFinite()
+		|| !B.allFinite()
+		)
+	{
+		return false;
+	}
+
+	OutResult.StateDimension = StateDimension;
+	OutResult.ControlDimension = ControlDimension;
+
+	if (!BuildControllabilityMatrix(
+		A,
+		B,
+		OutResult.ControllabilityMatrix
+	))
+	{
+		return false;
+	}
+
+	if (!ComputeMatrixRankSVD(
+		OutResult.ControllabilityMatrix,
+		OutResult.Rank,
+		OutResult.RankTolerance,
+		OutResult.SingularValues
+	))
+	{
+		return false;
+	}
+
+	const double MaxSingularValue =
+		OutResult.SingularValues.maxCoeff();
+
+	const double MinSingularValue =
+		OutResult.SingularValues.minCoeff();
+
+	OutResult.RelativeMinSingularValue =
+		MaxSingularValue > 0.0
+		? MinSingularValue / MaxSingularValue
+		: 0.0;
+
+	OutResult.bIsControllable =
+		OutResult.Rank == StateDimension;
+
+	return true;
 }
 
 // -------------------------------------------------------------------------
@@ -552,270 +861,6 @@ Eigen::VectorXd FControlSys::TransformDeltaX_ker2FR(
 	check(DeltaX_ker.allFinite());
 
 	return T_kerToFR * DeltaX_ker;
-}
-
-// -----------------------------------------------------------------------------
-// Controlability
-// -----------------------------------------------------------------------------
-
-bool FControlSys::AnalyzeControllability(
-	const Eigen::MatrixXd& A,
-	const Eigen::MatrixXd& B,
-	FControllabilityResult& OutResult
-) const
-{
-	OutResult = FControllabilityResult{};
-
-	const int32 StateDimension = static_cast<int32>(A.rows());
-	const int32 ControlDimension = static_cast<int32>(B.cols());
-
-	if (
-		StateDimension <= 0
-		|| ControlDimension <= 0
-		|| A.cols() != StateDimension
-		|| B.rows() != StateDimension
-		|| !A.allFinite()
-		|| !B.allFinite()
-		)
-	{
-		return false;
-	}
-
-	OutResult.StateDimension = StateDimension;
-	OutResult.ControlDimension = ControlDimension;
-
-	if (!BuildControllabilityMatrix(
-		A,
-		B,
-		OutResult.ControllabilityMatrix
-	))
-	{
-		return false;
-	}
-
-	if (!ComputeMatrixRankSVD(
-		OutResult.ControllabilityMatrix,
-		OutResult.Rank,
-		OutResult.RankTolerance,
-		OutResult.SingularValues
-	))
-	{
-		return false;
-	}
-
-	const double MaxSingularValue =
-		OutResult.SingularValues.maxCoeff();
-
-	const double MinSingularValue =
-		OutResult.SingularValues.minCoeff();
-
-	OutResult.RelativeMinSingularValue =
-		MaxSingularValue > 0.0
-		? MinSingularValue / MaxSingularValue
-		: 0.0;
-
-	OutResult.bIsControllable =
-		OutResult.Rank == StateDimension;
-
-	return true;
-}
-
-// -----------------------------------------------------------------------------
-// LQR Model
-// -----------------------------------------------------------------------------
-
-bool FControlSys::DesignLQRController(
-	FFullSys& FullSys,
-	double Dt,
-	const FSysState& NominalX_Full,
-	const Eigen::VectorXd& NominalU,
-	const TArray<FU_ExtForce>& NominalU_ExtForces,
-	FLQRDesign& OutLQRModel
-)
-{
-	if (
-		Dt <= 0.0
-		|| NominalU.size() != GetControlChannels().Num()
-		|| !NominalU.allFinite()
-		)
-	{
-		return false;
-	}
-
-	FLQRDesign NewLQRModel;
-
-	NewLQRModel.Dt = Dt;
-	NewLQRModel.NominalX_Full = NominalX_Full;
-	NewLQRModel.NominalU = NominalU;
-
-	const FSysState FullSysX_BeforeDesign = FullSys.BodiesToFullStateStruct();
-	// Set FullSys to the nominal state used for the LQR design.
-	// This guarantees that J, JDot, H and T are evaluated
-	// at the same operating point as A and B.
-	FullSys.SetXState2Bodies(NominalX_Full);
-	FullSys.SyncRodStates();
-
-
-	const FStateDOFIndexMap& IndexMap = FullSys.GetStateIndexMap();
-
-	const int32 SizeQ_FR = IndexMap.SizeQ_FR;
-	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
-	const int32 NumControlChannels = GetControlChannels().Num();
-
-	const Eigen::VectorXd Tau_Nominal_FR =
-		ComputeTau_FR(NominalU);
-
-	// Constraint tangent space
-	// -------------------------------------------------------------------------
-
-	Eigen::MatrixXd J_FR;
-	Eigen::MatrixXd JDot_FR;
-	Eigen::MatrixXd H_X_FR;
-
-	if (!BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
-	{
-		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
-		FullSys.SyncRodStates();
-		return false;
-	}
-
-	if (!BuildH_FR(J_FR, JDot_FR, H_X_FR))
-	{
-		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
-		FullSys.SyncRodStates();
-		return false;
-	}
-
-	if (!BuildKernelBasis_FR(H_X_FR, NewLQRModel.T_kerToFR))
-	{
-		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
-		FullSys.SyncRodStates();
-		return false;
-	}
-
-	// Discrete FR linearization
-	// -------------------------------------------------------------------------
-
-	constexpr double LinearizationEpsilonX = 1.0e-5;
-	constexpr double LinearizationEpsilonU = 1.0e-5;
-
-	Eigen::MatrixXd A_FR_Discrete;
-	Eigen::MatrixXd B_FR_Discrete;
-
-	if (!ComputeA_FR_Discrete(
-		FullSys,
-		Dt,
-		NominalX_Full,
-		Tau_Nominal_FR,
-		NominalU_ExtForces,
-		LinearizationEpsilonX,
-		A_FR_Discrete
-	))
-	{
-		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
-		FullSys.SyncRodStates();
-		return false;
-	}
-
-	if (!ComputeB_FR_Discrete(
-		FullSys,
-		Dt,
-		NominalX_Full,
-		NominalU,
-		NominalU_ExtForces,
-		LinearizationEpsilonU,
-		B_FR_Discrete
-	))
-	{
-		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
-		FullSys.SyncRodStates();
-		return false;
-	}
-
-	// Restore Bodies to original state before perturbations from A, B computation 
-	// -------------------------------------------------------------------------
-
-	FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
-	FullSys.SyncRodStates();
-
-	// FR -> ker reduced model
-	// -------------------------------------------------------------------------
-
-	NewLQRModel.A_ker_Discrete =
-		NewLQRModel.T_kerToFR.transpose() * A_FR_Discrete * NewLQRModel.T_kerToFR;
-
-	NewLQRModel.B_ker_Discrete =
-		NewLQRModel.T_kerToFR.transpose() * B_FR_Discrete;
-
-	// Controllability
-	// -------------------------------------------------------------------------
-
-	if (!AnalyzeControllability(
-		NewLQRModel.A_ker_Discrete,
-		NewLQRModel.B_ker_Discrete,
-		NewLQRModel.Controllability
-	))
-	{
-		return false;
-	}
-
-	// LQR cost definition
-	// -------------------------------------------------------------------------
-
-	constexpr double PositionStateWeight = 10.0;
-	constexpr double VelocityStateWeight = 1.0;
-	constexpr double ControlWeight = 1.0;
-
-	Eigen::MatrixXd Q_FR = Eigen::MatrixXd::Zero(SizeX_FR, SizeX_FR);
-
-	for (int32 QIndex_FR = 0; QIndex_FR < SizeQ_FR; ++QIndex_FR)
-	{
-		Q_FR(QIndex_FR, QIndex_FR) = PositionStateWeight;
-
-		const int32 QDotIndex_FR =
-			SizeQ_FR + QIndex_FR;
-
-		Q_FR(QDotIndex_FR, QDotIndex_FR) = VelocityStateWeight;
-	}
-
-	const Eigen::MatrixXd Q_ker =
-		NewLQRModel.T_kerToFR.transpose() * Q_FR * NewLQRModel.T_kerToFR;
-
-	const Eigen::MatrixXd R =
-		ControlWeight * Eigen::MatrixXd::Identity(NumControlChannels, NumControlChannels);
-
-	// DARE
-	// -------------------------------------------------------------------------
-
-	if (!SolveDARE(
-		NewLQRModel.A_ker_Discrete,
-		NewLQRModel.B_ker_Discrete,
-		Q_ker,
-		R,
-		NewLQRModel.DARE
-	))
-	{
-		return false;
-	}
-
-	// LQR gain
-	// -------------------------------------------------------------------------
-
-	if (!ComputeLQRGain(
-		NewLQRModel.A_ker_Discrete,
-		NewLQRModel.B_ker_Discrete,
-		R,
-		NewLQRModel.DARE.P,
-		NewLQRModel.K
-	))
-	{
-		return false;
-	}
-
-	OutLQRModel = MoveTemp(NewLQRModel);
-	OutLQRModel.AdaptDataFromEigen2Debug();
-
-	return true;
 }
 
 // -----------------------------------------------------------------------------
