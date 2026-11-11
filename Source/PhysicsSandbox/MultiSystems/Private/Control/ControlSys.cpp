@@ -8,6 +8,15 @@
 #include <limits>
 
 // -----------------------------------------------------------------------------
+// Initialization
+// -----------------------------------------------------------------------------
+
+bool FControlSys::Initialize(const FFullSys& FullSys)
+{
+	return BuildControlAllocationG_FRMatrix(FullSys);
+}
+
+// -----------------------------------------------------------------------------
 // Control Channels
 // -----------------------------------------------------------------------------
 
@@ -157,9 +166,56 @@ void FControlSys::SetReference(
 	U_Control = U_Reference;
 }
 
-void FControlSys::ActivateLQRModel(FLQRDesign LQRModel)
+bool FControlSys::InitializeLQRController(
+	FFullSys& FullSys,
+	double Dt,
+	const TArray<FU_ExtForce>& U_ExtForces
+)
 {
-	ActiveLQRModel = MoveTemp(LQRModel);
+	FLQRDesign NewLQRModel;
+
+	if (!DesignLQRController(FullSys, Dt, X_Reference_Full, U_Reference, U_ExtForces, NewLQRModel))
+	{
+		return false;
+	}
+
+	ActiveLQRModel = MoveTemp(NewLQRModel);
+
+	return true;
+}
+
+bool FControlSys::BuildDeltaX_FullFromZ_ker(
+	const FFullSys& FullSys,
+	const Eigen::VectorXd& Z_ker,
+	Eigen::VectorXd& OutDeltaX_Full
+) const
+{
+	Eigen::MatrixXd J_FR;
+	Eigen::MatrixXd JDot_FR;
+	Eigen::MatrixXd H_X_FR;
+	Eigen::MatrixXd T_kerToFR;
+
+	if (!BuildJandJDot_FR(FullSys, J_FR, JDot_FR))
+	{
+		return false;
+	}
+
+	if (!BuildH_FR(J_FR, JDot_FR, H_X_FR))
+	{
+		return false;
+	}
+
+	if (!BuildKernelBasis_FR(H_X_FR, T_kerToFR))
+	{
+		return false;
+	}
+
+	check(Z_ker.size() == T_kerToFR.cols());
+
+	const Eigen::VectorXd DeltaX_FR = T_kerToFR * Z_ker;
+	OutDeltaX_Full = FullSys.GetStateIndexMap().ExpandX_FRToFull(DeltaX_FR);
+
+	return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -563,44 +619,6 @@ bool FControlSys::ComputeA_FR_Discrete(
 	return true;
 }
 
-void FControlSys::BuildA_FRInFullDisplay(
-	const FStateDOFIndexMap& IndexMap,
-	const Eigen::MatrixXd& A_FR,
-	Eigen::MatrixXd& OutA_FullDisplay
-)
-{
-	const int32 SizeX_Full = 2 * IndexMap.SizeQ_Full;
-
-	const int32 SizeX_FR = IndexMap.X_FRToFullIndices.Num();
-
-	check(A_FR.rows() == SizeX_FR);
-
-	check(A_FR.cols() == SizeX_FR);
-
-	OutA_FullDisplay =
-		Eigen::MatrixXd::Zero(
-			SizeX_Full,
-			SizeX_Full
-		);
-
-	for (
-		int32 RowA_FR = 0;
-		RowA_FR < SizeX_FR;
-		++RowA_FR
-		)
-	{
-		for (
-			int32 ColumnA_FR = 0;
-			ColumnA_FR < SizeX_FR;
-			++ColumnA_FR
-			)
-		{
-			OutA_FullDisplay(IndexMap.X_FRToFullIndices[RowA_FR], IndexMap.X_FRToFullIndices[ColumnA_FR]) =
-				A_FR(RowA_FR, ColumnA_FR);
-		}
-	}
-}
-
 bool FControlSys::ComputeB_FR_Continuous(
 	FFullSys& FullSys,
 	const FSysState& NominalX_Full,
@@ -845,22 +863,6 @@ bool FControlSys::BuildH_FR(
 	OutH_X_FR.block(NumRods, SizeQ_FR, NumRods, SizeQ_FR) = J_FR;
 
 	return true;
-}
-
-// -------------------------------------------------------------------------
-// Vector Transformations
-// -------------------------------------------------------------------------
-
-Eigen::VectorXd FControlSys::TransformDeltaX_ker2FR(
-	const Eigen::MatrixXd& T_kerToFR,
-	const Eigen::VectorXd& DeltaX_ker
-) const
-{
-	check(T_kerToFR.cols() == DeltaX_ker.size());
-	check(T_kerToFR.allFinite());
-	check(DeltaX_ker.allFinite());
-
-	return T_kerToFR * DeltaX_ker;
 }
 
 // -----------------------------------------------------------------------------

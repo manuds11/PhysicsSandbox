@@ -7,6 +7,11 @@
 
 class FFullSys;
 
+
+// =============================================================================
+// Control channel definitions
+// =============================================================================
+
 struct FControlForceContribution
 {
 	int32 BodyApplicationIndex = INDEX_NONE;
@@ -14,6 +19,7 @@ struct FControlForceContribution
 	// Cartesian force produced by one unit of this control channel.
 	FVector2D ForcePerUnitU = FVector2D::ZeroVector;
 };
+
 
 struct FLinearControlChannel
 {
@@ -23,18 +29,18 @@ struct FLinearControlChannel
 
 	FLinearControlChannel() = default;
 
-	explicit FLinearControlChannel(
-		FName InName
-	)
+	explicit FLinearControlChannel(FName InName)
 		: Name(InName)
 	{
 	}
 
-	void AddForceContribution(
-		int32 BodyApplicationIndex,
-		const FVector2D& ForcePerUnitU
-	);
+	void AddForceContribution(int32 BodyApplicationIndex, const FVector2D& ForcePerUnitU);
 };
+
+
+// =============================================================================
+// Controllability
+// =============================================================================
 
 struct FControllabilityResult
 {
@@ -51,6 +57,11 @@ struct FControllabilityResult
 	Eigen::MatrixXd ControllabilityMatrix;
 };
 
+
+// =============================================================================
+// DARE
+// =============================================================================
+
 struct FDAREResult
 {
 	Eigen::MatrixXd P;
@@ -60,6 +71,11 @@ struct FDAREResult
 
 	bool bConverged = false;
 };
+
+
+// =============================================================================
+// LQR design
+// =============================================================================
 
 struct FLQRDesign
 {
@@ -89,14 +105,9 @@ struct FLQRDesign
 
 	void AdaptDataFromEigen2Debug()
 	{
-		auto CopyMatrixRowMajor = [](
-			const Eigen::MatrixXd& Matrix,
-			TArray<double>& OutDebugData
-			)
+		auto CopyMatrixRowMajor = [](const Eigen::MatrixXd& Matrix, TArray<double>& OutDebugData)
 			{
-				OutDebugData.SetNum(
-					static_cast<int32>(Matrix.rows() * Matrix.cols())
-				);
+				OutDebugData.SetNum(static_cast<int32>(Matrix.rows() * Matrix.cols()));
 
 				int32 DebugIndex = 0;
 
@@ -117,51 +128,77 @@ struct FLQRDesign
 	}
 };
 
+
+// =============================================================================
+// Control System
+// =============================================================================
+
 class FControlSys
 {
 public:
 	FControlSys() = default;
 
-	// -----------------------------------------------------------------------------
-	// Control Channels
-	// -----------------------------------------------------------------------------
 
-	int32 AddLinearControlChannel(
-		FLinearControlChannel Channel
+	// =========================================================================
+	// Configuration
+	// =========================================================================
+
+	int32 AddLinearControlChannel(FLinearControlChannel Channel);
+
+	bool Initialize(const FFullSys& FullSys);
+
+	int32 GetNumControlChannels() const
+	{
+		return ControlChannels.Num();
+	}
+
+
+	// =========================================================================
+	// Reference
+	// =========================================================================
+
+	void SetReference(const FSysState& InX_Reference_Full, const Eigen::VectorXd& InU_Reference);
+
+
+	// =========================================================================
+	// LQR Initialization
+	// =========================================================================
+
+	bool InitializeLQRController(
+		FFullSys& FullSys,
+		double Dt,
+		const TArray<FU_ExtForce>& U_ExtForces
 	);
 
-	bool BuildControlAllocationG_FRMatrix(
-		const FFullSys& FullSys
+
+	// =========================================================================
+	// Runtime Control
+	// =========================================================================
+
+	Eigen::VectorXd ComputeControlTau_FR(
+		const FSysState& X_Full,
+		const FStateDOFIndexMap& IndexMap
 	);
 
-	Eigen::VectorXd ComputeTau_FR(const Eigen::VectorXd& InU_Control) const;
+
+	// =========================================================================
+	// Debug Conversion
+	// =========================================================================
+
+	bool BuildDeltaX_FullFromZ_ker(
+		const FFullSys& FullSys,
+		const Eigen::VectorXd& Z_ker,
+		Eigen::VectorXd& OutDeltaX_Full
+	) const;
+
+
+	// =========================================================================
+	// Visualization Access
+	// =========================================================================
 
 	const TArray<FLinearControlChannel>& GetControlChannels() const
 	{
 		return ControlChannels;
-	}
-
-	const Eigen::MatrixXd& GetG_UToTau_FR() const
-	{
-		return G_UToTau_FR;
-	}
-
-	// -----------------------------------------------------------------------------
-	// Control State
-	// -----------------------------------------------------------------------------
-
-	void SetReference(const FSysState& InX_Reference_Full, const Eigen::VectorXd& InU_Reference);
-
-	void ActivateLQRModel(FLQRDesign LQRModel);
-
-	const FSysState& GetXReference_Full() const
-	{
-		return X_Reference_Full;
-	}
-
-	const Eigen::VectorXd& GetUReference() const
-	{
-		return U_Reference;
 	}
 
 	const Eigen::VectorXd& GetUControl() const
@@ -169,21 +206,51 @@ public:
 		return U_Control;
 	}
 
-	const FLQRDesign& GetActiveLQRModel() const
-	{
-		return ActiveLQRModel;
-	}
 
-	// -----------------------------------------------------------------------------
-	// Control Law
-	// -----------------------------------------------------------------------------
+private:
 
-	Eigen::VectorXd ComputeControlTau_FR(
-		const FSysState& X_Full,
-		const FStateDOFIndexMap& IndexMap
+	// =========================================================================
+	// Control State
+	// =========================================================================
+
+	TArray<FLinearControlChannel> ControlChannels;
+	Eigen::MatrixXd G_UToTau_FR;
+
+	FSysState X_Reference_Full;
+	Eigen::VectorXd U_Reference;
+	Eigen::VectorXd U_Control;
+
+	FLQRDesign ActiveLQRModel;
+
+	bool bControlAllocationBuilt = false;
+
+
+	// =========================================================================
+	// Control Allocation
+	// =========================================================================
+
+	bool BuildControlAllocationG_FRMatrix(const FFullSys& FullSys);
+
+	Eigen::VectorXd ComputeTau_FR(const Eigen::VectorXd& InU_Control) const;
+
+
+	// =========================================================================
+	// LQR Design
+	// =========================================================================
+
+	bool DesignLQRController(
+		FFullSys& FullSys,
+		double Dt,
+		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalU,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
+		FLQRDesign& OutLQRModel
 	);
 
-	// Finite Difference
+
+	// =========================================================================
+	// FR Linearization
+	// =========================================================================
 
 	bool ComputeA_FR_Continuous(
 		FFullSys& FullSys,
@@ -202,12 +269,6 @@ public:
 		const TArray<FU_ExtForce>& NominalU_ExtForces,
 		double Epsilon,
 		Eigen::MatrixXd& OutA_FR
-	);
-
-	void BuildA_FRInFullDisplay(
-		const FStateDOFIndexMap& IndexMap,
-		const Eigen::MatrixXd& A_FR,
-		Eigen::MatrixXd& OutA_FullDisplay
 	);
 
 	bool ComputeB_FR_Continuous(
@@ -229,82 +290,11 @@ public:
 		Eigen::MatrixXd& OutB_FR
 	);
 
-	// Kernel
-	
-	bool BuildKernelBasis_FR(
-		const Eigen::MatrixXd& H_X_FR,
-		Eigen::MatrixXd& OutT_kerToFR
-	) const;
-	
-	bool BuildJandJDot_FR(
-		const FFullSys& FullSys,
-		Eigen::MatrixXd& OutJ_FR,
-		Eigen::MatrixXd& OutJDot_FR
-	) const;
 
-	bool BuildH_FR(
-		const Eigen::MatrixXd& J_FR,
-		const Eigen::MatrixXd& JDot_FR,
-		Eigen::MatrixXd& OutH_X_FR
-	) const;
+	// =========================================================================
+	// Full-State Finite Difference Helpers
+	// =========================================================================
 
-	// Vector Transformations
-
-	Eigen::VectorXd TransformDeltaX_ker2FR(
-		const Eigen::MatrixXd& T_kerToFR,
-		const Eigen::VectorXd& DeltaX_ker
-	) const;
-
-	// Controlability
-
-	bool AnalyzeControllability(
-		const Eigen::MatrixXd& A,
-		const Eigen::MatrixXd& B,
-		FControllabilityResult& OutResult
-	) const;
-
-	// LQR Model
-
-	bool DesignLQRController(
-		FFullSys& FullSys,
-		double Dt,
-		const FSysState& NominalX_Full,
-		const Eigen::VectorXd& NominalU,
-		const TArray<FU_ExtForce>& NominalU_ExtForces,
-		FLQRDesign& OutLQRModel
-	);
-
-	// Solvers
-
-	bool SolveDARE(
-		const Eigen::MatrixXd& A,
-		const Eigen::MatrixXd& B,
-		const Eigen::MatrixXd& Q,
-		const Eigen::MatrixXd& R,
-		FDAREResult& OutResult
-	) const;
-
-	bool ComputeLQRGain(
-		const Eigen::MatrixXd& A,
-		const Eigen::MatrixXd& B,
-		const Eigen::MatrixXd& R,
-		const Eigen::MatrixXd& P,
-		Eigen::MatrixXd& OutK
-	) const;
-
-private:
-	TArray<FLinearControlChannel> ControlChannels;
-
-	Eigen::MatrixXd G_UToTau_FR;
-
-	FSysState X_Reference_Full;
-	Eigen::VectorXd U_Reference;
-	Eigen::VectorXd U_Control;
-
-	FLQRDesign ActiveLQRModel;
-
-	bool bControlAllocationBuilt = false;
-	
 	bool ComputeA_FullColumn_Continuous(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
@@ -347,6 +337,39 @@ private:
 		Eigen::VectorXd& OutB_iColumn
 	);
 
+
+	// =========================================================================
+	// Constraint Tangent Space
+	// =========================================================================
+
+	bool BuildJandJDot_FR(
+		const FFullSys& FullSys,
+		Eigen::MatrixXd& OutJ_FR,
+		Eigen::MatrixXd& OutJDot_FR
+	) const;
+
+	bool BuildH_FR(
+		const Eigen::MatrixXd& J_FR,
+		const Eigen::MatrixXd& JDot_FR,
+		Eigen::MatrixXd& OutH_X_FR
+	) const;
+
+	bool BuildKernelBasis_FR(
+		const Eigen::MatrixXd& H_X_FR,
+		Eigen::MatrixXd& OutT_kerToFR
+	) const;
+
+
+	// =========================================================================
+	// Controllability
+	// =========================================================================
+
+	bool AnalyzeControllability(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		FControllabilityResult& OutResult
+	) const;
+
 	bool BuildControllabilityMatrix(
 		const Eigen::MatrixXd& A,
 		const Eigen::MatrixXd& B,
@@ -358,5 +381,26 @@ private:
 		int32& OutRank,
 		double& OutRankTolerance,
 		Eigen::VectorXd& OutSingularValues
+	) const;
+
+
+	// =========================================================================
+	// LQR Solvers
+	// =========================================================================
+
+	bool SolveDARE(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		const Eigen::MatrixXd& Q,
+		const Eigen::MatrixXd& R,
+		FDAREResult& OutResult
+	) const;
+
+	bool ComputeLQRGain(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		const Eigen::MatrixXd& R,
+		const Eigen::MatrixXd& P,
+		Eigen::MatrixXd& OutK
 	) const;
 };

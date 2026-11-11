@@ -47,22 +47,11 @@ void AMultiSystemsActor::BeginPlay()
 		);
 	}
 
-	FLQRDesign InitialLQRModel;
-
-	if (!ControlSys.DesignLQRController(
-		FullSys,
-		FixedTimeStep,
-		ControlSys.GetXReference_Full(),
-		ControlSys.GetUReference(),
-		U_ExtForces,
-		InitialLQRModel
-	))
+	if (!ControlSys.InitializeLQRController(FullSys, FixedTimeStep, U_ExtForces))
 	{
-		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to design initial LQR controller."));
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize LQR controller."));
 		return;
 	}
-
-	ControlSys.ActivateLQRModel(MoveTemp(InitialLQRModel));
 }
 
 void AMultiSystemsActor::Tick(float DeltaTime)
@@ -279,11 +268,11 @@ void AMultiSystemsActor::BuildDemoSystem()
 
 	FullSys.Initialize();
 
-	check(ControlSys.BuildControlAllocationG_FRMatrix(FullSys));
+	check(ControlSys.Initialize(FullSys));
 
 	ControlSys.SetReference(
 		FullSys.BodiesToFullStateStruct(),
-		Eigen::VectorXd::Zero(ControlSys.GetControlChannels().Num())
+		Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels())
 	);
 }
 
@@ -848,58 +837,19 @@ void AMultiSystemsActor::DrawStatePerturbationAtBody(
 	);
 }
 
-void AMultiSystemsActor::DrawKernelZVector(
-	const Eigen::VectorXd& Z_ker
-) const
+void AMultiSystemsActor::DrawKernelZVector(const Eigen::VectorXd& Z_ker) const
 {
-	Eigen::MatrixXd J_FR;
-	Eigen::MatrixXd JDot_FR;
-	Eigen::MatrixXd H_X_FR;
-	Eigen::MatrixXd T_kerToFR;
+	Eigen::VectorXd DeltaX_Full;
 
-	if (!ControlSys.BuildJandJDot_FR(
-		FullSys,
-		J_FR,
-		JDot_FR
-	))
+	if (!ControlSys.BuildDeltaX_FullFromZ_ker(FullSys, Z_ker, DeltaX_Full))
 	{
 		return;
 	}
-
-	if (!ControlSys.BuildH_FR(
-		J_FR,
-		JDot_FR,
-		H_X_FR
-	))
-	{
-		return;
-	}
-
-	if (!ControlSys.BuildKernelBasis_FR(
-		H_X_FR,
-		T_kerToFR
-	))
-	{
-		return;
-	}
-
-	check(
-		Z_ker.size()
-		== T_kerToFR.cols()
-	);
-
-	const Eigen::VectorXd DeltaX_FR = ControlSys.TransformDeltaX_ker2FR(T_kerToFR, Z_ker);
-
-	const Eigen::VectorXd DeltaX_Full = FullSys.GetStateIndexMap().ExpandX_FRToFull(DeltaX_FR);
 
 	constexpr double PositionScale = 0.5;
 	constexpr double VelocityScale = 0.5;
 
-	DrawStatePerturbation(
-		DeltaX_Full,
-		PositionScale,
-		VelocityScale
-	);
+	DrawStatePerturbation(DeltaX_Full, PositionScale, VelocityScale);
 }
 
 void AMultiSystemsActor::DrawKernelZVectorAtBody(
@@ -907,55 +857,17 @@ void AMultiSystemsActor::DrawKernelZVectorAtBody(
 	const Eigen::VectorXd& Z_ker
 ) const
 {
-	Eigen::MatrixXd J_FR;
-	Eigen::MatrixXd JDot_FR;
-	Eigen::MatrixXd H_X_FR;
-	Eigen::MatrixXd T_kerToFR;
+	Eigen::VectorXd DeltaX_Full;
 
-	if (!ControlSys.BuildJandJDot_FR(
-		FullSys,
-		J_FR,
-		JDot_FR
-	))
+	if (!ControlSys.BuildDeltaX_FullFromZ_ker(FullSys, Z_ker, DeltaX_Full))
 	{
 		return;
 	}
-
-	if (!ControlSys.BuildH_FR(
-		J_FR,
-		JDot_FR,
-		H_X_FR
-	))
-	{
-		return;
-	}
-
-	if (!ControlSys.BuildKernelBasis_FR(
-		H_X_FR,
-		T_kerToFR
-	))
-	{
-		return;
-	}
-
-	check(
-		Z_ker.size()
-		== T_kerToFR.cols()
-	);
-
-	const Eigen::VectorXd DeltaX_FR = ControlSys.TransformDeltaX_ker2FR(T_kerToFR, Z_ker);
-
-	const Eigen::VectorXd DeltaX_Full = FullSys.GetStateIndexMap().ExpandX_FRToFull(DeltaX_FR);
 
 	constexpr double PositionScale = 0.5;
 	constexpr double VelocityScale = 0.5;
 
-	DrawStatePerturbationAtBody(
-		BodyIndex,
-		DeltaX_Full,
-		PositionScale,
-		VelocityScale
-	);
+	DrawStatePerturbationAtBody(BodyIndex, DeltaX_Full, PositionScale, VelocityScale);
 }
 
 void AMultiSystemsActor::DrawControlForces() const
