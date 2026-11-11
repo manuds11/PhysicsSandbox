@@ -102,8 +102,11 @@ private:
 
 	void BuildDemoSystem();
 
-	void ToggleSimulation();
+	void ConfigureSimulation();
 	void ConfigureIntegrator();
+	bool InitializeSimulation();
+	void ToggleSimulation();
+	
 
 	void RunSimFixedSteps(double FrameDeltaTime);
 	bool RunControlLoopStep(double Dt);

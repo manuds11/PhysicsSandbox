@@ -23,14 +23,15 @@ AMultiSystemsActor::AMultiSystemsActor()
 void AMultiSystemsActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	BuildDemoSystem();
+	ConfigureSimulation();
 
-	ConfigureIntegrator();
-
-	FullSys.SetVelocityCorrection1Enabled(true);
-	FullSys.SetPositionCorrectionsEnabled(true);
-	FullSys.SetVelocityCorrection2Enabled(true);
+	if (!InitializeSimulation())
+	{
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize simulation."));
+		return;
+	}
 
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
@@ -39,20 +40,10 @@ void AMultiSystemsActor::BeginPlay()
 
 	if (InputComponent)
 	{
-		InputComponent->BindKey(
-			EKeys::SpaceBar,
-			IE_Pressed,
-			this,
-			&AMultiSystemsActor::ToggleSimulation
-		);
-	}
-
-	if (!ControlSys.InitializeLQRController(FullSys, FixedTimeStep, U_ExtForces))
-	{
-		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize LQR controller."));
-		return;
+		InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &AMultiSystemsActor::ToggleSimulation);
 	}
 }
+
 
 void AMultiSystemsActor::Tick(float DeltaTime)
 {
@@ -68,8 +59,34 @@ void AMultiSystemsActor::Tick(float DeltaTime)
 }
 
 // -----------------------------------------------------------------------------
-// Input
+// Configuration
 // -----------------------------------------------------------------------------
+
+bool AMultiSystemsActor::InitializeSimulation()
+{
+	FullSys.Initialize();
+
+	if (!ControlSys.Initialize(FullSys))
+	{
+		return false;
+	}
+
+	ControlSys.SetReference(
+		FullSys.BodiesToFullStateStruct(),
+		Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels())
+	);
+
+	return ControlSys.InitializeLQRController(FullSys, FixedTimeStep, U_ExtForces);
+}
+
+void AMultiSystemsActor::ConfigureSimulation()
+{
+	ConfigureIntegrator();
+
+	FullSys.SetVelocityCorrection1Enabled(true);
+	FullSys.SetPositionCorrectionsEnabled(true);
+	FullSys.SetVelocityCorrection2Enabled(true);
+}
 
 void AMultiSystemsActor::ToggleSimulation()
 {
@@ -260,19 +277,6 @@ void AMultiSystemsActor::BuildDemoSystem()
 	TripleInvertedPendulum.AddElement(
 		TEXT("Rod3"),
 		Rod3Index
-	);
-
-	// -------------------------------------------------------------------------
-	// Initialization
-	// -------------------------------------------------------------------------
-
-	FullSys.Initialize();
-
-	check(ControlSys.Initialize(FullSys));
-
-	ControlSys.SetReference(
-		FullSys.BodiesToFullStateStruct(),
-		Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels())
 	);
 }
 
