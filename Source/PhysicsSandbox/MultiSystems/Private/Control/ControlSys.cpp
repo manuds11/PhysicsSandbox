@@ -11,7 +11,7 @@
 // Initialization
 // -----------------------------------------------------------------------------
 
-bool FControlSys::Initialize(const FFullSys& FullSys)
+bool FControlSys::InitializeControlAllocation(const FFullSys& FullSys)
 {
 	return BuildControlAllocationG_FRMatrix(FullSys);
 }
@@ -139,15 +139,6 @@ bool FControlSys::BuildControlAllocationG_FRMatrix(
 	bControlAllocationBuilt = true;
 
 	return true;
-}
-
-Eigen::VectorXd FControlSys::ComputeTau_FR(const Eigen::VectorXd& InU_Control) const
-{
-	check(bControlAllocationBuilt);
-	check(InU_Control.size() == G_UToTau_FR.cols());
-	check(InU_Control.allFinite());
-
-	return G_UToTau_FR * InU_Control;
 }
 
 // -----------------------------------------------------------------------------
@@ -299,6 +290,21 @@ bool FControlSys::DesignLQRController(
 
 	Eigen::MatrixXd A_FR_Discrete;
 	Eigen::MatrixXd B_FR_Discrete;
+	Eigen::VectorXd Affine_cFR_Discrete;
+
+	if (!ComputeAffine_cFR_Discrete(
+		FullSys,
+		Dt,
+		NominalX_Full,
+		NominalU,
+		NominalU_ExtForces,
+		Affine_cFR_Discrete
+	))
+	{
+		FullSys.SetXState2Bodies(FullSysX_BeforeDesign);
+		FullSys.SyncRodStates();
+		return false;
+	}
 
 	if (!ComputeA_FR_Discrete(
 		FullSys,
@@ -338,6 +344,9 @@ bool FControlSys::DesignLQRController(
 
 	// FR -> ker reduced model
 	// -------------------------------------------------------------------------
+
+	NewLQRModel.Affine_cKer_Discrete =
+		NewLQRModel.T_kerToFR.transpose() * Affine_cFR_Discrete;
 
 	NewLQRModel.A_ker_Discrete =
 		NewLQRModel.T_kerToFR.transpose() * A_FR_Discrete * NewLQRModel.T_kerToFR;
@@ -416,7 +425,7 @@ bool FControlSys::DesignLQRController(
 	return true;
 }
 
-Eigen::VectorXd FControlSys::ComputeControlTau_FR(
+Eigen::VectorXd FControlSys::ComputeUControl(
 	const FSysState& X_Full,
 	const FStateDOFIndexMap& IndexMap
 )
@@ -442,6 +451,20 @@ Eigen::VectorXd FControlSys::ComputeControlTau_FR(
 	const double DeltaZKerNorm = DeltaZ_ker.norm();
 	const double DeltaUNorm = DeltaU.norm();
 	const double UControlNorm = U_Control.norm();
+
+	return U_Control;
+}
+
+Eigen::VectorXd FControlSys::ComputeTau_FR(const Eigen::VectorXd& InU_Control) const
+{
+	check(bControlAllocationBuilt);
+	check(InU_Control.size() == G_UToTau_FR.cols());
+	check(InU_Control.allFinite());
+
+	const Eigen::VectorXd Tau_FR = G_UToTau_FR * InU_Control;
+
+	// Control diagnostics
+	// -------------------------------------------------------------------------
 	const double TauFRNorm = Tau_FR.norm();
 
 	return Tau_FR;
@@ -1166,6 +1189,50 @@ bool FControlSys::ComputeA_FullColumn_Discrete(
 		/ (2.0 * Epsilon);
 
 	return true;
+}
+
+bool FControlSys::ComputeAffine_cFR_Discrete(
+	FFullSys& FullSys,
+	double Dt,
+	const FSysState& NominalX_Full,
+	const Eigen::VectorXd& NominalU_Control,
+	const TArray<FU_ExtForce>& NominalU_ExtForces,
+	Eigen::VectorXd& OutAffine_cFR
+)
+{
+	check(Dt > 0.0);
+	check(NominalU_Control.size() == GetNumControlChannels());
+	check(NominalU_Control.allFinite());
+
+	const FSysState FullSysX_BeforeEvaluation = FullSys.BodiesToFullStateStruct();
+
+	const Eigen::VectorXd NominalTau_FR = ComputeTau_FR(NominalU_Control);
+
+	FSysState XNext_Full;
+
+	const bool bSuccess = FullSys.EvaluateNextXState(
+		Dt,
+		NominalX_Full,
+		NominalTau_FR,
+		NominalU_ExtForces,
+		XNext_Full
+	);
+
+	FullSys.SetXState2Bodies(FullSysX_BeforeEvaluation);
+	FullSys.SyncRodStates();
+
+	if (!bSuccess)
+	{
+		return false;
+	}
+
+	const Eigen::VectorXd Affine_cFull =
+		XNext_Full.ToVector() - NominalX_Full.ToVector();
+
+	OutAffine_cFR =
+		FullSys.GetStateIndexMap().ExtractX_FR(Affine_cFull);
+
+	return OutAffine_cFR.allFinite();
 }
 
 bool FControlSys::ComputeB_FullColumn_Continuous(

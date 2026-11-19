@@ -88,6 +88,7 @@ struct FLQRDesign
 
 	Eigen::MatrixXd A_ker_Discrete;
 	Eigen::MatrixXd B_ker_Discrete;
+	Eigen::VectorXd Affine_cKer_Discrete;
 
 	FControllabilityResult Controllability;
 	FDAREResult DARE;
@@ -100,6 +101,7 @@ struct FLQRDesign
 	TArray<double> T_DebugData;
 	TArray<double> A_DebugData;
 	TArray<double> B_DebugData;
+	TArray<double> Affine_c_DebugData;
 	TArray<double> P_DebugData;
 	TArray<double> K_DebugData;
 
@@ -120,11 +122,22 @@ struct FLQRDesign
 				}
 			};
 
+		auto CopyVector = [](const Eigen::VectorXd& Vector, TArray<double>& OutDebugData)
+			{
+				OutDebugData.SetNum(static_cast<int32>(Vector.size()));
+
+				for (Eigen::Index i = 0; i < Vector.size(); ++i)
+				{
+					OutDebugData[static_cast<int32>(i)] = Vector(i);
+				}
+			};
+
 		CopyMatrixRowMajor(T_kerToFR, T_DebugData);
 		CopyMatrixRowMajor(A_ker_Discrete, A_DebugData);
 		CopyMatrixRowMajor(B_ker_Discrete, B_DebugData);
 		CopyMatrixRowMajor(DARE.P, P_DebugData);
 		CopyMatrixRowMajor(K, K_DebugData);
+		CopyVector(Affine_cKer_Discrete, Affine_c_DebugData);
 	}
 };
 
@@ -145,7 +158,7 @@ public:
 
 	int32 AddLinearControlChannel(FLinearControlChannel Channel);
 
-	bool Initialize(const FFullSys& FullSys);
+	bool InitializeControlAllocation(const FFullSys& FullSys);
 
 	int32 GetNumControlChannels() const
 	{
@@ -175,11 +188,12 @@ public:
 	// Runtime Control
 	// =========================================================================
 
-	Eigen::VectorXd ComputeControlTau_FR(
+	Eigen::VectorXd ComputeUControl(
 		const FSysState& X_Full,
 		const FStateDOFIndexMap& IndexMap
 	);
 
+	Eigen::VectorXd ComputeTau_FR(const Eigen::VectorXd& InU_Control) const;
 
 	// =========================================================================
 	// Debug Conversion
@@ -206,7 +220,6 @@ public:
 		return U_Control;
 	}
 
-
 private:
 
 	// =========================================================================
@@ -230,9 +243,6 @@ private:
 	// =========================================================================
 
 	bool BuildControlAllocationG_FRMatrix(const FFullSys& FullSys);
-
-	Eigen::VectorXd ComputeTau_FR(const Eigen::VectorXd& InU_Control) const;
-
 
 	// =========================================================================
 	// LQR Design
@@ -271,6 +281,15 @@ private:
 		Eigen::MatrixXd& OutA_FR
 	);
 
+	bool ComputeAffine_cFR_Discrete(
+		FFullSys& FullSys,
+		double Dt,
+		const FSysState& NominalX_Full,
+		const Eigen::VectorXd& NominalU_Control,
+		const TArray<FU_ExtForce>& NominalU_ExtForces,
+		Eigen::VectorXd& OutAffine_cFR
+	);
+
 	bool ComputeB_FR_Continuous(
 		FFullSys& FullSys,
 		const FSysState& NominalX_Full,
@@ -289,7 +308,6 @@ private:
 		double EpsilonU,
 		Eigen::MatrixXd& OutB_FR
 	);
-
 
 	// =========================================================================
 	// Full-State Finite Difference Helpers
@@ -382,7 +400,6 @@ private:
 		double& OutRankTolerance,
 		Eigen::VectorXd& OutSingularValues
 	) const;
-
 
 	// =========================================================================
 	// LQR Solvers

@@ -100,11 +100,8 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Visualization|Control")
 	double ControlForceArrowMaxLength = 250.0; // cm
 
-	void BuildDemoSystem();
-
 	void ConfigureSimulation();
 	void ConfigureIntegrator();
-	bool InitializeSimulation();
 	void ToggleSimulation();
 	
 

@@ -1,7 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Actors/MultiSystemsActor.h"
+
+#include "Scenario/TriplePendulum.h"
+
 #include "Math/Units.h"
+
 #include "Elements/PendulumRod.h"
 #include "Elements/SpringDamper.h"
 #include "DrawDebugHelpers.h"
@@ -24,14 +28,76 @@ void AMultiSystemsActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	BuildDemoSystem();
+	// -------------------------------------------------------------------------
+	// Build system
+	// -------------------------------------------------------------------------
+
+	FTriplePendulum::BuildSystem(
+		FullSys,
+		ControlSys,
+		U_ExtForces
+	);
+
 	ConfigureSimulation();
 
-	if (!InitializeSimulation())
+	FullSys.Initialize();
+
+	if (!ControlSys.InitializeControlAllocation(FullSys))
 	{
-		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize simulation."));
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize control allocation."));
 		return;
 	}
+
+
+	// -------------------------------------------------------------------------
+	// Reference and initial states
+	// -------------------------------------------------------------------------
+
+	const FSysState X_Reference_Full =
+		FTriplePendulum::BuildState(
+			FTriplePendulum::VerticalEquilibrium
+		);
+
+	const FSysState X_Initial_Full =
+		FTriplePendulum::BuildState(
+			FTriplePendulum::ModerateLeft
+		);
+
+	const Eigen::VectorXd U_Reference =
+		Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+
+	ControlSys.SetReference(
+		X_Reference_Full,
+		U_Reference
+	);
+
+
+	// -------------------------------------------------------------------------
+	// LQR design at reference state
+	// -------------------------------------------------------------------------
+
+	if (!ControlSys.InitializeLQRController(
+		FullSys,
+		FixedTimeStep,
+		U_ExtForces
+	))
+	{
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize LQR controller."));
+		return;
+	}
+
+
+	// -------------------------------------------------------------------------
+	// Set physical initial state
+	// -------------------------------------------------------------------------
+
+	FullSys.SetXState2Bodies(X_Initial_Full);
+	FullSys.SyncRodStates();
+
+
+	// -------------------------------------------------------------------------
+	// Input
+	// -------------------------------------------------------------------------
 
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
@@ -40,7 +106,12 @@ void AMultiSystemsActor::BeginPlay()
 
 	if (InputComponent)
 	{
-		InputComponent->BindKey(EKeys::SpaceBar, IE_Pressed, this, &AMultiSystemsActor::ToggleSimulation);
+		InputComponent->BindKey(
+			EKeys::SpaceBar,
+			IE_Pressed,
+			this,
+			&AMultiSystemsActor::ToggleSimulation
+		);
 	}
 }
 
@@ -61,23 +132,6 @@ void AMultiSystemsActor::Tick(float DeltaTime)
 // -----------------------------------------------------------------------------
 // Configuration
 // -----------------------------------------------------------------------------
-
-bool AMultiSystemsActor::InitializeSimulation()
-{
-	FullSys.Initialize();
-
-	if (!ControlSys.Initialize(FullSys))
-	{
-		return false;
-	}
-
-	ControlSys.SetReference(
-		FullSys.BodiesToFullStateStruct(),
-		Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels())
-	);
-
-	return ControlSys.InitializeLQRController(FullSys, FixedTimeStep, U_ExtForces);
-}
 
 void AMultiSystemsActor::ConfigureSimulation()
 {
@@ -127,157 +181,6 @@ void AMultiSystemsActor::ConfigureIntegrator()
 		checkNoEntry();
 		break;
 	}
-}
-
-// -----------------------------------------------------------------------------
-// System setup
-// -----------------------------------------------------------------------------
-
-void AMultiSystemsActor::BuildDemoSystem()
-{
-	// -------------------------------------------------------------------------
-	// Subsystem
-	// -------------------------------------------------------------------------
-
-	FSubSys& TripleInvertedPendulum =
-		FullSys.CreateSubSys(
-			TEXT("TripleInvertedPendulum")
-		);
-
-	// -------------------------------------------------------------------------
-	// Bodies - Perfect inverted equilibrium
-	// -------------------------------------------------------------------------
-
-	constexpr double EquilibriumX = 2.50;
-
-	const int32 BaseIndex =
-		FullSys.AddBody(
-			FBody::SlidingMassX(
-				FVector2D(EquilibriumX, -1.20),
-				2.0
-			)
-		);
-
-	const int32 Mass1Index =
-		FullSys.AddBody(
-			FBody::Free(
-				FVector2D(EquilibriumX, -0.3960099503),
-				1.4
-			)
-		);
-
-	const int32 Mass2Index =
-		FullSys.AddBody(
-			FBody::Free(
-				FVector2D(EquilibriumX, 0.3512517174),
-				1.0
-			)
-		);
-
-	const int32 Mass3Index =
-		FullSys.AddBody(
-			FBody::Free(
-				FVector2D(EquilibriumX + 0.01, 1.2633920575),
-				0.7
-			)
-		);
-
-	// -------------------------------------------------------------------------
-	// Rods
-	// -------------------------------------------------------------------------
-
-	const int32 Rod1Index =
-		FullSys.AddElement(
-			MakeUnique<FPendulumRod>(
-				BaseIndex,
-				Mass1Index
-			)
-		);
-
-	const int32 Rod2Index =
-		FullSys.AddElement(
-			MakeUnique<FPendulumRod>(
-				Mass1Index,
-				Mass2Index
-			)
-		);
-
-	const int32 Rod3Index =
-		FullSys.AddElement(
-			MakeUnique<FPendulumRod>(
-				Mass2Index,
-				Mass3Index
-			)
-		);
-
-	// -------------------------------------------------------------------------
-	// Control Channels
-	// -------------------------------------------------------------------------
-
-	FLinearControlChannel Channel0(TEXT("BaseHorizontal"));
-	Channel0.AddForceContribution(BaseIndex, FVector2D(1.0, 0.0));
-	ControlSys.AddLinearControlChannel(MoveTemp(Channel0));
-
-	/*
-	FLinearControlChannel Channel1(TEXT("Mass2Horizontal"));
-	Channel1.AddForceContribution(Mass2Index, FVector2D(1.0, 0.0));
-	ControlSys.AddLinearControlChannel(MoveTemp(Channel1));
-	*/
-	
-
-	// -------------------------------------------------------------------------
-	// External force inputs
-	// -------------------------------------------------------------------------
-
-	U_ExtForces.Reset();
-
-	U_ExtForces.Add({
-		Mass1Index,
-		FVector2D::ZeroVector
-		});
-
-	// -------------------------------------------------------------------------
-	// Subsystem associations - Bodies
-	// -------------------------------------------------------------------------
-
-	TripleInvertedPendulum.AddBody(
-		TEXT("Base"),
-		BaseIndex
-	);
-
-	TripleInvertedPendulum.AddBody(
-		TEXT("Mass1"),
-		Mass1Index
-	);
-
-	TripleInvertedPendulum.AddBody(
-		TEXT("Mass2"),
-		Mass2Index
-	);
-
-	TripleInvertedPendulum.AddBody(
-		TEXT("Mass3"),
-		Mass3Index
-	);
-
-	// -------------------------------------------------------------------------
-	// Subsystem associations - Rods
-	// -------------------------------------------------------------------------
-
-	TripleInvertedPendulum.AddElement(
-		TEXT("Rod1"),
-		Rod1Index
-	);
-
-	TripleInvertedPendulum.AddElement(
-		TEXT("Rod2"),
-		Rod2Index
-	);
-
-	TripleInvertedPendulum.AddElement(
-		TEXT("Rod3"),
-		Rod3Index
-	);
 }
 
 // -----------------------------------------------------------------------------
@@ -345,8 +248,8 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	}
 
 	const FSysState X_k = FullSys.BodiesToFullStateStruct();
-	const Eigen::VectorXd Tau_FR = ControlSys.ComputeControlTau_FR(X_k, FullSys.GetStateIndexMap());
-
+	const Eigen::VectorXd U_Control = ControlSys.ComputeUControl(X_k, FullSys.GetStateIndexMap());
+	const Eigen::VectorXd Tau_FR = ControlSys.ComputeTau_FR(U_Control);
 	FSysState X_kPlus1;
 
 	return FullSys.Step(Dt, X_k, Tau_FR, U_ExtForces, X_kPlus1);
