@@ -60,7 +60,7 @@ void AMultiSystemsActor::BeginPlay()
 
 	const FSysState X_Initial_Full =
 		FTriplePendulum::BuildState(
-			FTriplePendulum::ModerateLeft
+			FTriplePendulum::StrongRight
 		);
 
 	const Eigen::VectorXd U_Reference =
@@ -420,7 +420,7 @@ void AMultiSystemsActor::PrintInfo() const
 
 	DebugText += FString::Printf(
 		TEXT(
-			"Sim: %.2f s | Wall: %.2f s | Delay: %+.3f s | RTF: %.3f | FixedSteps: %llu | FixedDt: %.5f s\n"
+			"Sim time: %.2f s | Wall clock: %.2f s | Delay: %+.3f s | RTF: %.3f | FixedSteps: %llu | FixedDt: %.5f s\n"
 			"AvgFrameDt: %.4f s | LastSubSteps: %d\n"
 		),
 		SimuPhysicalTime,
@@ -500,7 +500,7 @@ void AMultiSystemsActor::PrintInfo() const
 		TEXT(
 			"\nENERGY BALANCE\n"
 			"Initial Mech: %.6f J | Mechanical: %.6f J | Delta Mech: %+.6f J | Dissipated: %.6f J\n"
-			"Control Work: %+.6f J | Accum Correction: %+.6f J | External Work: NOT IMPLEMENTED\n"
+			"Control Work: %+.6f J | Accum Correction: %+.6f J\n" //  | External Work: Disabled
 			"Energy Residual: %+.6f J | Residual Excl. Corrections: %+.6f J\n"
 		),
 		Balance.Initial.Mechanical(),

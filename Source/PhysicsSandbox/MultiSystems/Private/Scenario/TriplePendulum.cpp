@@ -48,6 +48,30 @@ FSysState FTriplePendulum::BuildState(EStatePreset Preset)
 
 		break;
 
+	case StrongLeft:
+
+		// Mass3
+		Q(6) = Q_Equilibrium(6) - 0.05;          // Delta X = -0.05 m
+		Q(7) = Q_Equilibrium(7) - 0.0013746647;  // Preserve Rod3 length
+
+		break;
+
+	case StrongRight:
+
+		// Mass3
+		Q(6) = Q_Equilibrium(6) + 0.075;         // Delta X = +0.075 m
+		Q(7) = Q_Equilibrium(7) - 0.0030959257;  // Preserve Rod3 length
+
+		break;
+
+	case ExtremeRight:
+
+		// Mass3
+		Q(6) = Q_Equilibrium(6) + 0.10;          // Delta X = +0.10 m
+		Q(7) = Q_Equilibrium(7) - 0.0055111941;  // Preserve Rod3 length
+
+		break;
+	
 	default:
 		checkNoEntry();
 		return {};

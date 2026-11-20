@@ -15,7 +15,10 @@ struct FTriplePendulum
 	{
 		VerticalEquilibrium,
 		SlightLeft,
-		ModerateLeft
+		ModerateLeft,
+		StrongLeft,
+		StrongRight,
+		ExtremeRight
 	};
 
 	static void BuildSystem(
