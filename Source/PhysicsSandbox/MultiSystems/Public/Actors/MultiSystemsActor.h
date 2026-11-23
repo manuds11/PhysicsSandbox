@@ -5,6 +5,7 @@
 #include "Simulation/FullSys.h"
 #include "Control/ControlSys.h"
 #include "Actors/SimuCameraController.h"
+#include "Display/Display.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -38,8 +39,9 @@ public:
 
 private:
 	FFullSys FullSys;
-
 	FControlSys ControlSys;
+	FMultiSysDisplay Display;
+
 	TArray<FU_ExtForce> U_ExtForces;
 
 	// =========================
@@ -108,31 +110,5 @@ private:
 	void RunSimFixedSteps(double FrameDeltaTime);
 	bool RunControlLoopStep(double Dt);
 
-	FVector ToWorld(const FVector2D& P) const;
-	void DrawSystem() const;
 	void PrintInfo() const;
-
-	double ComputeBodyDebugRadius(double Mass) const;
-
-	void DrawStatePerturbation(
-		const Eigen::VectorXd& DeltaX_Full,
-		double PositionScale,
-		double VelocityScale
-	) const;
-
-	void DrawStatePerturbationAtBody(
-		int32 BodyIndex,
-		const Eigen::VectorXd& DeltaX_Full,
-		double PositionScale,
-		double VelocityScale
-	) const;
-
-	void DrawKernelZVector(const Eigen::VectorXd& Z_ker) const;
-
-	void DrawKernelZVectorAtBody(
-		int32 BodyIndex,
-		const Eigen::VectorXd& Z_ker
-	) const;
-
-	void DrawControlForces() const;
 };
