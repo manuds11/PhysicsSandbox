@@ -31,42 +31,39 @@ void AMultiSystemsActor::BeginPlay()
 	// Build system
 	// ------------------------
 
-	FTriplePendulum::BuildSystem(
+	FTriplePendulum TriplePendulum;
+	TriplePendulum.BuildSystem(
+		FTriplePendulum::StandardGeometry,
+		FTriplePendulum::BaseOnly,
 		FullSys,
 		ControlSys,
 		U_ExtForces
 	);
 
 	ConfigureSimulation();
-
 	FullSys.Initialize();
 
 	if (!ControlSys.InitializeControlAllocation(FullSys))
 	{
 		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize control allocation."));
 		return;
-	}
+	}	
 
-	// Reference and initial states
+	// Set physical initial state
 	// ------------------------
+	const FSysState X_Initial_Full = FTriplePendulum::BuildStatePreset(
+		FTriplePendulum::StrongRight);
 
-	const FSysState X_Reference_Full =
-		FTriplePendulum::BuildState(
-			FTriplePendulum::VerticalEquilibrium
-		);
+	FullSys.SetXState2Bodies(X_Initial_Full);
+	FullSys.SyncRodStates();
 
-	const FSysState X_Initial_Full =
-		FTriplePendulum::BuildState(
-			FTriplePendulum::StrongRight
-		);
-
-	const Eigen::VectorXd U_Reference =
-		Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
-
-	ControlSys.SetReference(
-		X_Reference_Full,
-		U_Reference
+	const FSysState X_Reference_Full = FTriplePendulum::BuildStatePreset(
+		FTriplePendulum::VerticalEquilibrium
 	);
+
+	const Eigen::VectorXd U_Reference = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
+	
+	ControlSys.SetReference(X_Reference_Full, U_Reference);
 
 	// LQR design at reference state
 	// ------------------------
@@ -81,11 +78,6 @@ void AMultiSystemsActor::BeginPlay()
 		return;
 	}
 
-	// Set physical initial state
-	// ------------------------
-
-	FullSys.SetXState2Bodies(X_Initial_Full);
-	FullSys.SyncRodStates();
 
 	// Input
 	// ------------------------
@@ -268,11 +260,14 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 	return FullSys.Step(Dt, X_k, Tau_FR, U_ExtForces, X_kPlus1);
 }
 
-// -----------------------------------------------------------------------------
-// Visualization and debug
-// -----------------------------------------------------------------------------
 
 
+
+
+
+// -----------------------------------------------------------------------------
+// HUD 
+// ----------------------------------------------------------------------------
 
 void AMultiSystemsActor::PrintInfo() const
 {

@@ -11,6 +11,13 @@ class FControlSys;
 
 struct FTriplePendulum
 {
+public:
+
+	enum EGeometryPreset : uint8
+	{
+		StandardGeometry
+	};
+
 	enum EStatePreset : uint8
 	{
 		VerticalEquilibrium,
@@ -21,11 +28,54 @@ struct FTriplePendulum
 		ExtremeRight
 	};
 
-	static void BuildSystem(
+	enum EActuationPreset : uint8
+	{
+		NoActuation,
+		BaseOnly,
+		BaseAndMass2
+	};
+
+
+	struct FBodiesIndex
+	{
+		int32 Base = INDEX_NONE;
+		int32 Mass1 = INDEX_NONE;
+		int32 Mass2 = INDEX_NONE;
+		int32 Mass3 = INDEX_NONE;
+	};
+
+	const FBodiesIndex& GetBodiesIndex() const
+	{
+		return BodiesIndex;
+	}
+
+	void BuildSystem(
+		EGeometryPreset GeometryPreset,
+		EActuationPreset ActuationPreset,
 		FFullSys& FullSys,
 		FControlSys& ControlSys,
 		TArray<FU_ExtForce>& U_ExtForces
 	);
 
-	static FSysState BuildState(EStatePreset Preset);
+	static FSysState BuildStatePreset(
+		EStatePreset Preset
+	);
+
+private:
+
+	FBodiesIndex BodiesIndex;
+
+	void BuildGeometry(
+		EGeometryPreset Preset,
+		FFullSys& FullSys
+	);
+
+	void ConfigureActuation(
+		EActuationPreset Preset,
+		FControlSys& ControlSys
+	);
+
+	void AddExternalForces(
+		TArray<FU_ExtForce>& U_ExtForces
+	);
 };

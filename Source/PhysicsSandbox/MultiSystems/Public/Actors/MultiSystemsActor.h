@@ -88,7 +88,7 @@ private:
 	uint64 FixedStepCount = 0;
 
 	// =========================
-	// Visualization
+	// Display
 	// =========================
 	UPROPERTY(EditAnywhere, Category = "Visualization")
 	FVector VisualizationOffset = FVector(-100.0, 0.0, 250.0); // in cm

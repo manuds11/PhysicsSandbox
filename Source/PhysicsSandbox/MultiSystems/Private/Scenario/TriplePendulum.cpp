@@ -5,7 +5,7 @@
 #include "Elements/PendulumRod.h"
 
 
-FSysState FTriplePendulum::BuildState(EStatePreset Preset)
+FSysState FTriplePendulum::BuildStatePreset(EStatePreset Preset)
 {
 	Eigen::VectorXd Q_Equilibrium = Eigen::VectorXd::Zero(8);
 
@@ -82,28 +82,29 @@ FSysState FTriplePendulum::BuildState(EStatePreset Preset)
 	return FSysState(Q, QDot);
 }
 
-void FTriplePendulum::BuildSystem(
-	FFullSys& FullSys,
-	FControlSys& ControlSys,
-	TArray<FU_ExtForce>& U_ExtForces
+// =============================================================================
+// Geometry
+// =============================================================================
+
+void FTriplePendulum::BuildGeometry(
+	EGeometryPreset Preset,
+	FFullSys& FullSys
 )
 {
-	const FSysState X_Equilibrium =
-		BuildState(VerticalEquilibrium);
+	switch (Preset)
+	{
+	case StandardGeometry:
+	{
+		const FSysState X_Equilibrium = BuildStatePreset(
+			VerticalEquilibrium
+		);
 
-	// -------------------------------------------------------------------------
-	// Subsystem
-	// -------------------------------------------------------------------------
+		FSubSys& TripleInvertedPendulum = FullSys.CreateSubSys(
+			TEXT("TripleInvertedPendulum")
+		);
 
-	FSubSys& TripleInvertedPendulum =
-		FullSys.CreateSubSys(TEXT("TripleInvertedPendulum"));
-
-	// -------------------------------------------------------------------------
-	// Bodies
-	// -------------------------------------------------------------------------
-
-	const int32 BaseIndex =
-		FullSys.AddBody(
+		// Bodies
+		BodiesIndex.Base = FullSys.AddBody(
 			FBody::SlidingMassX(
 				FVector2D(
 					X_Equilibrium.Q(0),
@@ -113,8 +114,7 @@ void FTriplePendulum::BuildSystem(
 			)
 		);
 
-	const int32 Mass1Index =
-		FullSys.AddBody(
+		BodiesIndex.Mass1 = FullSys.AddBody(
 			FBody::Free(
 				FVector2D(
 					X_Equilibrium.Q(2),
@@ -124,8 +124,7 @@ void FTriplePendulum::BuildSystem(
 			)
 		);
 
-	const int32 Mass2Index =
-		FullSys.AddBody(
+		BodiesIndex.Mass2 = FullSys.AddBody(
 			FBody::Free(
 				FVector2D(
 					X_Equilibrium.Q(4),
@@ -135,8 +134,7 @@ void FTriplePendulum::BuildSystem(
 			)
 		);
 
-	const int32 Mass3Index =
-		FullSys.AddBody(
+		BodiesIndex.Mass3 = FullSys.AddBody(
 			FBody::Free(
 				FVector2D(
 					X_Equilibrium.Q(6),
@@ -146,73 +144,155 @@ void FTriplePendulum::BuildSystem(
 			)
 		);
 
-	// -------------------------------------------------------------------------
-	// Rods
-	// -------------------------------------------------------------------------
-
-	const int32 Rod1Index =
-		FullSys.AddElement(
+		// Rods
+		const int32 Rod1Index = FullSys.AddElement(
 			MakeUnique<FPendulumRod>(
-				BaseIndex,
-				Mass1Index
+				BodiesIndex.Base,
+				BodiesIndex.Mass1
 			)
 		);
 
-	const int32 Rod2Index =
-		FullSys.AddElement(
+		const int32 Rod2Index = FullSys.AddElement(
 			MakeUnique<FPendulumRod>(
-				Mass1Index,
-				Mass2Index
+				BodiesIndex.Mass1,
+				BodiesIndex.Mass2
 			)
 		);
 
-	const int32 Rod3Index =
-		FullSys.AddElement(
+		const int32 Rod3Index = FullSys.AddElement(
 			MakeUnique<FPendulumRod>(
-				Mass2Index,
-				Mass3Index
+				BodiesIndex.Mass2,
+				BodiesIndex.Mass3
 			)
 		);
 
-	// -------------------------------------------------------------------------
-	// Control Channels
-	// -------------------------------------------------------------------------
+		// Subsystem associations - Bodies
+		TripleInvertedPendulum.AddBody(TEXT("Base"), BodiesIndex.Base);
+		TripleInvertedPendulum.AddBody(TEXT("Mass1"), BodiesIndex.Mass1);
+		TripleInvertedPendulum.AddBody(TEXT("Mass2"), BodiesIndex.Mass2);
+		TripleInvertedPendulum.AddBody(TEXT("Mass3"), BodiesIndex.Mass3);
 
-	FLinearControlChannel Channel0(TEXT("BaseHorizontal"));
-	Channel0.AddForceContribution(BaseIndex, FVector2D(1.0, 0.0));
-	ControlSys.AddLinearControlChannel(MoveTemp(Channel0));
+		// Subsystem associations - Elements
+		TripleInvertedPendulum.AddElement(TEXT("Rod1"), Rod1Index);
+		TripleInvertedPendulum.AddElement(TEXT("Rod2"), Rod2Index);
+		TripleInvertedPendulum.AddElement(TEXT("Rod3"), Rod3Index);
 
-	/*
-	FLinearControlChannel Channel1(TEXT("Mass2Horizontal"));
-	Channel1.AddForceContribution(Mass2Index, FVector2D(1.0, 0.0));
-	ControlSys.AddLinearControlChannel(MoveTemp(Channel1));
-	*/
+		break;
+	}
 
-	// -------------------------------------------------------------------------
-	// External force inputs
-	// -------------------------------------------------------------------------
+	default:
+		checkNoEntry();
+		break;
+	}
+}
 
+// =============================================================================
+// Actuación controlada
+// =============================================================================
+
+void FTriplePendulum::ConfigureActuation(
+	EActuationPreset Preset,
+	FControlSys& ControlSys
+)
+{
+	switch (Preset)
+	{
+	case NoActuation:
+		break;
+
+
+	case BaseOnly:
+	{
+		FLinearControlChannel BaseHorizontal(
+			TEXT("BaseHorizontal")
+		);
+
+		BaseHorizontal.AddForceContribution(
+			BodiesIndex.Base,
+			FVector2D(1.0, 0.0)
+		);
+
+		ControlSys.AddLinearControlChannel(
+			MoveTemp(BaseHorizontal)
+		);
+
+		break;
+	}
+
+
+	case BaseAndMass2:
+	{
+		FLinearControlChannel BaseHorizontal(
+			TEXT("BaseHorizontal")
+		);
+
+		BaseHorizontal.AddForceContribution(
+			BodiesIndex.Base,
+			FVector2D(1.0, 0.0)
+		);
+
+		ControlSys.AddLinearControlChannel(
+			MoveTemp(BaseHorizontal)
+		);
+
+		FLinearControlChannel Mass2Horizontal(
+			TEXT("Mass2Horizontal")
+		);
+
+		Mass2Horizontal.AddForceContribution(
+			BodiesIndex.Mass2,
+			FVector2D(1.0, 0.0)
+		);
+
+		ControlSys.AddLinearControlChannel(
+			MoveTemp(Mass2Horizontal)
+		);
+
+		break;
+	}
+
+
+	default:
+		checkNoEntry();
+		break;
+	}
+}
+
+void FTriplePendulum::AddExternalForces(
+	TArray<FU_ExtForce>& U_ExtForces
+)
+{
 	U_ExtForces.Reset();
 
 	U_ExtForces.Add({
-		Mass1Index,
+		BodiesIndex.Mass1,
 		FVector2D::ZeroVector
 		});
+}
 
-	// -------------------------------------------------------------------------
-	// Subsystem associations - Bodies
-	// -------------------------------------------------------------------------
+// =============================================================================
+// System
+// =============================================================================
 
-	TripleInvertedPendulum.AddBody(TEXT("Base"), BaseIndex);
-	TripleInvertedPendulum.AddBody(TEXT("Mass1"), Mass1Index);
-	TripleInvertedPendulum.AddBody(TEXT("Mass2"), Mass2Index);
-	TripleInvertedPendulum.AddBody(TEXT("Mass3"), Mass3Index);
+void FTriplePendulum::BuildSystem(
+	EGeometryPreset GeometryPreset,
+	EActuationPreset ActuationPreset,
+	FFullSys& FullSys,
+	FControlSys& ControlSys,
+	TArray<FU_ExtForce>& U_ExtForces
+)
+{
+	BuildGeometry(
+		GeometryPreset,
+		FullSys
+	);
 
-	// -------------------------------------------------------------------------
-	// Subsystem associations - Rods
-	// -------------------------------------------------------------------------
+	ConfigureActuation(
+		ActuationPreset,
+		ControlSys
+	);
 
-	TripleInvertedPendulum.AddElement(TEXT("Rod1"), Rod1Index);
-	TripleInvertedPendulum.AddElement(TEXT("Rod2"), Rod2Index);
-	TripleInvertedPendulum.AddElement(TEXT("Rod3"), Rod3Index);
+	AddExternalForces(
+		U_ExtForces
+	);
 }
