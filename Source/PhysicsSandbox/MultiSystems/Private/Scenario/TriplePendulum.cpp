@@ -4,6 +4,36 @@
 #include "Control/ControlSys.h"
 #include "Elements/PendulumRod.h"
 
+// =============================================================================
+// System construction
+// =============================================================================
+
+void FTriplePendulum::BuildSystem(
+	EGeometryPreset GeometryPreset,
+	EActuationPreset ActuationPreset,
+	FFullSys& FullSys,
+	FControlSys& ControlSys,
+	TArray<FU_ExtForce>& U_ExtForces
+)
+{
+	BuildGeometry(
+		GeometryPreset,
+		FullSys
+	);
+
+	ConfigureActuation(
+		ActuationPreset,
+		ControlSys
+	);
+
+	AddExternalForces(
+		U_ExtForces
+	);
+}
+
+// -----------------------------------------------------------------------------
+// State presets
+// -----------------------------------------------------------------------------
 
 FSysState FTriplePendulum::BuildStatePreset(EStatePreset Preset)
 {
@@ -268,31 +298,4 @@ void FTriplePendulum::AddExternalForces(
 		BodiesIndex.Mass1,
 		FVector2D::ZeroVector
 		});
-}
-
-// =============================================================================
-// System
-// =============================================================================
-
-void FTriplePendulum::BuildSystem(
-	EGeometryPreset GeometryPreset,
-	EActuationPreset ActuationPreset,
-	FFullSys& FullSys,
-	FControlSys& ControlSys,
-	TArray<FU_ExtForce>& U_ExtForces
-)
-{
-	BuildGeometry(
-		GeometryPreset,
-		FullSys
-	);
-
-	ConfigureActuation(
-		ActuationPreset,
-		ControlSys
-	);
-
-	AddExternalForces(
-		U_ExtForces
-	);
 }

@@ -3,6 +3,7 @@
 #include "Actors/MultiSystemsActor.h"
 
 #include "Scenario/TriplePendulum.h"
+#include "Scenario/TriplePendulumWithTirants.h"
 
 #include "Math/Units.h"
 
@@ -28,42 +29,55 @@ void AMultiSystemsActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+
 	// Build system
 	// ------------------------
 
-	FTriplePendulum TriplePendulum;
-	TriplePendulum.BuildSystem(
-		FTriplePendulum::StandardGeometry,
-		FTriplePendulum::BaseOnly,
+	FTriplePendulumWithTirants TriplePendulumWithTirants;
+
+	TriplePendulumWithTirants.BuildSystem(
+		FTriplePendulumWithTirants::SlidingBase,	// Geometry
+		FTriplePendulumWithTirants::Mass3Only,		// Control
 		FullSys,
 		ControlSys,
 		U_ExtForces
 	);
 
 	ConfigureSimulation();
+
 	FullSys.Initialize();
+
+
+	// Control allocation
+	// ------------------------
 
 	if (!ControlSys.InitializeControlAllocation(FullSys))
 	{
 		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize control allocation."));
 		return;
-	}	
+	}
 
-	// Set physical initial state
+
+	// Reference and initial states
 	// ------------------------
-	const FSysState X_Initial_Full = FTriplePendulum::BuildStatePreset(
-		FTriplePendulum::StrongRight);
 
-	FullSys.SetXState2Bodies(X_Initial_Full);
-	FullSys.SyncRodStates();
-
-	const FSysState X_Reference_Full = FTriplePendulum::BuildStatePreset(
-		FTriplePendulum::VerticalEquilibrium
+	const FSysState X_Reference_Full = FTriplePendulumWithTirants::BuildStatePreset(
+		FTriplePendulumWithTirants::VerticalEquilibrium
 	);
 
-	const Eigen::VectorXd U_Reference = Eigen::VectorXd::Zero(ControlSys.GetNumControlChannels());
-	
-	ControlSys.SetReference(X_Reference_Full, U_Reference);
+	const FSysState X_Initial_Full = FTriplePendulumWithTirants::BuildStatePreset(
+		FTriplePendulumWithTirants::SlightLeft
+	);
+
+	const Eigen::VectorXd U_Reference = Eigen::VectorXd::Zero(
+		ControlSys.GetNumControlChannels()
+	);
+
+	ControlSys.SetReference(
+		X_Reference_Full,
+		U_Reference
+	);
+
 
 	// LQR design at reference state
 	// ------------------------
@@ -77,6 +91,13 @@ void AMultiSystemsActor::BeginPlay()
 		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize LQR controller."));
 		return;
 	}
+
+
+	// Set physical initial state
+	// ------------------------
+
+	FullSys.SetXState2Bodies(X_Initial_Full);
+	FullSys.SyncRodStates();
 
 
 	// Input
@@ -96,6 +117,7 @@ void AMultiSystemsActor::BeginPlay()
 			&AMultiSystemsActor::ToggleSimulation
 		);
 	}
+
 
 	// Display
 	// ------------------------
