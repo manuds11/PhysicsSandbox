@@ -39,8 +39,8 @@ void AMultiSystemsActor::BeginPlay()
 	FTriplePendulumWithTirants TriplePendulumWithTirants;
 
 	TriplePendulumWithTirants.BuildSystem(
-		EGeometryPreset::SlidingBase,	// Geometry
-		EActuationPreset::Mass3Only,		// Control
+		EGeometryPreset::FixedBase,	// Geometry
+		EActuationPreset::Mass1Only,		// Control
 		FullSys,
 		ControlSys,
 		U_ExtForces

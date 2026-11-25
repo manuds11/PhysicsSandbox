@@ -1,11 +1,42 @@
 #include "Scenario/DoubleSpringDoublePendulum.h"
 
 #include "Simulation/FullSys.h"
+#include "Control/ControlSys.h"
 #include "Elements/PendulumRod.h"
 #include "Elements/SpringDamper.h"
 
 
-FSysState FDoubleSpringDoublePendulum::BuildState(EStatePreset Preset)
+// -----------------------------------------------------------------------------
+// System construction
+// -----------------------------------------------------------------------------
+
+void FDoubleSpringDoublePendulum::BuildSystem(
+	EGeometryPreset GeometryPreset,
+	EActuationPreset ActuationPreset,
+	FFullSys& FullSys,
+	FControlSys& ControlSys,
+	TArray<FU_ExtForce>& U_ExtForces
+)
+{
+	BuildGeometry(
+		GeometryPreset,
+		FullSys
+	);
+
+	ConfigureActuation(
+		ActuationPreset,
+		ControlSys
+	);
+
+	AddExternalForces(U_ExtForces);
+}
+
+
+// -----------------------------------------------------------------------------
+// State presets
+// -----------------------------------------------------------------------------
+
+FSysState FDoubleSpringDoublePendulum::BuildStatePreset(EStatePreset Preset)
 {
 	Eigen::VectorXd Q_Normal = Eigen::VectorXd::Zero(10);
 
@@ -62,23 +93,35 @@ FSysState FDoubleSpringDoublePendulum::BuildState(EStatePreset Preset)
 	return FSysState(Q, QDot);
 }
 
-void FDoubleSpringDoublePendulum::BuildSystem(FFullSys& FullSys)
+
+// -----------------------------------------------------------------------------
+// Geometry
+// -----------------------------------------------------------------------------
+
+void FDoubleSpringDoublePendulum::BuildGeometry(
+	EGeometryPreset Preset,
+	FFullSys& FullSys
+)
 {
-	const FSysState X_Normal = BuildState(EStatePreset::Normal);
+	switch (Preset)
+	{
+	case EGeometryPreset::StandardGeometry:
+	{
+		const FSysState X_Normal = BuildStatePreset(EStatePreset::Normal);
 
-	// -------------------------------------------------------------------------
-	// Subsystem
-	// -------------------------------------------------------------------------
 
-	FSubSys& DoubleSpringDoublePendulum =
-		FullSys.CreateSubSys(TEXT("DoubleSpringDoublePendulum"));
+		// Subsystem
+		// ------------------------
 
-	// -------------------------------------------------------------------------
-	// Bodies
-	// -------------------------------------------------------------------------
+		FSubSys& DoubleSpringDoublePendulum = FullSys.CreateSubSys(
+			TEXT("DoubleSpringDoublePendulum")
+		);
 
-	const int32 WallIndex =
-		FullSys.AddBody(
+
+		// Bodies
+		// ------------------------
+
+		BodiesIndex.Wall = FullSys.AddBody(
 			FBody::Fixed(
 				FVector2D(
 					X_Normal.Q(0),
@@ -87,8 +130,7 @@ void FDoubleSpringDoublePendulum::BuildSystem(FFullSys& FullSys)
 			)
 		);
 
-	const int32 Mass1Index =
-		FullSys.AddBody(
+		BodiesIndex.Mass1 = FullSys.AddBody(
 			FBody::SlidingMassX(
 				FVector2D(
 					X_Normal.Q(2),
@@ -98,8 +140,7 @@ void FDoubleSpringDoublePendulum::BuildSystem(FFullSys& FullSys)
 			)
 		);
 
-	const int32 Mass2Index =
-		FullSys.AddBody(
+		BodiesIndex.Mass2 = FullSys.AddBody(
 			FBody::SlidingMassX(
 				FVector2D(
 					X_Normal.Q(4),
@@ -109,8 +150,7 @@ void FDoubleSpringDoublePendulum::BuildSystem(FFullSys& FullSys)
 			)
 		);
 
-	const int32 Bob1Index =
-		FullSys.AddBody(
+		BodiesIndex.Bob1 = FullSys.AddBody(
 			FBody::Free(
 				FVector2D(
 					X_Normal.Q(6),
@@ -120,8 +160,7 @@ void FDoubleSpringDoublePendulum::BuildSystem(FFullSys& FullSys)
 			)
 		);
 
-	const int32 Bob2Index =
-		FullSys.AddBody(
+		BodiesIndex.Bob2 = FullSys.AddBody(
 			FBody::Free(
 				FVector2D(
 					X_Normal.Q(8),
@@ -131,66 +170,115 @@ void FDoubleSpringDoublePendulum::BuildSystem(FFullSys& FullSys)
 			)
 		);
 
-	// -------------------------------------------------------------------------
-	// Springs
-	// -------------------------------------------------------------------------
 
-	const int32 Spring1Index =
-		FullSys.AddElement(
+		// Springs
+		// ------------------------
+
+		const double SpringStiffness = 20.0;
+		const double SpringDamping = 1.0;
+		const double SpringRestLength = 1.5;
+
+		const int32 Spring1Index = FullSys.AddElement(
 			MakeUnique<FSpringDamper>(
-				WallIndex,
-				Mass1Index,
-				20.0,
-				1.0,
-				1.5
+				BodiesIndex.Wall,
+				BodiesIndex.Mass1,
+				SpringStiffness,
+				SpringDamping,
+				SpringRestLength
 			)
 		);
 
-	const int32 Spring2Index =
-		FullSys.AddElement(
+		const int32 Spring2Index = FullSys.AddElement(
 			MakeUnique<FSpringDamper>(
-				Mass1Index,
-				Mass2Index,
-				20.0,
-				1.0,
-				1.5
+				BodiesIndex.Mass1,
+				BodiesIndex.Mass2,
+				SpringStiffness,
+				SpringDamping,
+				SpringRestLength
 			)
 		);
 
-	// -------------------------------------------------------------------------
-	// Pendulum rods
-	// -------------------------------------------------------------------------
 
-	const int32 PendulumRod1Index =
-		FullSys.AddElement(
+		// Pendulum rods
+		// ------------------------
+
+		const int32 PendulumRod1Index = FullSys.AddElement(
 			MakeUnique<FPendulumRod>(
-				Mass2Index,
-				Bob1Index
+				BodiesIndex.Mass2,
+				BodiesIndex.Bob1
 			)
 		);
 
-	const int32 PendulumRod2Index =
-		FullSys.AddElement(
+		const int32 PendulumRod2Index = FullSys.AddElement(
 			MakeUnique<FPendulumRod>(
-				Bob1Index,
-				Bob2Index
+				BodiesIndex.Bob1,
+				BodiesIndex.Bob2
 			)
 		);
 
-	// -------------------------------------------------------------------------
-	// Subsystem associations
-	// -------------------------------------------------------------------------
 
-	DoubleSpringDoublePendulum.AddBody(TEXT("Wall"), WallIndex);
-	DoubleSpringDoublePendulum.AddBody(TEXT("Mass1"), Mass1Index);
-	DoubleSpringDoublePendulum.AddBody(TEXT("Mass2"), Mass2Index);
-	DoubleSpringDoublePendulum.AddBody(TEXT("Bob1"), Bob1Index);
-	DoubleSpringDoublePendulum.AddBody(TEXT("Bob2"), Bob2Index);
+		// Subsystem associations - Bodies
+		// ------------------------
 
-	DoubleSpringDoublePendulum.AddElement(TEXT("Spring1"), Spring1Index);
-	DoubleSpringDoublePendulum.AddElement(TEXT("Spring2"), Spring2Index);
-	DoubleSpringDoublePendulum.AddElement(TEXT("PendulumRod1"), PendulumRod1Index);
-	DoubleSpringDoublePendulum.AddElement(TEXT("PendulumRod2"), PendulumRod2Index);
+		DoubleSpringDoublePendulum.AddBody(TEXT("Wall"), BodiesIndex.Wall);
+		DoubleSpringDoublePendulum.AddBody(TEXT("Mass1"), BodiesIndex.Mass1);
+		DoubleSpringDoublePendulum.AddBody(TEXT("Mass2"), BodiesIndex.Mass2);
+		DoubleSpringDoublePendulum.AddBody(TEXT("Bob1"), BodiesIndex.Bob1);
+		DoubleSpringDoublePendulum.AddBody(TEXT("Bob2"), BodiesIndex.Bob2);
 
-	DoubleSpringDoublePendulum.AddPort(TEXT("End"), Mass2Index);
+
+		// Subsystem associations - Elements
+		// ------------------------
+
+		DoubleSpringDoublePendulum.AddElement(TEXT("Spring1"), Spring1Index);
+		DoubleSpringDoublePendulum.AddElement(TEXT("Spring2"), Spring2Index);
+		DoubleSpringDoublePendulum.AddElement(TEXT("PendulumRod1"), PendulumRod1Index);
+		DoubleSpringDoublePendulum.AddElement(TEXT("PendulumRod2"), PendulumRod2Index);
+
+
+		// Ports
+		// ------------------------
+
+		DoubleSpringDoublePendulum.AddPort(TEXT("End"), BodiesIndex.Mass2);
+
+		break;
+	}
+
+	default:
+		checkNoEntry();
+		break;
+	}
+}
+
+
+// -----------------------------------------------------------------------------
+// Actuation
+// -----------------------------------------------------------------------------
+
+void FDoubleSpringDoublePendulum::ConfigureActuation(
+	EActuationPreset Preset,
+	FControlSys& ControlSys
+)
+{
+	switch (Preset)
+	{
+	case EActuationPreset::NoActuation:
+		break;
+
+	default:
+		checkNoEntry();
+		break;
+	}
+}
+
+
+// -----------------------------------------------------------------------------
+// External forces
+// -----------------------------------------------------------------------------
+
+void FDoubleSpringDoublePendulum::AddExternalForces(
+	TArray<FU_ExtForce>& U_ExtForces
+)
+{
+	U_ExtForces.Reset();
 }

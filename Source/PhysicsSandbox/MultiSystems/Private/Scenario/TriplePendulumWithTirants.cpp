@@ -279,8 +279,8 @@ void FTriplePendulumWithTirants::BuildGeometry(
 	// Springs
 	// ------------------------
 
-	const double SpringStiffness = 30.0;
-	const double SpringDamping = 0.05;
+	const double SpringStiffness = 10.0;
+	const double SpringDamping = 0.15;
 	const double SpringRestLength = 1.36;
 
 	const int32 LeftSpringIndex = FullSys.AddElement(
