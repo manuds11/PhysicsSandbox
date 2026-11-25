@@ -9,7 +9,7 @@ class FFullSys;
 
 struct FDoubleSpringDoublePendulum
 {
-	enum EStatePreset : uint8
+	enum class EStatePreset : uint8
 	{
 		Normal,
 		HighEnergyRight

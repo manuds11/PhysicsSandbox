@@ -29,6 +29,9 @@ void AMultiSystemsActor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	using EGeometryPreset = FTriplePendulumWithTirants::EGeometryPreset;
+	using EActuationPreset = FTriplePendulumWithTirants::EActuationPreset;
+	using EStatePreset = FTriplePendulumWithTirants::EStatePreset;
 
 	// Build system
 	// ------------------------
@@ -36,17 +39,15 @@ void AMultiSystemsActor::BeginPlay()
 	FTriplePendulumWithTirants TriplePendulumWithTirants;
 
 	TriplePendulumWithTirants.BuildSystem(
-		FTriplePendulumWithTirants::SlidingBase,	// Geometry
-		FTriplePendulumWithTirants::Mass3Only,		// Control
+		EGeometryPreset::SlidingBase,	// Geometry
+		EActuationPreset::Mass3Only,		// Control
 		FullSys,
 		ControlSys,
 		U_ExtForces
 	);
 
-	ConfigureSimulation();
-
 	FullSys.Initialize();
-
+	ConfigureSimulation();
 
 	// Control allocation
 	// ------------------------
@@ -58,46 +59,44 @@ void AMultiSystemsActor::BeginPlay()
 	}
 
 
-	// Reference and initial states
+	// Initial state
 	// ------------------------
-
-	const FSysState X_Reference_Full = FTriplePendulumWithTirants::BuildStatePreset(
-		FTriplePendulumWithTirants::VerticalEquilibrium
-	);
 
 	const FSysState X_Initial_Full = FTriplePendulumWithTirants::BuildStatePreset(
-		FTriplePendulumWithTirants::SlightLeft
+		EStatePreset::ModerateLeft
 	);
-
-	const Eigen::VectorXd U_Reference = Eigen::VectorXd::Zero(
-		ControlSys.GetNumControlChannels()
-	);
-
-	ControlSys.SetReference(
-		X_Reference_Full,
-		U_Reference
-	);
-
-
-	// LQR design at reference state
-	// ------------------------
-
-	if (!ControlSys.InitializeLQRController(
-		FullSys,
-		FixedTimeStep,
-		U_ExtForces
-	))
-	{
-		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize LQR controller."));
-		return;
-	}
-
-
-	// Set physical initial state
-	// ------------------------
 
 	FullSys.SetXState2Bodies(X_Initial_Full);
 	FullSys.SyncRodStates();
+
+	// Controller initialization
+// ------------------------
+
+	if (ControlSys.GetNumControlChannels() > 0)
+	{
+		const FSysState X_Reference_Full = FTriplePendulumWithTirants::BuildStatePreset(
+			EStatePreset::VerticalEquilibrium
+		);
+
+		const Eigen::VectorXd U_Reference = Eigen::VectorXd::Zero(
+			ControlSys.GetNumControlChannels()
+		);
+
+		ControlSys.SetReference(
+			X_Reference_Full,
+			U_Reference
+		);
+
+		if (!ControlSys.InitializeLQRController(
+			FullSys,
+			FixedTimeStep,
+			U_ExtForces
+		))
+		{
+			UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize LQR controller."));
+			return;
+		}
+	}
 
 
 	// Input
@@ -240,7 +239,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 		&& SubStepCount < MaxSubSteps)
 	{
 
-		if (!RunControlLoopStep(FixedTimeStep))
+		if (!RunPlant(FixedTimeStep))
 		{
 			bIsSimulationRunning = false;
 			break;
@@ -267,7 +266,7 @@ void AMultiSystemsActor::RunSimFixedSteps(double FrameDeltaTime)
 	SimulationDelay = SimuWallClockTime - SimuPhysicalTime;
 }
 
-bool AMultiSystemsActor::RunControlLoopStep(double Dt)
+bool AMultiSystemsActor::RunPlant(double Dt)
 {
 	if (Dt <= 0.0)
 	{
@@ -281,11 +280,6 @@ bool AMultiSystemsActor::RunControlLoopStep(double Dt)
 
 	return FullSys.Step(Dt, X_k, Tau_FR, U_ExtForces, X_kPlus1);
 }
-
-
-
-
-
 
 // -----------------------------------------------------------------------------
 // HUD 

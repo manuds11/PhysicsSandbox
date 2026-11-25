@@ -59,10 +59,10 @@ FSysState FTriplePendulum::BuildStatePreset(EStatePreset Preset)
 
 	switch (Preset)
 	{
-	case VerticalEquilibrium:
+	case EStatePreset::VerticalEquilibrium:
 		break;
 
-	case SlightLeft:
+	case EStatePreset::SlightLeft:
 
 		// Mass3
 		Q(6) = Q_Equilibrium(6) - 0.01;
@@ -70,7 +70,7 @@ FSysState FTriplePendulum::BuildStatePreset(EStatePreset Preset)
 
 		break;
 	
-	case ModerateLeft:
+	case EStatePreset::ModerateLeft:
 
 		// Mass3
 		Q(6) = Q_Equilibrium(6) - 0.02;
@@ -78,7 +78,7 @@ FSysState FTriplePendulum::BuildStatePreset(EStatePreset Preset)
 
 		break;
 
-	case StrongLeft:
+	case EStatePreset::StrongLeft:
 
 		// Mass3
 		Q(6) = Q_Equilibrium(6) - 0.05;          // Delta X = -0.05 m
@@ -86,7 +86,7 @@ FSysState FTriplePendulum::BuildStatePreset(EStatePreset Preset)
 
 		break;
 
-	case StrongRight:
+	case EStatePreset::StrongRight:
 
 		// Mass3
 		Q(6) = Q_Equilibrium(6) + 0.075;         // Delta X = +0.075 m
@@ -94,7 +94,7 @@ FSysState FTriplePendulum::BuildStatePreset(EStatePreset Preset)
 
 		break;
 
-	case ExtremeRight:
+	case EStatePreset::ExtremeRight:
 
 		// Mass3
 		Q(6) = Q_Equilibrium(6) + 0.10;          // Delta X = +0.10 m
@@ -123,10 +123,10 @@ void FTriplePendulum::BuildGeometry(
 {
 	switch (Preset)
 	{
-	case StandardGeometry:
+	case EGeometryPreset::StandardGeometry:
 	{
 		const FSysState X_Equilibrium = BuildStatePreset(
-			VerticalEquilibrium
+			EStatePreset::VerticalEquilibrium
 		);
 
 		FSubSys& TripleInvertedPendulum = FullSys.CreateSubSys(
@@ -227,11 +227,11 @@ void FTriplePendulum::ConfigureActuation(
 {
 	switch (Preset)
 	{
-	case NoActuation:
+	case EActuationPreset::NoActuation:
 		break;
 
 
-	case BaseOnly:
+	case EActuationPreset::BaseOnly:
 	{
 		FLinearControlChannel BaseHorizontal(
 			TEXT("BaseHorizontal")
@@ -250,7 +250,7 @@ void FTriplePendulum::ConfigureActuation(
 	}
 
 
-	case BaseAndMass2:
+	case EActuationPreset::BaseAndMass2:
 	{
 		FLinearControlChannel BaseHorizontal(
 			TEXT("BaseHorizontal")

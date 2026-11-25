@@ -13,12 +13,12 @@ struct FTriplePendulum
 {
 public:
 
-	enum EGeometryPreset : uint8
+	enum class EGeometryPreset : uint8
 	{
 		StandardGeometry
 	};
 
-	enum EStatePreset : uint8
+	enum class EStatePreset : uint8
 	{
 		VerticalEquilibrium,
 		SlightLeft,
@@ -28,7 +28,7 @@ public:
 		ExtremeRight
 	};
 
-	enum EActuationPreset : uint8
+	enum class EActuationPreset : uint8
 	{
 		NoActuation,
 		BaseOnly,

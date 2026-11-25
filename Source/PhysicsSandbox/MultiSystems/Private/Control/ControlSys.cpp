@@ -75,7 +75,7 @@ bool FControlSys::BuildControlAllocationG_FRMatrix(
 
 	const TArray<FBody>& Bodies = FullSys.GetBodies();
 
-	if (IndexMap.SizeQ_FR <= 0 || ControlChannels.Num() <= 0)
+	if (IndexMap.SizeQ_FR <= 0)
 	{
 		return false;
 	}
@@ -430,6 +430,12 @@ Eigen::VectorXd FControlSys::ComputeUControl(
 	const FStateDOFIndexMap& IndexMap
 )
 {
+	if (ControlChannels.IsEmpty())
+	{
+		U_Control = Eigen::VectorXd::Zero(0);
+		return U_Control;
+	}
+
 	const Eigen::VectorXd DeltaX_Full = X_Full.ToVector() - X_Reference_Full.ToVector();
 	const Eigen::VectorXd DeltaX_FR = IndexMap.ExtractX_FR(DeltaX_Full);
 
@@ -461,6 +467,8 @@ Eigen::VectorXd FControlSys::ComputeTau_FR(const Eigen::VectorXd& InU_Control) c
 	check(InU_Control.size() == G_UToTau_FR.cols());
 	check(InU_Control.allFinite());
 
+	// With zero control channels, G (n x 0) multiplied by an empty
+	// control vector (0 x 1) yields a zero force vector (n x 1).
 	const Eigen::VectorXd Tau_FR = G_UToTau_FR * InU_Control;
 
 	// Control diagnostics

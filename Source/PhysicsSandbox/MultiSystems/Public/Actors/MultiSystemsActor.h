@@ -108,7 +108,7 @@ private:
 	
 
 	void RunSimFixedSteps(double FrameDeltaTime);
-	bool RunControlLoopStep(double Dt);
+	bool RunPlant(double Dt);
 
 	void PrintInfo() const;
 };

@@ -17,13 +17,13 @@ public:
 	// Presets
 	// -----------------------------------------------------------------------------
 
-	enum EGeometryPreset : uint8
+	enum class EGeometryPreset : uint8
 	{
 		SlidingBase,
 		FixedBase
 	};
 
-	enum EStatePreset : uint8
+	enum class EStatePreset : uint8
 	{
 		VerticalEquilibrium,
 		Default,
@@ -32,12 +32,13 @@ public:
 		StrongRight
 	};
 
-	enum EActuationPreset : uint8
+	enum class EActuationPreset : uint8
 	{
 		NoActuation,
 		BaseOnly,
 		Mass1Only,
-		Mass3Only
+		Mass3Only,
+		Mass1AndMass2
 	};
 
 

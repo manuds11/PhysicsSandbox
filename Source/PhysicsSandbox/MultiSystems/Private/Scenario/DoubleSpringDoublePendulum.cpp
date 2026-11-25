@@ -34,10 +34,10 @@ FSysState FDoubleSpringDoublePendulum::BuildState(EStatePreset Preset)
 
 	switch (Preset)
 	{
-	case Normal:
+	case EStatePreset::Normal:
 		break;
 
-	case HighEnergyRight:
+	case EStatePreset::HighEnergyRight:
 
 		// Double pendulum approximately 60 deg to the right of vertical.
 		// Rod lengths are preserved.
@@ -64,7 +64,7 @@ FSysState FDoubleSpringDoublePendulum::BuildState(EStatePreset Preset)
 
 void FDoubleSpringDoublePendulum::BuildSystem(FFullSys& FullSys)
 {
-	const FSysState X_Normal = BuildState(Normal);
+	const FSysState X_Normal = BuildState(EStatePreset::Normal);
 
 	// -------------------------------------------------------------------------
 	// Subsystem

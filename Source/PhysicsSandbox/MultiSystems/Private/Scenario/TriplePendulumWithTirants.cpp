@@ -82,10 +82,10 @@ FSysState FTriplePendulumWithTirants::BuildStatePreset(EStatePreset Preset)
 
 	switch (Preset)
 	{
-	case VerticalEquilibrium:
+	case EStatePreset::VerticalEquilibrium:
 		break;
 
-	case Default:
+	case EStatePreset::Default:
 
 		Theta1 = FMath::DegreesToRadians(6.0);
 		Theta2 = FMath::DegreesToRadians(-15.0);
@@ -93,19 +93,19 @@ FSysState FTriplePendulumWithTirants::BuildStatePreset(EStatePreset Preset)
 
 		break;
 
-	case SlightLeft:
+	case EStatePreset::SlightLeft:
 
 		Theta3 = FMath::DegreesToRadians(-0.1);
 
 		break;
 
-	case ModerateLeft:
+	case EStatePreset::ModerateLeft:
 
 		Theta3 = FMath::DegreesToRadians(-5.0);
 
 		break;
 
-	case StrongRight:
+	case EStatePreset::StrongRight:
 
 		Theta3 = FMath::DegreesToRadians(15.0);
 
@@ -149,7 +149,7 @@ void FTriplePendulumWithTirants::BuildGeometry(
 	FFullSys& FullSys
 )
 {
-	const FSysState X_Equilibrium = BuildStatePreset(VerticalEquilibrium);
+	const FSysState X_Equilibrium = BuildStatePreset(EStatePreset::VerticalEquilibrium);
 
 
 	// Subsystem
@@ -170,7 +170,7 @@ void FTriplePendulumWithTirants::BuildGeometry(
 
 	switch (Preset)
 	{
-	case SlidingBase:
+	case EGeometryPreset::SlidingBase:
 
 		BodiesIndex.Base = FullSys.AddBody(
 			FBody::SlidingMassX(
@@ -181,7 +181,7 @@ void FTriplePendulumWithTirants::BuildGeometry(
 
 		break;
 
-	case FixedBase:
+	case EGeometryPreset::FixedBase:
 
 		BodiesIndex.Base = FullSys.AddBody(
 			FBody::Fixed(BasePosition)
@@ -337,11 +337,11 @@ void FTriplePendulumWithTirants::ConfigureActuation(
 {
 	switch (Preset)
 	{
-	case NoActuation:
+	case EActuationPreset::NoActuation:
 		break;
 
 
-	case BaseOnly:
+	case EActuationPreset::BaseOnly:
 	{
 		FLinearControlChannel BaseHorizontal(TEXT("BaseHorizontal"));
 
@@ -354,9 +354,7 @@ void FTriplePendulumWithTirants::ConfigureActuation(
 
 		break;
 	}
-
-
-	case Mass1Only:
+	case EActuationPreset::Mass1Only:
 	{
 		FLinearControlChannel Mass1Horizontal(TEXT("Mass1Horizontal"));
 
@@ -369,9 +367,7 @@ void FTriplePendulumWithTirants::ConfigureActuation(
 
 		break;
 	}
-
-
-	case Mass3Only:
+	case EActuationPreset::Mass3Only:
 	{
 		FLinearControlChannel Mass3Horizontal(TEXT("Mass3Horizontal"));
 
@@ -384,8 +380,29 @@ void FTriplePendulumWithTirants::ConfigureActuation(
 
 		break;
 	}
+	case EActuationPreset::Mass1AndMass2:
+	{
+		FLinearControlChannel Mass1Horizontal(TEXT("Mass1Horizontal"));
+
+		Mass1Horizontal.AddForceContribution(
+			BodiesIndex.Mass1,
+			FVector2D(1.0, 0.0)
+		);
+
+		ControlSys.AddLinearControlChannel(MoveTemp(Mass1Horizontal));
 
 
+		FLinearControlChannel Mass2Horizontal(TEXT("Mass2Horizontal"));
+
+		Mass2Horizontal.AddForceContribution(
+			BodiesIndex.Mass2,
+			FVector2D(1.0, 0.0)
+		);
+
+		ControlSys.AddLinearControlChannel(MoveTemp(Mass2Horizontal));
+
+		break;
+	}
 	default:
 		checkNoEntry();
 		break;
