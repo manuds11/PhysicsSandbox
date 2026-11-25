@@ -3,7 +3,7 @@
 #include "Simulation/SysState.h"
 #include "Simulation/FullSysTypes.h"
 
-#include <Eigen/Dense>
+#include "ThirdParty/EigenIncludes.h"
 
 class FFullSys;
 
@@ -165,6 +165,13 @@ public:
 		return ControlChannels.Num();
 	}
 
+	enum class EDARESolver : uint8
+	{
+		FixedPoint,
+		Schur
+	};
+	// Selección del Solucionador DARE
+	EDARESolver DARESolverSelection = EDARESolver::Schur;
 
 	// =========================================================================
 	// Reference
@@ -404,8 +411,23 @@ private:
 	// =========================================================================
 	// LQR Solvers
 	// =========================================================================
-
 	bool SolveDARE(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		const Eigen::MatrixXd& Q,
+		const Eigen::MatrixXd& R,
+		FDAREResult& OutResult
+	) const;
+
+	bool SolveDARE_FixedPoint(
+		const Eigen::MatrixXd& A,
+		const Eigen::MatrixXd& B,
+		const Eigen::MatrixXd& Q,
+		const Eigen::MatrixXd& R,
+		FDAREResult& OutResult
+	) const;
+
+	bool SolveDARE_Schur(
 		const Eigen::MatrixXd& A,
 		const Eigen::MatrixXd& B,
 		const Eigen::MatrixXd& Q,

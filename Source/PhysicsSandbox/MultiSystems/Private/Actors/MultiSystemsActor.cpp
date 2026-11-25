@@ -13,7 +13,7 @@
 
 #include "Logging/PhysicsSandboxLog.h"
 
-#include <Eigen/Eigenvalues>
+#include "ThirdParty/EigenIncludes.h"
 
 // -----------------------------------------------------------------------------
 // Construction
@@ -40,7 +40,7 @@ void AMultiSystemsActor::BeginPlay()
 
 	TriplePendulumWithTirants.BuildSystem(
 		EGeometryPreset::FixedBase,	// Geometry
-		EActuationPreset::Mass1Only,		// Control
+		EActuationPreset::Mass3Only,		// Control
 		FullSys,
 		ControlSys,
 		U_ExtForces

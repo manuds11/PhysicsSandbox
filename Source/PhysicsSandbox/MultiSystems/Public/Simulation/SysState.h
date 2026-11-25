@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 
-#include <Eigen/Dense>
+#include "ThirdParty/EigenIncludes.h"
 
 struct FStateDOFIndexMap
 {

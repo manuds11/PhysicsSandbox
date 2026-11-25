@@ -3,8 +3,8 @@
 #include "Simulation/FullSys.h"
 #include "Elements/PendulumRod.h"
 
-#include <Eigen/SVD>
-#include <Eigen/Cholesky>
+#include "ThirdParty/EigenIncludes.h"
+
 #include <limits>
 
 // -----------------------------------------------------------------------------
@@ -908,6 +908,27 @@ bool FControlSys::SolveDARE(
 	FDAREResult& OutResult
 ) const
 {
+	switch (DARESolverSelection)
+	{
+	case EDARESolver::FixedPoint:
+		return SolveDARE_FixedPoint(A, B, Q, R, OutResult);
+
+	case EDARESolver::Schur:
+		return SolveDARE_Schur(A, B, Q, R, OutResult);
+
+	default:
+		return false;
+	}
+}
+
+bool FControlSys::SolveDARE_FixedPoint(
+	const Eigen::MatrixXd& A,
+	const Eigen::MatrixXd& B,
+	const Eigen::MatrixXd& Q,
+	const Eigen::MatrixXd& R,
+	FDAREResult& OutResult
+) const
+{
 	/*
 	* Discrete Algebraic Riccati Equation (DARE):
 	 *
@@ -1021,6 +1042,62 @@ bool FControlSys::SolveDARE(
 
 	return true;
 }
+
+bool FControlSys::SolveDARE_Schur(
+	const Eigen::MatrixXd& A,
+	const Eigen::MatrixXd& B,
+	const Eigen::MatrixXd& Q,
+	const Eigen::MatrixXd& R,
+	FDAREResult& OutResult
+) const
+{
+	OutResult = FDAREResult{};
+
+	const Eigen::Index n = A.rows();
+	const Eigen::Index m = B.cols();
+
+	// Validate dimensions
+	if (n <= 0 || m <= 0 ||
+		A.cols() != n ||
+		B.rows() != n ||
+		Q.rows() != n || Q.cols() != n ||
+		R.rows() != m || R.cols() != m)
+	{
+		return false;
+	}
+
+	// Validate input matrices
+	if (!A.allFinite() || !B.allFinite() ||
+		!Q.allFinite() || !R.allFinite())
+	{
+		return false;
+	}
+
+	// Solve DARE using generalized Schur decomposition
+	Eigen::DiscreteAlgebraicRiccatiSolver<Eigen::MatrixXd>Solver(A, B, Q, R);
+
+	if (Solver.info() != Eigen::Success)
+	{
+		return false;
+	}
+
+	OutResult.P = Solver.solution();
+
+	if (!OutResult.P.allFinite())
+	{
+		return false;
+	}
+
+	OutResult.Iterations = 0;
+	OutResult.Residual = std::numeric_limits<double>::quiet_NaN();
+	OutResult.bConverged = true;
+
+	return true;
+}
+
+// -----------------------------------------------------------------------------
+// LQR K Gain Computation
+// -----------------------------------------------------------------------------
 
 bool FControlSys::ComputeLQRGain(
 	const Eigen::MatrixXd& A,
