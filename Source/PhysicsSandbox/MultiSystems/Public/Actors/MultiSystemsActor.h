@@ -45,6 +45,18 @@ private:
 	TArray<FU_ExtForce> U_ExtForces;
 
 	// =========================
+	// Scenario initialization
+	// =========================
+
+	template<typename TSystem>
+	bool InitializeSystem(
+		typename TSystem::EGeometryPreset GeometryPreset,
+		typename TSystem::EActuationPreset ActuationPreset,
+		typename TSystem::EStatePreset InitialStatePreset,
+		typename TSystem::EStatePreset ReferenceStatePreset
+	);
+
+	// =========================
 	// Camera Control Instance
 	// =========================
 	UPROPERTY(

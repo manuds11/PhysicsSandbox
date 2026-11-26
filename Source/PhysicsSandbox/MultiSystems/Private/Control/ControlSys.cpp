@@ -930,7 +930,7 @@ bool FControlSys::SolveDARE_FixedPoint(
 ) const
 {
 	/*
-	* Discrete Algebraic Riccati Equation (DARE):
+	 * Discrete Algebraic Riccati Equation (DARE):
 	 *
 	 * P = Q + A^T P A
 	 *     - A^T P B (R + B^T P B)^-1 B^T P A
@@ -943,11 +943,10 @@ bool FControlSys::SolveDARE_FixedPoint(
 	 * is solved at each iteration.
 	 */
 
-
 	OutResult = FDAREResult{};
 
-	const int32 StateDimension = static_cast<int32>(A.rows());
-	const int32 ControlDimension = static_cast<int32>(B.cols());
+	const Eigen::Index StateDimension = A.rows();
+	const Eigen::Index ControlDimension = B.cols();
 
 	if (
 		StateDimension <= 0
@@ -991,7 +990,9 @@ bool FControlSys::SolveDARE_FixedPoint(
 			return false;
 		}
 
-		Eigen::MatrixXd PNext = Q + A.transpose() * P * A - A.transpose() * P * B * GainTerm;
+		Eigen::MatrixXd PNext =
+			Q + A.transpose() * P * A
+			- A.transpose() * P * B * GainTerm;
 
 		PNext = (0.5 * (PNext + PNext.transpose())).eval();
 
@@ -1035,7 +1036,9 @@ bool FControlSys::SolveDARE_FixedPoint(
 		return false;
 	}
 
-	const Eigen::MatrixXd RiccatiP = Q + A.transpose() * P * A - A.transpose() * P * B * GainTerm;
+	const Eigen::MatrixXd RiccatiP =
+		Q + A.transpose() * P * A
+		- A.transpose() * P * B * GainTerm;
 
 	OutResult.P = MoveTemp(P);
 	OutResult.Residual = (OutResult.P - RiccatiP).norm();
@@ -1053,41 +1056,44 @@ bool FControlSys::SolveDARE_Schur(
 {
 	OutResult = FDAREResult{};
 
-	const Eigen::Index n = A.rows();
-	const Eigen::Index m = B.cols();
+	const Eigen::Index StateDimension = A.rows();
+	const Eigen::Index ControlDimension = B.cols();
 
-	// Validate dimensions
-	if (n <= 0 || m <= 0 ||
-		A.cols() != n ||
-		B.rows() != n ||
-		Q.rows() != n || Q.cols() != n ||
-		R.rows() != m || R.cols() != m)
-	{
-		return false;
-	}
-
-	// Validate input matrices
-	if (!A.allFinite() || !B.allFinite() ||
-		!Q.allFinite() || !R.allFinite())
+	if (
+		StateDimension <= 0
+		|| ControlDimension <= 0
+		|| A.cols() != StateDimension
+		|| B.rows() != StateDimension
+		|| Q.rows() != StateDimension
+		|| Q.cols() != StateDimension
+		|| R.rows() != ControlDimension
+		|| R.cols() != ControlDimension
+		|| !A.allFinite()
+		|| !B.allFinite()
+		|| !Q.allFinite()
+		|| !R.allFinite()
+		)
 	{
 		return false;
 	}
 
 	// Solve DARE using generalized Schur decomposition
-	Eigen::DiscreteAlgebraicRiccatiSolver<Eigen::MatrixXd>Solver(A, B, Q, R);
+	Eigen::DiscreteAlgebraicRiccatiSolver<Eigen::MatrixXd>
+		Solver(A, B, Q, R);
 
 	if (Solver.info() != Eigen::Success)
 	{
 		return false;
 	}
 
-	OutResult.P = Solver.solution();
+	Eigen::MatrixXd P = Solver.solution();
 
-	if (!OutResult.P.allFinite())
+	if (!P.allFinite())
 	{
 		return false;
 	}
 
+	OutResult.P = MoveTemp(P);
 	OutResult.Iterations = 0;
 	OutResult.Residual = std::numeric_limits<double>::quiet_NaN();
 	OutResult.bConverged = true;

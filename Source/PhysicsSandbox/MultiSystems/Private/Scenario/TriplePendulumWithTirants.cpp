@@ -403,6 +403,29 @@ void FTriplePendulumWithTirants::ConfigureActuation(
 
 		break;
 	}
+	case EActuationPreset::BaseAndMass1:
+	{
+		FLinearControlChannel BaseHorizontal(TEXT("BaseHorizontal"));
+
+		BaseHorizontal.AddForceContribution(
+			BodiesIndex.Base,
+			FVector2D(1.0, 0.0)
+		);
+
+		ControlSys.AddLinearControlChannel(MoveTemp(BaseHorizontal));
+
+
+		FLinearControlChannel Mass1Horizontal(TEXT("Mass1Horizontal"));
+
+		Mass1Horizontal.AddForceContribution(
+			BodiesIndex.Mass1,
+			FVector2D(1.0, 0.0)
+		);
+
+		ControlSys.AddLinearControlChannel(MoveTemp(Mass1Horizontal));
+
+		break;
+	}
 	default:
 		checkNoEntry();
 		break;

@@ -4,20 +4,22 @@
 
 #include "Scenario/TriplePendulum.h"
 #include "Scenario/TriplePendulumWithTirants.h"
-
-#include "Math/Units.h"
+#include "Scenario/DoubleSpringDoublePendulum.h"
 
 #include "Elements/PendulumRod.h"
 #include "Elements/SpringDamper.h"
-#include "DrawDebugHelpers.h"
+
+#include "Math/Units.h"
 
 #include "Logging/PhysicsSandboxLog.h"
 
+#include "DrawDebugHelpers.h"
+
 #include "ThirdParty/EigenIncludes.h"
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // Construction
-// -----------------------------------------------------------------------------
+// =============================================================================
 
 AMultiSystemsActor::AMultiSystemsActor()
 {
@@ -29,73 +31,25 @@ void AMultiSystemsActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	using EGeometryPreset = FTriplePendulumWithTirants::EGeometryPreset;
-	using EActuationPreset = FTriplePendulumWithTirants::EActuationPreset;
-	using EStatePreset = FTriplePendulumWithTirants::EStatePreset;
 
-	// Build system
+	// Scenario
 	// ------------------------
 
-	FTriplePendulumWithTirants TriplePendulumWithTirants;
+	using FScenarioSystem = FTriplePendulumWithTirants;
 
-	TriplePendulumWithTirants.BuildSystem(
-		EGeometryPreset::FixedBase,	// Geometry
-		EActuationPreset::Mass3Only,		// Control
-		FullSys,
-		ControlSys,
-		U_ExtForces
-	);
-
-	FullSys.Initialize();
-	ConfigureSimulation();
-
-	// Control allocation
-	// ------------------------
-
-	if (!ControlSys.InitializeControlAllocation(FullSys))
+	if (!InitializeSystem<FScenarioSystem>(
+		FScenarioSystem::EGeometryPreset::SlidingBase,
+		FScenarioSystem::EActuationPreset::BaseAndMass1,
+		FScenarioSystem::EStatePreset::StrongRight,
+		FScenarioSystem::EStatePreset::VerticalEquilibrium
+	))
 	{
-		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize control allocation."));
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Scenario initialization failed. Simulation disabled."));
+
+		bIsSimulationRunning = false;
+		SetActorTickEnabled(false);
+
 		return;
-	}
-
-
-	// Initial state
-	// ------------------------
-
-	const FSysState X_Initial_Full = FTriplePendulumWithTirants::BuildStatePreset(
-		EStatePreset::ModerateLeft
-	);
-
-	FullSys.SetXState2Bodies(X_Initial_Full);
-	FullSys.SyncRodStates();
-
-	// Controller initialization
-// ------------------------
-
-	if (ControlSys.GetNumControlChannels() > 0)
-	{
-		const FSysState X_Reference_Full = FTriplePendulumWithTirants::BuildStatePreset(
-			EStatePreset::VerticalEquilibrium
-		);
-
-		const Eigen::VectorXd U_Reference = Eigen::VectorXd::Zero(
-			ControlSys.GetNumControlChannels()
-		);
-
-		ControlSys.SetReference(
-			X_Reference_Full,
-			U_Reference
-		);
-
-		if (!ControlSys.InitializeLQRController(
-			FullSys,
-			FixedTimeStep,
-			U_ExtForces
-		))
-		{
-			UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize LQR controller."));
-			return;
-		}
 	}
 
 
@@ -132,32 +86,90 @@ void AMultiSystemsActor::BeginPlay()
 	);
 }
 
-// -----------------------------------------------------------------------------
-// Lifecycle
+// Scenario initialization and its helpers
 // -----------------------------------------------------------------------------
 
-void AMultiSystemsActor::Tick(float DeltaTime)
+template<typename TSystem>
+bool AMultiSystemsActor::InitializeSystem(
+	typename TSystem::EGeometryPreset GeometryPreset,
+	typename TSystem::EActuationPreset ActuationPreset,
+	typename TSystem::EStatePreset InitialStatePreset,
+	typename TSystem::EStatePreset ReferenceStatePreset
+)
 {
-	Super::Tick(DeltaTime);
-
-	if (bIsSimulationRunning)
-	{
-		RunSimFixedSteps(DeltaTime);
-	}
-
-	// Display
+	// System construction
 	// ------------------------
 
-	Display.UpdateActorLocation(
-		GetActorLocation()
-	);
-	Display.DrawSystem();
-	PrintInfo();
-}
+	TSystem System;
 
-// -----------------------------------------------------------------------------
-// Configuration
-// -----------------------------------------------------------------------------
+	System.BuildSystem(
+		GeometryPreset,
+		ActuationPreset,
+		FullSys,
+		ControlSys,
+		U_ExtForces
+	);
+
+
+	// Physical initialization
+	// ------------------------
+
+	FullSys.Initialize();
+	ConfigureSimulation();
+
+
+	// Control allocation
+	// ------------------------
+
+	if (!ControlSys.InitializeControlAllocation(FullSys))
+	{
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize control allocation."));
+		return false;
+	}
+
+
+	// Initial state
+	// ------------------------
+
+	const FSysState X_Initial_Full = TSystem::BuildStatePreset(
+		InitialStatePreset
+	);
+
+	FullSys.SetXState2Bodies(X_Initial_Full);
+	FullSys.SyncRodStates();
+
+
+	// Controller initialization
+	// ------------------------
+
+	if (ControlSys.GetNumControlChannels() == 0)
+	{
+		UE_LOG(LogPhysicsSandbox, Display, TEXT("No actuation configured. Reference state ignored."));
+		return true;
+	}
+
+	const FSysState X_Reference_Full = TSystem::BuildStatePreset(
+		ReferenceStatePreset
+	);
+
+	const Eigen::VectorXd U_Reference = Eigen::VectorXd::Zero(
+		ControlSys.GetNumControlChannels()
+	);
+
+	ControlSys.SetReference(X_Reference_Full, U_Reference);
+
+	if (!ControlSys.InitializeLQRController(
+		FullSys,
+		FixedTimeStep,
+		U_ExtForces
+	))
+	{
+		UE_LOG(LogPhysicsSandbox, Error, TEXT("Failed to initialize LQR controller."));
+		return false;
+	}
+
+	return true;
+}
 
 void AMultiSystemsActor::ConfigureSimulation()
 {
@@ -208,6 +220,29 @@ void AMultiSystemsActor::ConfigureIntegrator()
 		break;
 	}
 }
+
+// -----------------------------------------------------------------------------
+// Lifecycle
+// -----------------------------------------------------------------------------
+
+void AMultiSystemsActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (bIsSimulationRunning)
+	{
+		RunSimFixedSteps(DeltaTime);
+	}
+
+	// Display
+	// ------------------------
+
+	Display.UpdateActorLocation(GetActorLocation());
+	Display.DrawSystem();
+	PrintInfo();
+}
+
+
 
 // -----------------------------------------------------------------------------
 // Fixed step simulation

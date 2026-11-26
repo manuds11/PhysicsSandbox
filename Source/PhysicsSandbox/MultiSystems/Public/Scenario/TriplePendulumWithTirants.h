@@ -38,7 +38,8 @@ public:
 		BaseOnly,
 		Mass1Only,
 		Mass3Only,
-		Mass1AndMass2
+		Mass1AndMass2,
+		BaseAndMass1
 	};
 
 
