@@ -2,9 +2,7 @@
 
 #include "Actors/MultiSystemsActor.h"
 
-#include "Scenario/TriplePendulum.h"
-#include "Scenario/TriplePendulumWithTirants.h"
-#include "Scenario/DoubleSpringDoublePendulum.h"
+#include "Actors/ActorScenarioMgmt.h"
 
 #include "Elements/PendulumRod.h"
 #include "Elements/SpringDamper.h"
@@ -35,13 +33,14 @@ void AMultiSystemsActor::BeginPlay()
 	// Scenario
 	// ------------------------
 
+	/*
 	using FScenarioSystem = FTriplePendulumWithTirants;
 
 	if (!InitializeSystem<FScenarioSystem>(
 		FScenarioSystem::EGeometryPreset::SlidingBase,
-		FScenarioSystem::EActuationPreset::BaseAndMass1,
+		FScenarioSystem::EActuationPreset::NoActuation,
 		FScenarioSystem::EStatePreset::StrongRight,
-		FScenarioSystem::EStatePreset::VerticalEquilibrium
+		FScenarioSystem::EStatePreset::VerticalEquilibrium		// Ignored if no actuation is configured
 	))
 	{
 		UE_LOG(LogPhysicsSandbox, Error, TEXT("Scenario initialization failed. Simulation disabled."));
@@ -51,7 +50,12 @@ void AMultiSystemsActor::BeginPlay()
 
 		return;
 	}
+	*/
 
+	if (!InitializeScenario(EScenarioPreset::Tirants_SlidingBase_BaseAndMass1))
+	{
+		return;
+	}
 
 	// Input
 	// ------------------------
@@ -243,8 +247,6 @@ void AMultiSystemsActor::Tick(float DeltaTime)
 }
 
 
-
-// -----------------------------------------------------------------------------
 // Fixed step simulation
 // -----------------------------------------------------------------------------
 

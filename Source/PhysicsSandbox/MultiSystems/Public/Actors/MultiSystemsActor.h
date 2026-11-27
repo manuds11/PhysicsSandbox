@@ -19,6 +19,7 @@ enum class EIntegratorType : uint8
 };
 
 class ASimuCameraController;
+enum class EScenarioPreset : uint8;
 
 UCLASS()
 class PHYSICSSANDBOX_API AMultiSystemsActor : public AActor
@@ -47,6 +48,8 @@ private:
 	// =========================
 	// Scenario initialization
 	// =========================
+
+	bool InitializeScenario(EScenarioPreset Preset);
 
 	template<typename TSystem>
 	bool InitializeSystem(
@@ -109,7 +112,7 @@ private:
 	bool bDrawControlForces = true;
 
 	UPROPERTY(EditAnywhere, Category = "Visualization|Control")
-	double ControlForceArrowScale = 5.0; // cm / N
+	double ControlForceArrowScale = 10.0; // cm / N
 
 	UPROPERTY(EditAnywhere, Category = "Visualization|Control")
 	double ControlForceArrowMaxLength = 250.0; // cm
